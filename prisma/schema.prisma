@@ -1,0 +1,533 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model User {
+  id               String        @id @default(cuid())
+  email            String        @unique
+  passwordHash     String
+  name             String
+  phone            String?
+  avatarUrl        String?
+  role             UserRole      @default(MURID)
+  createdAt        DateTime      @default(now())
+  updatedAt        DateTime      @updatedAt
+  resetToken       String?
+  resetTokenExpiry DateTime?
+  absensi          Absensi[]
+  admin            Admin?
+  invoices         Invoice[]
+  receivedMessages Message[]     @relation("ReceivedMessages")
+  sentMessages     Message[]     @relation("SentMessages")
+  murid            Murid?
+  payments         Payment[]
+  pengajar         Pengajar?
+  reminderLogs     ReminderLog[]
+  testimonials      Testimonials[]
+
+  @@map("users")
+}
+
+model PaymentSettings {
+  id               String   @id @default("default")
+  bankName         String?
+  accountNumber    String?
+  accountName      String?
+  qrisImageUrl     String?
+  qrisMerchantName String?
+  updatedAt        DateTime @updatedAt
+  centerAddress    String?
+  centerLat        Float?
+  centerLng        Float?
+  googleMapsUrl    String?
+
+  @@map("payment_settings")
+}
+
+model SiteSettings {
+  id           String   @id @default("default")
+  name         String?
+  tagline      String?
+  logoUrl      String?
+  wordmark     String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  address      String?
+  phone        String?
+  supportEmail String?
+
+  @@map("site_settings")
+}
+
+model Admin {
+  id        String   @id @default(cuid())
+  userId    String   @unique
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("admins")
+}
+
+model Pengajar {
+  id                String   @id @default(cuid())
+  userId            String   @unique
+  spesialisasi      String
+  bio               String?
+  nominalPerJam     Int      @default(75000)
+  isActive          Boolean  @default(true)
+  totalJamBulanIni  Int      @default(0)
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+  bankAccountName   String?
+  bankAccountNumber String?
+  bankName          String?
+  qrisImageUrl      String?
+  feeRecords        Fee[]
+  feePayouts        FeePayout[]
+  jadwal            Jadwal[]
+  rapot             Rapot[]
+  asesmenKePengajar AsesmenPengajar[] @relation("AsesmenKePengajar")
+  materi            Materi[]
+  user              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  quizzes           Quiz[]
+
+  @@map("pengajar")
+}
+
+model Murid {
+  id                  String        @id @default(cuid())
+  userId              String        @unique
+  kelas               String
+  sekolah             String
+  programId           String?
+  programNama         String?
+  programKategori     String?
+  onboardingComplete  Boolean       @default(false)
+  onboardingCategory  String?
+  namaWali            String?
+  phoneWali           String?
+  paketBulanan        Int
+  statusBayarBulanIni PaymentStatus @default(PENDING)
+  isActive            Boolean       @default(true)
+  createdAt           DateTime      @default(now())
+  updatedAt           DateTime      @updatedAt
+  jadwal              Jadwal[]
+  rapot               Rapot[]
+  asesmenDariMurid    AsesmenPengajar[] @relation("AsesmenDariMurid")
+  user                User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  payments            Payment[]
+
+  @@map("murid")
+}
+
+model Jadwal {
+  id            String     @id @default(cuid())
+  pengajarId    String
+  muridId       String
+  kelompokId    String?
+  kelompokNama  String?
+  mataPelajaran String
+  tanggal       DateTime
+  jamMulai      String
+  jamSelesai    String
+  mode          JadwalMode
+  ruangan       String?
+  catatan       String?
+  status        String     @default("TERJADWAL")
+  createdAt     DateTime   @default(now())
+  updatedAt     DateTime   @updatedAt
+  startedAt     DateTime?
+  absensi       Absensi[]
+  murid         Murid      @relation(fields: [muridId], references: [id], onDelete: Cascade)
+  pengajar      Pengajar   @relation(fields: [pengajarId], references: [id], onDelete: Cascade)
+  quizzes       Quiz[]
+
+  @@map("jadwal")
+}
+
+model Absensi {
+  id             String           @id @default(cuid())
+  jadwalId       String
+  userId         String
+  status         AttendanceStatus @default(HADIR)
+  waktuAbsen     DateTime         @default(now())
+  catatan        String?
+  buktiData      String?
+  buktiMimeType  String?
+  buktiNama      String?
+  mataPelajaran  String
+  tanggal        DateTime
+  createdAt      DateTime         @default(now())
+  endAccuracy    Float?
+  endLatitude    Float?
+  endLongitude   Float?
+  finishedAt     DateTime?
+  startAccuracy  Float?
+  startLatitude  Float?
+  startLongitude Float?
+  startedAt      DateTime?
+  jadwal         Jadwal           @relation(fields: [jadwalId], references: [id], onDelete: Cascade)
+  user           User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([jadwalId, userId])
+  @@map("absensi")
+}
+
+model Payment {
+  id                     String        @id @default(cuid())
+  muridId                String
+  userId                 String
+  orderId                String        @unique
+  amount                 Int
+  status                 PaymentStatus @default(PENDING)
+  paymentUrl             String?
+  paidAt                 DateTime?
+  createdAt              DateTime      @default(now())
+  updatedAt              DateTime      @updatedAt
+  confirmedAt            DateTime?
+  paymentMethod          String?
+  paymentReference       String?
+  recipientAccountName   String?
+  recipientAccountNumber String?
+  recipientBankName      String?
+  recipientQrisImageUrl  String?
+  paymentProofData       String?
+  paymentProofMimeType   String?
+  paymentProofName       String?
+  paymentProofUploadedAt DateTime?
+  murid                  Murid         @relation(fields: [muridId], references: [id], onDelete: Cascade)
+  user                   User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("payments")
+}
+
+model Fee {
+  id                     String    @id @default(cuid())
+  pengajarId             String
+  periode                String
+  totalJam               Int
+  nominalPerJam          Int
+  totalFee               Int
+  status                 FeeStatus @default(PENDING)
+  paidAt                 DateTime?
+  createdAt              DateTime  @default(now())
+  payoutAccountName      String?
+  payoutAccountNumber    String?
+  payoutBankName         String?
+  payoutMethod           String?
+  payoutQrisImageUrl     String?
+  payoutReference        String?
+  paymentProofData       String?
+  paymentProofMimeType   String?
+  paymentProofName       String?
+  paymentProofUploadedAt DateTime?
+  pengajar               Pengajar  @relation(fields: [pengajarId], references: [id], onDelete: Cascade)
+
+  @@map("fees")
+}
+
+model FeePayout {
+  id               String           @id @default(cuid())
+  pengajarId       String
+  periodType       PayoutPeriodType
+  periodKey        String
+  periodStart      DateTime
+  periodEnd        DateTime
+  totalJam         Int
+  nominalPerJam    Int
+  totalFee         Int
+  status           FeeStatus        @default(PENDING)
+  paidAt           DateTime?
+  payoutMethod     String?
+  payoutReference  String?
+  createdAt        DateTime         @default(now())
+  updatedAt        DateTime         @updatedAt
+  pengajar         Pengajar         @relation(fields: [pengajarId], references: [id], onDelete: Cascade)
+
+  @@unique([pengajarId, periodType, periodKey])
+  @@index([periodType, periodKey, status])
+  @@map("fee_payouts")
+}
+
+model Rapot {
+  id          String   @id @default(cuid())
+  muridId     String
+  pengajarId  String
+  periode     String
+  nilaiQuiz   Int      @default(0)
+  kehadiran   Int      @default(0)
+  nilaiSekolah Int     @default(0)
+  keaktifan   Int      @default(0)
+  nilaiAkhir  Int      @default(0)
+  deskripsi   String
+  rekomendasi String
+  status      String   @default("TERBIT")
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  murid       Murid    @relation(fields: [muridId], references: [id], onDelete: Cascade)
+  pengajar    Pengajar @relation(fields: [pengajarId], references: [id], onDelete: Cascade)
+
+  @@unique([muridId, pengajarId, periode])
+  @@index([pengajarId, updatedAt])
+  @@index([muridId, updatedAt])
+  @@map("rapot")
+}
+
+model AsesmenPengajar {
+  id                String   @id @default(cuid())
+  muridId           String
+  pengajarId        String
+  periode           String
+  rating            Int      @default(5)
+  pemahamanMateri   Int      @default(5)
+  komunikasi        Int      @default(5)
+  ketepatanWaktu    Int      @default(5)
+  deskripsi         String
+  status            String   @default("TERKIRIM")
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+  murid             Murid    @relation("AsesmenDariMurid", fields: [muridId], references: [id], onDelete: Cascade)
+  pengajar          Pengajar @relation("AsesmenKePengajar", fields: [pengajarId], references: [id], onDelete: Cascade)
+
+  @@unique([muridId, pengajarId, periode])
+  @@index([pengajarId, createdAt])
+  @@map("asesmen_pengajar")
+}
+
+model Invoice {
+  id           String        @id @default(cuid())
+  title        String?
+  periode      String?
+  targetRole   InvoiceTarget @default(MURID)
+  targetUserId String?
+  amount       Int?
+  fileData     String?
+  fileName     String?
+  fileMimeType String?
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+  targetUser   User?         @relation(fields: [targetUserId], references: [id], onDelete: Cascade)
+
+  @@map("invoices")
+}
+
+model FinanceTransaction {
+  id         String   @id @default(cuid())
+  tanggal    DateTime
+  tipe       String
+  kategori   String
+  keterangan String
+  jumlah     Int
+  status     String   @default("tercatat")
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@index([tanggal])
+  @@map("finance_transactions")
+}
+
+model Quiz {
+  id            String   @id @default(cuid())
+  jadwalId      String
+  pengajarId    String
+  judul         String
+  deskripsi     String?
+  mataPelajaran String
+  kelas         String
+  durasiMenit   Int
+  questions     Json
+  isPublished   Boolean  @default(false)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  jadwal        Jadwal   @relation(fields: [jadwalId], references: [id], onDelete: Cascade)
+  pengajar      Pengajar @relation(fields: [pengajarId], references: [id], onDelete: Cascade)
+
+  @@index([jadwalId])
+  @@index([pengajarId])
+  @@map("quizzes")
+}
+
+model Materi {
+  id            String   @id @default(cuid())
+  pengajarId    String
+  judul         String
+  deskripsi     String?
+  mataPelajaran String
+  kelas         String
+  kategori      String
+  fileUrl       String?
+  bunnyVideoId  String?
+  thumbnailUrl  String?
+  isPublished   Boolean  @default(false)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  pengajar      Pengajar @relation(fields: [pengajarId], references: [id], onDelete: Cascade)
+
+  @@map("materi")
+}
+
+model Berita {
+  id           String   @id @default(cuid())
+  judul        String
+  slug         String   @unique
+  ringkasan    String?
+  isi          String
+  thumbnailUrl String?
+  kategori     String   @default("Umum")
+  authorName   String   @default("Helped By Dinda")
+  isPublished  Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@map("berita")
+}
+
+model PortalKonten {
+  id          String   @id @default(cuid())
+  kategori    String
+  slug        String   @unique
+  judul       String
+  ringkasan   String?
+  isi         String
+  imageUrl    String?
+  isPublished Boolean  @default(true)
+  urutan      Int      @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([kategori])
+  @@map("portal_konten")
+}
+
+model Program {
+  id          String   @id @default(cuid())
+  code        String   @unique
+  category    String
+  title       String
+  target      String
+  price       Int
+  description String
+  subjects    Json
+  facilities  Json
+  popular     Boolean  @default(false)
+  isPublished Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([category, isPublished])
+  @@map("programs")
+}
+
+model ContactMessage {
+  id         String   @id @default(cuid())
+  nama       String
+  email      String?
+  whatsapp   String
+  jenjang    String?
+  pesan      String
+  isSynced   Boolean  @default(false)
+  provider   String?
+  providerId String?
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@index([whatsapp])
+  @@map("contact_messages")
+}
+
+model ReminderLog {
+  id           String   @id @default(cuid())
+  userId       String?
+  tipe         String
+  targetNama   String
+  targetEmail  String
+  targetRole   String
+  status       String   @default("sent")
+  errorMessage String?
+  sentAt       DateTime @default(now())
+  keterangan   String?
+  user         User?    @relation(fields: [userId], references: [id])
+
+  @@map("reminder_logs")
+}
+
+model Testimonials {
+  id          String   @id @default(cuid())
+  userId      String
+  text        String
+  rating      Int      @default(5)
+  isPublished Boolean  @default(false)
+  createdAt   DateTime @default(now())
+
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("testimonials")
+}
+
+model Message {
+  id                   String    @id @default(cuid())
+  senderId             String
+  recipientId          String
+  title                String
+  body                 String
+  type                 String    @default("ADMIN_MESSAGE")
+  attachmentData       String?
+  attachmentName       String?
+  attachmentMimeType   String?
+  readAt               DateTime?
+  deletedAt            DateTime?
+  createdAt            DateTime  @default(now())
+  updatedAt            DateTime  @updatedAt
+  recipient   User      @relation("ReceivedMessages", fields: [recipientId], references: [id], onDelete: Cascade)
+  sender      User      @relation("SentMessages", fields: [senderId], references: [id], onDelete: Cascade)
+
+  @@index([recipientId, deletedAt, createdAt])
+  @@index([senderId, createdAt])
+  @@map("messages")
+}
+
+enum UserRole {
+  ADMIN
+  PENGAJAR
+  MURID
+}
+
+enum JadwalMode {
+  ONLINE
+  OFFLINE
+}
+
+enum AttendanceStatus {
+  HADIR
+  TERLAMBAT
+  IZIN
+  SAKIT
+  ALPHA
+}
+
+enum PaymentStatus {
+  PENDING
+  PROCESSING
+  SUCCESS
+  FAILED
+  EXPIRED
+}
+
+enum FeeStatus {
+  PENDING
+  PAID
+}
+
+enum PayoutPeriodType {
+  WEEKLY
+  MONTHLY
+}
+
+enum InvoiceTarget {
+  MURID
+  PENGAJAR
+}

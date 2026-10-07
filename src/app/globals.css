@@ -1,1 +1,258 @@
 @import "tailwindcss";
+
+@layer base {
+  :root {
+    --background: 250 30% 99%;
+    --foreground: 240 10% 12%;
+
+    --card: 0 0% 100%;
+    --card-foreground: 240 10% 12%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 240 10% 12%;
+
+    --primary: 262 83% 58%;
+    --primary-foreground: 0 0% 100%;
+
+    --secondary: 262 83% 96%;
+    --secondary-foreground: 262 80% 30%;
+
+    --accent: 158 64% 42%;
+    --accent-foreground: 0 0% 100%;
+
+    --muted: 240 5% 96%;
+    --muted-foreground: 240 5% 45%;
+
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 100%;
+
+    --warning: 38 92% 50%;
+    --warning-foreground: 0 0% 100%;
+
+    --border: 240 6% 90%;
+    --input: 240 6% 90%;
+    --ring: 262 83% 58%;
+
+    --radius: 1rem;
+  }
+}
+
+@theme {
+  --color-background: hsl(var(--background));
+  --color-foreground: hsl(var(--foreground));
+  --color-card: hsl(var(--card));
+  --color-card-foreground: hsl(var(--card-foreground));
+  --color-popover: hsl(var(--popover));
+  --color-popover-foreground: hsl(var(--popover-foreground));
+  --color-primary: hsl(var(--primary));
+  --color-primary-foreground: hsl(var(--primary-foreground));
+  --color-secondary: hsl(var(--secondary));
+  --color-secondary-foreground: hsl(var(--secondary-foreground));
+  --color-accent: hsl(var(--accent));
+  --color-accent-foreground: hsl(var(--accent-foreground));
+  --color-muted: hsl(var(--muted));
+  --color-muted-foreground: hsl(var(--muted-foreground));
+  --color-destructive: hsl(var(--destructive));
+  --color-destructive-foreground: hsl(var(--destructive-foreground));
+  --color-warning: hsl(var(--warning));
+  --color-warning-foreground: hsl(var(--warning-foreground));
+  --color-border: hsl(var(--border));
+  --color-input: hsl(var(--input));
+  --color-ring: hsl(var(--ring));
+
+  --font-heading: "Plus Jakarta Sans", "Trebuchet MS", sans-serif;
+  --font-body: Inter, Arial, sans-serif;
+  --font-mono: "JetBrains Mono", Consolas, monospace;
+}
+
+body {
+  background-color: hsl(var(--background));
+  color: hsl(var(--foreground));
+  font-family: var(--font-body);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  font-family: var(--font-heading);
+  letter-spacing: -0.02em;
+}
+
+.tabular-nums {
+  font-variant-numeric: tabular-nums;
+  font-family: var(--font-mono);
+}
+
+@media print {
+  @page {
+    size: A4;
+    margin: 16mm;
+  }
+
+  body {
+    background: white;
+  }
+
+  body * {
+    visibility: hidden;
+  }
+
+  #fee-report,
+  #fee-report * {
+    visibility: visible;
+  }
+
+  #fee-report {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    color: black;
+  }
+
+  .print-hidden,
+  .print-report-header button {
+    display: none !important;
+  }
+
+  #fee-report .border,
+  #fee-report .border-2 {
+    border-color: #d1d5db !important;
+  }
+
+  #fee-report .bg-card,
+  #fee-report .bg-background,
+  #fee-report .bg-muted\/30 {
+    background: white !important;
+  }
+
+  #fee-report .shadow-sm,
+  #fee-report .shadow-xs,
+  #fee-report .shadow-2xs {
+    box-shadow: none !important;
+  }
+
+  #fee-report .md\:hidden {
+    display: none !important;
+  }
+
+  #fee-report .hidden.md\:block {
+    display: block !important;
+  }
+
+  #admin-fee-report,
+  #admin-fee-report * {
+    visibility: visible;
+  }
+
+  #admin-fee-report {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    color: black;
+  }
+
+  #admin-fee-report .border,
+  #admin-fee-report .border-2 {
+    border-color: #d1d5db !important;
+  }
+
+  #admin-fee-report .bg-card,
+  #admin-fee-report .bg-background,
+  #admin-fee-report .bg-muted\/30 {
+    background: white !important;
+  }
+
+  #admin-fee-report .shadow-sm,
+  #admin-fee-report .shadow-xs,
+  #admin-fee-report .shadow-2xs {
+    box-shadow: none !important;
+  }
+
+  #finance-report,
+  #finance-report * {
+    visibility: visible;
+  }
+
+  #finance-report {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    color: black;
+  }
+
+  #finance-report .print-hidden {
+    display: none !important;
+  }
+
+  #finance-report .border,
+  #finance-report .border-2 {
+    border-color: #d1d5db !important;
+  }
+
+  #finance-report .bg-card,
+  #finance-report .bg-background,
+  #finance-report .bg-muted\/30 {
+    background: white !important;
+  }
+
+  #finance-report .shadow-sm,
+  #finance-report .shadow-xs,
+  #finance-report .shadow-2xs {
+    box-shadow: none !important;
+  }
+
+  #pengajar-rapot-report,
+  #pengajar-rapot-report *,
+  #murid-rapot-report,
+  #murid-rapot-report * {
+    visibility: visible;
+  }
+
+  #pengajar-rapot-report,
+  #murid-rapot-report {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    color: black;
+  }
+
+  #pengajar-rapot-report .print-hidden,
+  #murid-rapot-report .print-hidden {
+    display: none !important;
+  }
+
+  #pengajar-rapot-report .border,
+  #pengajar-rapot-report .border-2,
+  #murid-rapot-report .border,
+  #murid-rapot-report .border-2 {
+    border-color: #d1d5db !important;
+  }
+
+  #pengajar-rapot-report .shadow-sm,
+  #pengajar-rapot-report .shadow-xs,
+  #murid-rapot-report .shadow-sm,
+  #murid-rapot-report .shadow-xs {
+    box-shadow: none !important;
+  }
+
+  #pengajar-rapot-report .bg-card,
+  #pengajar-rapot-report .bg-secondary\/60,
+  #pengajar-rapot-report .bg-emerald-50,
+  #murid-rapot-report .bg-card,
+  #murid-rapot-report .bg-secondary\/60,
+  #murid-rapot-report .bg-emerald-50 {
+    background: white !important;
+  }
+
+  #pengajar-rapot-report > div,
+  #murid-rapot-report > div,
+  #pengajar-rapot-report > section,
+  #murid-rapot-report > section {
+    break-inside: avoid;
+  }
+}
