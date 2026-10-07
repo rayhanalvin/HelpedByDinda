@@ -4,8 +4,9 @@ import * as React from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { LayoutDashboard, CalendarCheck2, FolderKanban, Calendar, Coins, UserCircle, Menu, X, Sparkles, LogOut, ChevronRight, Briefcase, ClipboardCheck, ClipboardList, BellRing } from "lucide-react";
+import { LayoutDashboard, CalendarCheck2, FolderKanban, Calendar, Coins, UserCircle, Menu, X, Sparkles, ChevronRight, Briefcase, ClipboardCheck, ClipboardList, BellRing } from "lucide-react";
 import { RoleSwitcher } from "@/components/shared/RoleSwitcher";
+import { LogoutButton } from "@/components/shared/LogoutButton";
 import { BrandLogo, useSiteSettings } from "@/components/shared/BrandLogo";
 import { Badge } from "@/components/ui/badge";
 import { DUMMY_PENGAJAR } from "@/lib/dummy-data";
@@ -116,10 +117,7 @@ export default function PengajarLayout({ children }: { children: React.ReactNode
 
         {/* Bottom links */}
         <div className="p-4 border-t border-border space-y-2">
-          <Link href="/login" className="flex items-center gap-3 px-3 py-2 text-xs font-medium text-muted-foreground hover:text-destructive transition-colors rounded-lg hover:bg-rose-50">
-            <LogOut className="h-4 w-4" />
-            <span>Keluar Akun</span>
-          </Link>
+          <LogoutButton label="Keluar Akun" size="sm" className="w-full justify-start px-3 py-2 text-xs font-medium text-muted-foreground hover:text-destructive hover:bg-rose-50" />
         </div>
       </aside>
 
@@ -140,12 +138,23 @@ export default function PengajarLayout({ children }: { children: React.ReactNode
             </div>
           </div>
 
-          <div className="flex items-center gap-2.5">
+          <div className="flex items-center gap-1.5 sm:gap-2.5">
             <MessageInbox />
-            <RoleSwitcher />
-            <Link href="/pengajar/profil" className="flex items-center gap-2 p-1 rounded-xl hover:bg-muted transition-colors">
-              <Image src={avatarUrl} alt={activePengajarName} width={32} height={32} unoptimized className="h-8 w-8 rounded-lg object-cover border border-border" />
-            </Link>
+            <span className="hidden md:block">
+              <RoleSwitcher />
+            </span>
+            <div className="relative group">
+              <Link href="/pengajar/profil" className="flex items-center gap-2 p-1 rounded-xl hover:bg-muted transition-colors">
+                <Image src={avatarUrl} alt={activePengajarName} width={32} height={32} unoptimized className="h-8 w-8 rounded-lg object-cover border border-border" />
+              </Link>
+              <div className="absolute right-0 top-10 z-40 hidden min-w-44 flex-col gap-1 rounded-xl border border-border bg-card p-2 shadow-xl group-hover:flex group-focus-within:flex">
+                <p className="px-1.5 py-1 text-xs font-bold text-foreground truncate">{activePengajarName}</p>
+                <Link href="/pengajar/profil" className="px-3 py-2 text-xs font-medium text-muted-foreground hover:text-foreground hover:bg-muted rounded-lg">
+                  Profil Saya
+                </Link>
+                <LogoutButton label="Logout" size="sm" className="w-full justify-start text-xs text-muted-foreground hover:text-destructive hover:bg-rose-50" />
+              </div>
+            </div>
           </div>
         </header>
 
@@ -193,6 +202,9 @@ export default function PengajarLayout({ children }: { children: React.ReactNode
                 );
               })}
             </nav>
+            <div className="mt-3 border-t border-border pt-3">
+              <LogoutButton label="Keluar Akun" size="sm" className="w-full justify-start text-xs font-medium text-muted-foreground hover:text-destructive hover:bg-rose-50" />
+            </div>
           </div>
         </div>
       )}

@@ -8,6 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { useToast } from "@/components/ui/toast";
 import { DUMMY_ADMIN } from "@/lib/dummy-data";
 import { ProfileAvatarUploader, useProfileName, useProfileEmail } from "@/components/shared/ProfileAvatarUploader";
+import { LogoutButton } from "@/components/shared/LogoutButton";
 import { apiFetch } from "@/lib/api";
 
 export default function AdminPengaturanPage() {
@@ -361,6 +362,16 @@ export default function AdminPengaturanPage() {
             <Save className="h-4 w-4" /> Simpan Pengaturan
           </Button>
         </div>
+
+        <Card className="border-border border-destructive/20 bg-rose-50/40">
+          <CardContent className="p-5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+            <div>
+              <p className="text-sm font-bold text-foreground">Keluar dari Akun Admin</p>
+              <p className="text-xs text-muted-foreground mt-0.5">Akhiri sesi login administrator di perangkat ini.</p>
+            </div>
+            <LogoutButton label="Logout Sekarang" className="border border-rose-200 bg-white px-4 py-2 text-rose-700 hover:bg-rose-100 hover:text-rose-800" />
+          </CardContent>
+        </Card>
       </form>
     </div>
   );

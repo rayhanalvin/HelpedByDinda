@@ -17,6 +17,7 @@ type MuridWithUser = {
   paketBulanan: number;
   statusBayarBulanIni: "PENDING" | "PROCESSING" | "SUCCESS" | "FAILED" | "EXPIRED";
   isActive: boolean;
+  createdAt: Date;
   user: {
     name: string;
     email: string;
@@ -42,6 +43,7 @@ const serializeMurid = (item: MuridWithUser) => ({
   paketBulanan: item.paketBulanan,
   statusBayarBulanIni: item.statusBayarBulanIni,
   isActive: item.isActive,
+  createdAt: item.createdAt.toISOString(),
 });
 
 export async function GET() {

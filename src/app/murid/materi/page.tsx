@@ -2,13 +2,12 @@
 
 import * as React from "react";
 import Link from "next/link";
-import { BookOpen, Video, FileText, PlayCircle, Search, Filter, Sparkles } from "lucide-react";
+import { BookOpen, FileText, PlayCircle, Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { useToast } from "@/components/ui/toast";
-import { cn } from "@/lib/utils";
 import { apiFetch } from "@/lib/api-fetch";
 
 type MateriCard = {
@@ -25,10 +24,7 @@ type MateriCard = {
 
 export default function MuridMateriPage() {
   const { toast } = useToast();
-  const [selectedMapel, setSelectedMapel] = React.useState<string>("SEMUA");
   const [searchQuery, setSearchQuery] = React.useState<string>("");
-
-  const mapelList = ["SEMUA", "Matematika", "Bahasa Inggris", "Fisika", "Bahasa Indonesia", "Penalaran Kuantitatif"];
 
   const [materiList, setMateriList] = React.useState<MateriCard[]>([]);
 
@@ -53,9 +49,8 @@ export default function MuridMateriPage() {
   }, [toast]);
 
   const filteredMateri = materiList.filter((m) => {
-    const matchMapel = selectedMapel === "SEMUA" || m.mataPelajaran === selectedMapel;
     const matchSearch = m.judul.toLowerCase().includes(searchQuery.toLowerCase()) || m.deskripsi.toLowerCase().includes(searchQuery.toLowerCase());
-    return matchMapel && matchSearch;
+    return matchSearch;
   });
 
   return (
@@ -65,25 +60,10 @@ export default function MuridMateriPage() {
         <p className="text-xs sm:text-sm text-muted-foreground mt-1">Akses rekaman video penjelasan Bunny Stream dan unduh modul latihan PDF terstruktur.</p>
       </div>
 
-      {/* Search & Filter Bar */}
-      <div className="flex flex-col sm:flex-row gap-4 items-center justify-between">
-        <div className="relative w-full sm:max-w-md">
-          <Input placeholder="Cari judul materi atau topik..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} className="pl-10" />
-          <Search className="absolute left-3.5 top-3.5 h-4 w-4 text-muted-foreground" />
-        </div>
-
-        {/* Filter Pills */}
-        <div className="flex items-center gap-1.5 overflow-x-auto w-full sm:w-auto pb-1">
-          {mapelList.map((mapel) => (
-            <button
-              key={mapel}
-              onClick={() => setSelectedMapel(mapel)}
-              className={cn("whitespace-nowrap rounded-xl px-3.5 py-2 text-xs font-semibold transition-all cursor-pointer", selectedMapel === mapel ? "bg-primary text-white shadow-xs" : "bg-muted text-muted-foreground hover:bg-border")}
-            >
-              {mapel}
-            </button>
-          ))}
-        </div>
+      {/* Search Bar */}
+      <div className="relative w-full sm:max-w-md">
+        <Input placeholder="Cari judul materi atau topik..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} className="pl-10" />
+        <Search className="absolute left-3.5 top-3.5 h-4 w-4 text-muted-foreground" />
       </div>
 
       {/* Grid Materi */}
@@ -112,12 +92,9 @@ export default function MuridMateriPage() {
               </div>
 
               <CardContent className="p-5 space-y-2.5">
-                <div className="flex items-center justify-between">
-                  <span className="text-xs font-bold text-primary">{materi.mataPelajaran}</span>
-                  <Badge variant="outline" className="text-[10px]">
-                    {materi.kelasLabel}
-                  </Badge>
-                </div>
+                <Badge variant="outline" className="text-[10px]">
+                  {materi.kelasLabel}
+                </Badge>
 
                 <h3 className="text-base font-bold text-foreground line-clamp-2 leading-snug">{materi.judul}</h3>
 

@@ -11,6 +11,7 @@ import { formatRupiah } from "@/lib/utils";
 import { ProfileAvatarUploader, useProfileName, useProfileEmail } from "@/components/shared/ProfileAvatarUploader";
 import { apiFetch } from "@/lib/api";
 import { PasswordInput } from "@/components/shared/PasswordInput";
+import { LogoutButton } from "@/components/shared/LogoutButton";
 
 export default function PengajarProfilPage() {
   const { toast } = useToast();
@@ -232,6 +233,16 @@ export default function PengajarProfilPage() {
             <Save className="h-4 w-4" /> Simpan Profil Pengajar
           </Button>
         </div>
+
+        <Card className="border-border border-destructive/20 bg-rose-50/40">
+          <CardContent className="p-5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+            <div>
+              <p className="text-sm font-bold text-foreground">Keluar dari Akun</p>
+              <p className="text-xs text-muted-foreground mt-0.5">Akhiri sesi login pengajar di perangkat ini.</p>
+            </div>
+            <LogoutButton label="Logout Sekarang" className="border border-rose-200 bg-white px-4 py-2 text-rose-700 hover:bg-rose-100 hover:text-rose-800" />
+          </CardContent>
+        </Card>
       </form>
     </div>
   );

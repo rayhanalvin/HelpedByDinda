@@ -12,6 +12,7 @@ type PengajarWithUser = {
   nominalPerJam: number;
   isActive: boolean;
   totalJamBulanIni: number;
+  createdAt: Date;
   bankName: string | null;
   bankAccountNumber: string | null;
   bankAccountName: string | null;
@@ -35,6 +36,7 @@ const serializePengajar = (item: PengajarWithUser, synchronizedHours = item.tota
   bio: item.bio,
   isActive: item.isActive,
   totalJamBulanIni: synchronizedHours,
+  createdAt: item.createdAt.toISOString(),
   bankName: item.bankName,
   bankAccountNumber: item.bankAccountNumber,
   bankAccountName: item.bankAccountName,

@@ -10,6 +10,7 @@ import { useToast } from "@/components/ui/toast";
 import { ProfileAvatarUploader, useProfileName, useProfileEmail } from "@/components/shared/ProfileAvatarUploader";
 import { apiFetch } from "@/lib/api";
 import { PasswordInput } from "@/components/shared/PasswordInput";
+import { LogoutButton } from "@/components/shared/LogoutButton";
 import { KELAS_OPTIONS, getKelasLabel, getKelasValue } from "@/lib/kelas";
 
 export default function MuridProfilPage() {
@@ -25,6 +26,7 @@ export default function MuridProfilPage() {
     phoneWali: "",
     avatarUrl: "",
     userId: "",
+    createdAt: "",
   });
 
   const [formData, setFormData] = React.useState({
@@ -51,6 +53,7 @@ export default function MuridProfilPage() {
             email: string;
             phone?: string | null;
             avatarUrl?: string | null;
+            createdAt?: string | null;
             murid?: { kelas?: string | null; sekolah?: string | null; namaWali?: string | null; phoneWali?: string | null } | null;
           };
         }>("/api/profile");
@@ -66,6 +69,7 @@ export default function MuridProfilPage() {
           phoneWali: murid.phoneWali || "",
           avatarUrl: user.avatarUrl || "https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?w=150&auto=format&fit=crop&q=80",
           userId: user.id,
+          createdAt: user.createdAt || "",
         };
         setInitialData(next);
         setFormData({ ...next, currentPassword: "", newPassword: "" });
@@ -151,7 +155,9 @@ export default function MuridProfilPage() {
               <p className="text-xs text-muted-foreground">
                 {getKelasLabel(formData.kelas)} • {formData.sekolah}
               </p>
-              <p className="text-[11px] text-primary font-medium">Terdaftar sejak Juli 2024</p>
+              <p className="text-[11px] text-primary font-medium">
+                Terdaftar sejak {initialData.createdAt ? new Date(initialData.createdAt).toLocaleDateString("id-ID", { month: "long", year: "numeric" }) : "-"}
+              </p>
             </div>
           </CardContent>
         </Card>
@@ -250,6 +256,16 @@ export default function MuridProfilPage() {
             <Save className="h-4 w-4" /> Simpan Perubahan Profil
           </Button>
         </div>
+
+        <Card className="border-border border-destructive/20 bg-rose-50/40">
+          <CardContent className="p-5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+            <div>
+              <p className="text-sm font-bold text-foreground">Keluar dari Akun</p>
+              <p className="text-xs text-muted-foreground mt-0.5">Akhiri sesi login murid di perangkat ini.</p>
+            </div>
+            <LogoutButton label="Logout Sekarang" className="border border-rose-200 bg-white px-4 py-2 text-rose-700 hover:bg-rose-100 hover:text-rose-800" />
+          </CardContent>
+        </Card>
       </form>
     </div>
   );

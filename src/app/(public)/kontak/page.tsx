@@ -160,7 +160,7 @@ export default function KontakPage() {
                     </div>
                     <div>
                       <p className="text-xs font-semibold text-muted-foreground">Jam Operasional Layanan</p>
-                      <p className="text-sm font-bold text-foreground">Senin – Sabtu: 08.00 – 22.00 WIB</p>
+                      <p className="text-sm font-bold text-foreground">Senin – Jumat: 08.00 – 22.00 WIB</p>
                       <p className="text-xs text-muted-foreground">Minggu & Libur Nasional: Tutup</p>
                     </div>
                   </div>

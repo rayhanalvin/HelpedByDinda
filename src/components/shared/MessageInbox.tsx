@@ -197,19 +197,21 @@ export function MessageInbox() {
                 {message.attachments && message.attachments.length > 0 && (
                   <div className="mt-3 space-y-2">
                     {message.attachments.map((att) => (
-                      <div key={att.id} className="flex items-center justify-between rounded-md border p-2">
-                        <div className="flex items-center gap-2">
+                      <div key={att.id} className="rounded-xl border border-border overflow-hidden">
+                        <div className="flex flex-col w-full">
                           {att.fileMimeType && att.fileMimeType.startsWith("image/") && thumbnails[att.id] ? (
-                            <img src={thumbnails[att.id]} alt={att.fileName || "lampiran"} className="h-16 w-20 object-cover rounded-md border border-border" />
+                            <button type="button" onClick={() => void downloadAttachment(att.id)} className="w-full bg-muted/30 cursor-pointer">
+                              <img src={thumbnails[att.id]} alt={att.fileName || "lampiran"} className="max-h-64 w-full object-contain" />
+                            </button>
                           ) : (
-                            <div className="p-1 rounded bg-muted/20">
+                            <div className="p-1 rounded bg-muted/20 self-start">
                               <FileText className="h-4 w-4" />
                             </div>
                           )}
-                          <div className="text-sm">{att.fileName || "Lampiran"}</div>
-                          <div className="ml-auto flex items-center gap-2">
+                          <div className="flex flex-wrap items-center justify-between gap-2 border-t border-border px-2.5 py-2">
+                            <div className="min-w-0 text-xs font-medium text-foreground truncate">{att.fileName || "Lampiran"}</div>
                             <Button size="sm" variant="outline" onClick={() => void downloadAttachment(att.id)} disabled={downloadingId !== null} className="text-[11px]">
-                              <Download className="mr-1 h-3.5 w-3.5" /> {downloadingId === att.id ? "Mencari..." : "Pratinjau"}
+                              <Download className="mr-1 h-3.5 w-3.5 shrink-0" /> {downloadingId === att.id ? "Mencari..." : "Pratinjau / Perbesar"}
                             </Button>
                           </div>
                         </div>
@@ -245,20 +247,26 @@ export function MessageInbox() {
       )}
       {preview && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
-          <div className="w-full max-w-3xl rounded-2xl bg-card p-4">
+          <div className="relative w-full max-w-3xl max-h-[92dvh] overflow-y-auto rounded-2xl bg-card p-4">
             <div className="flex items-center justify-between">
-              <div className="font-bold">Pratinjau Lampiran</div>
-              <div className="flex items-center gap-2">
-                <a href={preview.url} download={preview.fileName} className="inline-flex items-center rounded-md border px-3 py-2 text-sm">
+              <div className="min-w-0 pr-2">
+                <div className="font-bold text-sm sm:text-base truncate">{preview.fileName || "Pratinjau Lampiran"}</div>
+              </div>
+              <div className="flex shrink-0 items-center gap-2">
+                <a href={preview.url} download={preview.fileName} className="inline-flex items-center rounded-md border px-3 py-2 text-xs sm:text-sm font-medium">
                   Unduh
                 </a>
-                <button onClick={() => setPreview(null)} className="inline-flex items-center rounded-md border px-3 py-2 text-sm">
+                <button onClick={() => setPreview(null)} className="inline-flex items-center rounded-md border px-3 py-2 text-xs sm:text-sm font-medium">
                   Tutup
                 </button>
               </div>
             </div>
-            <div className="mt-3">
-              {preview.mime === "application/pdf" ? <iframe src={preview.url} className="w-full h-[70vh] rounded-lg border" /> : <img src={preview.url} alt={preview.fileName} className="w-full h-[70vh] object-contain rounded-lg border" />}
+            <div className="mt-3 flex justify-center bg-muted/30 rounded-xl p-2">
+              {preview.mime === "application/pdf" ? (
+                <iframe src={preview.url} title={preview.fileName || "PDF"} className="h-[60vh] w-full rounded-lg border" />
+              ) : (
+                <img src={preview.url} alt={preview.fileName} className="max-h-[70vh] w-full object-contain rounded-lg" />
+              )}
             </div>
           </div>
         </div>

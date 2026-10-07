@@ -9,7 +9,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Modal } from "@/components/ui/modal";
 import { useToast } from "@/components/ui/toast";
 import { ProfileAvatarPreview, ProfileNamePreview } from "@/components/shared/ProfileAvatarUploader";
-import { formatRupiah } from "@/lib/utils";
+import { formatRupiah, formatDateIndo } from "@/lib/utils";
 import { apiFetch } from "@/lib/api";
 import { KELAS_GROUPS, KELAS_OPTIONS, getKelasGroup, getKelasLabel, getKelasValue } from "@/lib/kelas";
 import { useVisiblePolling } from "@/lib/use-visible-polling";
@@ -28,6 +28,7 @@ type MuridRow = {
   paketBulanan: number;
   statusBayarBulanIni: string;
   isActive: boolean;
+  createdAt: string;
 };
 
 export default function AdminMuridPage() {
@@ -212,6 +213,7 @@ export default function AdminMuridPage() {
                   <th className="py-3.5 px-4">Kontak Wali</th>
                   <th className="py-3.5 px-4">Paket SPP</th>
                   <th className="py-3.5 px-4">Status Bayar</th>
+                  <th className="py-3.5 px-4">Terdaftar</th>
                   <th className="py-3.5 px-4 text-right">Aksi</th>
                 </tr>
               </thead>
@@ -247,6 +249,7 @@ export default function AdminMuridPage() {
                     <td className="py-3.5 px-4">
                       <Badge variant={m.statusBayarBulanIni === "dibayar" ? "success" : "warning"}>{m.statusBayarBulanIni.toUpperCase()}</Badge>
                     </td>
+                    <td className="py-3.5 px-4 text-xs text-muted-foreground">{m.createdAt ? formatDateIndo(m.createdAt) : "-"}</td>
                     <td className="py-3.5 px-4 text-right">
                       <div className="flex items-center justify-end gap-1">
                         <Button variant="ghost" size="sm" onClick={() => handleOpenEdit(m)} className="h-8 w-8 p-0">
@@ -287,6 +290,7 @@ export default function AdminMuridPage() {
                   <p>
                     Paket SPP: <strong className="text-foreground">{formatRupiah(m.paketBulanan)}/bln</strong>
                   </p>
+                  <p>Terdaftar sejak {m.createdAt ? formatDateIndo(m.createdAt) : "-"}</p>
                 </div>
 
                 <div className="flex justify-end gap-2 pt-2 border-t border-border">

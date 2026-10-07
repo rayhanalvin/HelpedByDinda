@@ -316,9 +316,6 @@ export default function MuridDashboardPage() {
                         <img src={m.thumbnailUrl} alt={m.judul} className="h-full w-full object-cover group-hover:scale-105 transition-transform duration-300" />
                         <span className="absolute bottom-2 right-2 rounded-md bg-black/70 px-2 py-0.5 text-[10px] font-bold text-white">{m.durasiMenit} Menit</span>
                       </div>
-                      <Badge variant="secondary" className="text-[10px] mb-1.5">
-                        {m.mataPelajaran}
-                      </Badge>
                       <h5 className="font-bold text-xs sm:text-sm text-foreground line-clamp-2 leading-snug">{m.judul}</h5>
                     </div>
                     <p className="text-[11px] text-muted-foreground mt-3 pt-2 border-t border-border">Tutor: {m.pengajarNama}</p>

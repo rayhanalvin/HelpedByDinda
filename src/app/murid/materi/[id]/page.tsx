@@ -68,9 +68,6 @@ export default function MuridMateriDetailPage() {
         <div className="flex flex-wrap items-center justify-between gap-3 mt-1">
           <div className="space-y-1">
             <div className="flex items-center gap-2">
-              <Badge variant="default" className="text-xs">
-                {materi.mataPelajaran}
-              </Badge>
               <Badge variant="outline" className="text-xs">
                 Kelas {materi.kelasSasaran}
               </Badge>
@@ -195,7 +192,7 @@ export default function MuridMateriDetailPage() {
                 <div className="h-10 w-10 rounded-xl bg-primary/10 text-primary flex items-center justify-center font-bold text-sm">{materi.pengajarNama.slice(0, 2).toUpperCase()}</div>
                 <div>
                   <p className="text-xs font-bold text-foreground">{materi.pengajarNama}</p>
-                  <p className="text-[11px] text-muted-foreground">Tutor {materi.mataPelajaran}</p>
+                  <p className="text-[11px] text-muted-foreground">Tutor Helped By Dinda</p>
                 </div>
               </div>
             </CardContent>

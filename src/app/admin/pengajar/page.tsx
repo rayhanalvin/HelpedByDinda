@@ -9,7 +9,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Modal } from "@/components/ui/modal";
 import { useToast } from "@/components/ui/toast";
 import { ProfileAvatarPreview, ProfileNamePreview } from "@/components/shared/ProfileAvatarUploader";
-import { formatRupiah } from "@/lib/utils";
+import { formatRupiah, formatDateIndo } from "@/lib/utils";
 import { apiFetch } from "@/lib/api";
 import { PasswordInput } from "@/components/shared/PasswordInput";
 import { useVisiblePolling } from "@/lib/use-visible-polling";
@@ -29,6 +29,7 @@ type PengajarRow = {
   bankName: string | null;
   bankAccountNumber: string | null;
   bankAccountName: string | null;
+  createdAt: string;
 };
 
 export default function AdminPengajarPage() {
@@ -244,6 +245,7 @@ export default function AdminPengajarPage() {
                   <th className="py-3.5 px-4">Tarif Fee / Jam</th>
                   <th className="py-3.5 px-4">Jam Mengajar Bulan Ini</th>
                   <th className="py-3.5 px-4">Status</th>
+                  <th className="py-3.5 px-4">Terdaftar</th>
                   <th className="py-3.5 px-4 text-right">Aksi</th>
                 </tr>
               </thead>
@@ -272,6 +274,7 @@ export default function AdminPengajarPage() {
                     <td className="py-3.5 px-4">
                       <Badge variant={p.isActive ? "success" : "secondary"}>{p.isActive ? "AKTIF" : "NONAKTIF"}</Badge>
                     </td>
+                    <td className="py-3.5 px-4 text-xs text-muted-foreground">{p.createdAt ? formatDateIndo(p.createdAt) : "-"}</td>
                     <td className="py-3.5 px-4 text-right">
                       <div className="flex items-center justify-end gap-1">
                         <Button variant="ghost" size="sm" onClick={() => handleOpenEdit(p)} className="h-8 w-8 p-0">
@@ -309,6 +312,7 @@ export default function AdminPengajarPage() {
                   <p>
                     Total Jam Mengajar: <strong className="text-foreground">{p.totalJamBulanIni} Jam</strong>
                   </p>
+                  <p>Terdaftar sejak {p.createdAt ? formatDateIndo(p.createdAt) : "-"}</p>
                 </div>
 
                 <div className="flex justify-end gap-2 pt-2 border-t border-border">
