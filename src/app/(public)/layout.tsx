@@ -142,7 +142,7 @@ export default function PublicLayout({ children }: { children: React.ReactNode }
                   <PhoneCall className="h-4 w-4 text-accent" /> {site.phone}
                 </span>
                 <span className="flex items-center gap-1.5">
-                  <Mail className="h-4 w-4 text-primary" /> cs.helpedbydinda@gmail.com
+                  <Mail className="h-4 w-4 text-primary" /> cs.helpeddinda@gmail.com
                 </span>
               </div>
             </div>

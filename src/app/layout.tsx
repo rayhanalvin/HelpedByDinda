@@ -14,11 +14,11 @@ export const metadata: Metadata = {
   keywords: ["bimbel online", "les privat", "Helped By Dinda", "tutor matematika", "UTBK", "belajar online"],
   icons: {
     icon: [
-      { rel: "icon", url: "/public/helpedd.jpeg" },
-      { rel: "icon", url: "/public/helpedd.jpeg", sizes: "16x16" },
-      { rel: "icon", url: "/public/helpedd.jpeg", sizes: "32x32" },
+      { rel: "icon", url: "/helpedd.jpeg" },
+      { rel: "icon", url: "/favicon-16x16.png", sizes: "16x16" },
+      { rel: "icon", url: "/favicon-32x32.png", sizes: "32x32" },
     ],
-    apple: [{ rel: "apple-touch-icon", url: "/public/helpedd.jpeg", sizes: "180x180" }],
+    apple: [{ rel: "apple-touch-icon", url: "/favicon-180.png", sizes: "180x180" }],
   },
 };
 

@@ -98,16 +98,17 @@ export function MessageInbox() {
 
   React.useEffect(() => {
     void load();
-    const interval = window.setInterval(() => void load(), 10000);
-    const onVisibility = () => {
-      if (document.visibilityState === "visible") void load();
-    };
-    document.addEventListener("visibilitychange", onVisibility);
-    return () => {
-      window.clearInterval(interval);
-      document.removeEventListener("visibilitychange", onVisibility);
-    };
   }, [load]);
+
+  React.useEffect(() => {
+    if (!open) {
+      // Keep the unread badge fresh occasionally in the background.
+      const slow = window.setInterval(() => void load(), 60000);
+      return () => window.clearInterval(slow);
+    }
+    const fast = window.setInterval(() => void load(), 10000);
+    return () => window.clearInterval(fast);
+  }, [open, load]);
 
   // When the inbox is opened, prefetch small thumbnails for image attachments to make them easier to view.
   const loadThumbnailsForMessages = React.useCallback(async () => {

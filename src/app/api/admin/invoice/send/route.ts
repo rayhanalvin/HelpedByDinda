@@ -42,7 +42,7 @@ export async function POST(req: Request) {
   // Nodemailer transport using SMTP env
   const host = process.env.SMTP_HOST || "smtp.gmail.com";
   const port = Number(process.env.SMTP_PORT || "587");
-  const userMail = process.env.SMTP_USER || "helpedbydinda@gmail.com";
+  const userMail = process.env.SMTP_USER || "cs.helpeddinda@gmail.com";
   const passMail = process.env.SMTP_PASS || "";
   const from = process.env.EMAIL_FROM || `Helped By Dinda <${userMail}>`;
 

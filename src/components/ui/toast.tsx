@@ -69,7 +69,7 @@ export function useToast() {
   if (!context) {
     // Return a fallback no-op if outside provider
     return {
-      toast: (msg: string) => console.log("Toast:", msg),
+      toast: () => undefined,
     };
   }
   return context;

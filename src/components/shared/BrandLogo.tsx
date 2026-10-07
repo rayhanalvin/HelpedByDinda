@@ -26,29 +26,53 @@ const defaultSiteIdentity: SiteIdentity = {
   tagline: "Bimbel Digital Modern",
   logoUrl: "/helpedd.jpeg",
   wordmark: "Platform Belajar Modern",
-  supportEmail: "produktifdinda@gmail.com",
-  phone: "+62 895-3850-63575",
+  supportEmail: "cs.helpeddinda@gmail.com",
+  phone: "082381188058",
   address: "Pesanggrahan, Petukangan Utara",
 };
 
+let cachedSite: SiteIdentity | null = null;
+let sitePromise: Promise<SiteIdentity | null> | null = null;
+
+async function fetchSiteSettings(): Promise<SiteIdentity | null> {
+  try {
+    const result = await apiFetch<{ ok: boolean; data: Partial<SiteIdentity> | null }>("/api/site-settings");
+    if (!result.ok || !result.data) return null;
+    return { ...defaultSiteIdentity, ...result.data };
+  } catch {
+    return null;
+  }
+}
+
+function getSiteSettings(): Promise<SiteIdentity | null> {
+  if (cachedSite) return Promise.resolve(cachedSite);
+  if (!sitePromise) {
+    sitePromise = fetchSiteSettings()
+      .then((site) => {
+        cachedSite = site;
+        return site;
+      })
+      .finally(() => {
+        sitePromise = null;
+      });
+  }
+  return sitePromise;
+}
+
 export function useSiteSettings() {
-  const [site, setSite] = React.useState<SiteIdentity>(defaultSiteIdentity);
+  const [site, setSite] = React.useState<SiteIdentity>(cachedSite || defaultSiteIdentity);
 
   React.useEffect(() => {
     let active = true;
-    apiFetch<{ ok: boolean; data: Partial<SiteIdentity> | null }>("/api/site-settings")
-      .then((result) => {
-        if (!active || !result.ok || !result.data) return;
-        setSite({ ...defaultSiteIdentity, ...result.data });
-      })
-      .catch(() => undefined);
+    void getSiteSettings().then((next) => {
+      if (active && next) setSite(next);
+    });
 
     const handleChange = () => {
-      apiFetch<{ ok: boolean; data: Partial<SiteIdentity> | null }>("/api/site-settings")
-        .then((result) => {
-          if (active && result.ok && result.data) setSite({ ...defaultSiteIdentity, ...result.data });
-        })
-        .catch(() => undefined);
+      cachedSite = null;
+      void getSiteSettings().then((next) => {
+        if (active && next) setSite(next);
+      });
     };
     window.addEventListener("site-settings-change", handleChange);
     return () => {

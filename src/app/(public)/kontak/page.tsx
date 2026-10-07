@@ -10,6 +10,8 @@ import { useToast } from "@/components/ui/toast";
 import { useSiteSettings } from "@/components/shared/BrandLogo";
 import { toEmbedUrl, extractIframeSrc } from "@/lib/maps";
 
+const WHATSAPP_HOTLINE = "082381188058";
+
 type PortalContactContent = { judul: string; ringkasan: string | null; isi: string };
 type PaymentSettingsResponse = {
   bankName: string | null;
@@ -69,7 +71,7 @@ export default function KontakPage() {
         if (res.ok) {
           const json = await res.json().catch(() => null);
           // show chatbot-like receipt modal and redirect to admin WhatsApp hotline
-          const rawHotline = site.phone || "082381188058";
+          const rawHotline = WHATSAPP_HOTLINE;
           const hotlineDigits = rawHotline.replace(/[^0-9]/g, "");
           const hotline = hotlineDigits.startsWith("0") ? `62${hotlineDigits.slice(1)}` : hotlineDigits;
           const encoded = encodeURIComponent(`Halo Admin, saya ${formData.nama} (${formData.whatsapp}). Saya tertarik pada jenjang ${formData.jenjang}: ${formData.pesan}`);
@@ -123,7 +125,6 @@ export default function KontakPage() {
                     </div>
                     <div>
                       <p className="text-xs font-semibold text-muted-foreground">WhatsApp Hotline (Cepat)</p>
-                      <p className="text-sm font-bold text-foreground">{site.phone}</p>
                       <p className="text-sm font-bold text-foreground">082381188058</p>
                       <p className="text-xs text-emerald-600 font-medium mt-0.5">Online • Respon rata-rata 10 menit</p>
                     </div>
@@ -135,8 +136,7 @@ export default function KontakPage() {
                     </div>
                     <div>
                       <p className="text-xs font-semibold text-muted-foreground">Email Dukungan & Pendaftaran</p>
-                      <p className="text-sm font-bold text-foreground">cs.helpedbydinda@gmail.com</p>
-                      <p className="text-sm font-bold text-foreground">{site.supportEmail}</p>
+                      <p className="text-sm font-bold text-foreground">cs.helpeddinda@gmail.com</p>
                     </div>
                   </div>
 
