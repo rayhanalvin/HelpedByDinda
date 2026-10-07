@@ -258,7 +258,15 @@ export default function AdminJadwalPage() {
                     <div>
                       Ruang: <strong className="text-foreground">{j.ruangan || "—"}</strong>
                     </div>
-                    {j.kelompokNama && <div className="text-primary font-semibold sm:col-span-3">Kelompok: {j.kelompokNama} · {jadwalList.filter((item) => item.kelompokId === j.kelompokId).map((item) => item.murid).join(", ")}</div>}
+                    {j.kelompokNama && (
+                      <div className="text-primary font-semibold sm:col-span-3">
+                        Kelompok: {j.kelompokNama} ·{" "}
+                        {jadwalList
+                          .filter((item) => item.kelompokId === j.kelompokId)
+                          .map((item) => item.murid)
+                          .join(", ")}
+                      </div>
+                    )}
                   </div>
                 </div>
 
@@ -320,11 +328,17 @@ export default function AdminJadwalPage() {
               <div className="grid max-h-48 gap-1 overflow-y-auto rounded-xl border border-border p-2 sm:grid-cols-2">
                 {muridList.map((murid) => (
                   <label key={murid.id} className="flex min-w-0 items-center gap-2 rounded-lg px-2 py-2 text-xs hover:bg-muted">
-                    <input type="checkbox" checked={formData.muridIds.includes(murid.id)} onChange={(event) => {
-                      const ids = event.target.checked ? [...formData.muridIds, murid.id] : formData.muridIds.filter((id) => id !== murid.id);
-                      setFormData({ ...formData, muridIds: ids, muridId: ids[0] || "" });
-                    }} />
-                    <span className="truncate">{murid.name} ({murid.info})</span>
+                    <input
+                      type="checkbox"
+                      checked={formData.muridIds.includes(murid.id)}
+                      onChange={(event) => {
+                        const ids = event.target.checked ? [...formData.muridIds, murid.id] : formData.muridIds.filter((id) => id !== murid.id);
+                        setFormData({ ...formData, muridIds: ids, muridId: ids[0] || "" });
+                      }}
+                    />
+                    <span className="truncate">
+                      {murid.name} ({murid.info})
+                    </span>
                   </label>
                 ))}
               </div>

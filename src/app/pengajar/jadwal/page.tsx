@@ -39,7 +39,18 @@ export default function PengajarJadwalPage() {
   const [students, setStudents] = React.useState<{ id: string; name: string; kelas: string }[]>([]);
   const [modalOpen, setModalOpen] = React.useState(false);
   const [editingId, setEditingId] = React.useState<string | null>(null);
-  const [form, setForm] = React.useState({ muridId: "", muridIds: [] as string[], kelompokNama: "", mataPelajaran: "", tanggal: new Date().toISOString().slice(0, 10), jamMulai: "16:00", jamSelesai: "17:30", mode: "ONLINE", ruangan: "", catatan: "" });
+  const [form, setForm] = React.useState({
+    muridId: "",
+    muridIds: [] as string[],
+    kelompokNama: "",
+    mataPelajaran: "",
+    tanggal: new Date().toISOString().slice(0, 10),
+    jamMulai: "16:00",
+    jamSelesai: "17:30",
+    mode: "ONLINE",
+    ruangan: "",
+    catatan: "",
+  });
   const [editingGroup, setEditingGroup] = React.useState(false);
 
   const fetchTeachingSchedules = React.useCallback((silent = false) => {
@@ -66,7 +77,18 @@ export default function PengajarJadwalPage() {
   const openAdd = () => {
     setEditingId(null);
     setEditingGroup(false);
-    setForm({ muridId: students[0]?.id || "", muridIds: students[0]?.id ? [students[0].id] : [], kelompokNama: "", mataPelajaran: "", tanggal: selectedDate, jamMulai: "16:00", jamSelesai: "17:30", mode: "ONLINE", ruangan: "", catatan: "" });
+    setForm({
+      muridId: students[0]?.id || "",
+      muridIds: students[0]?.id ? [students[0].id] : [],
+      kelompokNama: "",
+      mataPelajaran: "",
+      tanggal: selectedDate,
+      jamMulai: "16:00",
+      jamSelesai: "17:30",
+      mode: "ONLINE",
+      ruangan: "",
+      catatan: "",
+    });
     setModalOpen(true);
   };
 
@@ -168,7 +190,12 @@ export default function PengajarJadwalPage() {
                   </div>
 
                   <h3 className="text-lg font-bold text-foreground">{schedule.mataPelajaran}</h3>
-                  {schedule.kelompokNama && <p className="text-xs font-semibold text-primary">Kelompok sesi: {schedule.kelompokNama}{schedule.kelompokMurid?.length ? ` · ${schedule.kelompokMurid.join(", ")}` : ""}</p>}
+                  {schedule.kelompokNama && (
+                    <p className="text-xs font-semibold text-primary">
+                      Kelompok sesi: {schedule.kelompokNama}
+                      {schedule.kelompokMurid?.length ? ` · ${schedule.kelompokMurid.join(", ")}` : ""}
+                    </p>
+                  )}
 
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs text-muted-foreground pt-1">
                     <div className="flex items-center gap-2">
@@ -233,18 +260,27 @@ export default function PengajarJadwalPage() {
             <div className="grid max-h-48 gap-2 overflow-y-auto rounded-xl border border-border p-3 sm:grid-cols-2">
               {students.map((student) => (
                 <label key={student.id} className="flex min-w-0 items-center gap-2 rounded-lg px-2 py-2 text-sm hover:bg-muted">
-                  <input type="checkbox" checked={form.muridIds.includes(student.id)} disabled={editingGroup} onChange={(event) => {
-                    const muridIds = editingId ? [student.id] : event.target.checked ? [...form.muridIds, student.id] : form.muridIds.filter((id) => id !== student.id);
-                    setForm({ ...form, muridIds, muridId: muridIds[0] || "" });
-                  }} />
-                  <span className="truncate">{student.name} · {student.kelas}</span>
+                  <input
+                    type="checkbox"
+                    checked={form.muridIds.includes(student.id)}
+                    disabled={editingGroup}
+                    onChange={(event) => {
+                      const muridIds = editingId ? [student.id] : event.target.checked ? [...form.muridIds, student.id] : form.muridIds.filter((id) => id !== student.id);
+                      setForm({ ...form, muridIds, muridId: muridIds[0] || "" });
+                    }}
+                  />
+                  <span className="truncate">
+                    {student.name} · {student.kelas}
+                  </span>
                 </label>
               ))}
               {students.length === 0 && <p className="text-xs text-muted-foreground">Belum ada murid aktif.</p>}
             </div>
             <p className="text-xs text-muted-foreground">Pilih beberapa murid saat membuat sesi kelompok. Reschedule kelompok lama berlaku untuk semua anggota; ubah anggota lewat admin.</p>
           </div>
-          {form.muridIds.length > 1 && <input className="h-11 w-full rounded-xl border bg-card px-3 text-sm" placeholder="Nama kelompok (opsional)" value={form.kelompokNama} onChange={(event) => setForm({ ...form, kelompokNama: event.target.value })} />}
+          {form.muridIds.length > 1 && (
+            <input className="h-11 w-full rounded-xl border bg-card px-3 text-sm" placeholder="Nama kelompok (opsional)" value={form.kelompokNama} onChange={(event) => setForm({ ...form, kelompokNama: event.target.value })} />
+          )}
           <input required className="h-11 w-full rounded-xl border bg-card px-3 text-sm" placeholder="Mata pelajaran atau topik" value={form.mataPelajaran} onChange={(event) => setForm({ ...form, mataPelajaran: event.target.value })} />
           <div className="grid grid-cols-3 gap-2">
             <input required type="date" className="h-11 rounded-xl border bg-card px-3 text-sm" value={form.tanggal} onChange={(event) => setForm({ ...form, tanggal: event.target.value })} />

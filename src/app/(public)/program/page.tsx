@@ -31,8 +31,8 @@ export default function ProgramPage() {
   React.useEffect(() => {
     fetch("/api/programs")
       .then((response) => response.json())
-          .then((result) => {
-            if (result.ok) setPrograms((result.data || []) as ProgramRow[]);
+      .then((result) => {
+        if (result.ok) setPrograms((result.data || []) as ProgramRow[]);
       })
       .catch(() => undefined);
     fetch("/api/portal/program-belajar")
@@ -77,7 +77,7 @@ export default function ProgramPage() {
 
         {/* Tab Filters */}
         <div className="mt-8 flex flex-wrap items-center justify-center gap-2">
-              {["SEMUA", ...programCategories].map((tab) => (
+          {["SEMUA", ...programCategories].map((tab) => (
             <button
               key={tab}
               onClick={() => setActiveTab(tab)}
@@ -92,7 +92,7 @@ export default function ProgramPage() {
       {/* Program Cards Grid */}
       <section className="container mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-              {visiblePrograms.map((program) => (
+          {visiblePrograms.map((program) => (
             <div key={program.id} className={cn("rounded-3xl border bg-card p-6 sm:p-8 flex flex-col justify-between transition-all hover:shadow-lg relative", program.popular ? "border-primary/50 shadow-sm" : "border-border")}>
               {program.popular && (
                 <div className="absolute -top-3 right-6">
@@ -152,8 +152,8 @@ export default function ProgramPage() {
               {/* Action */}
               <div className="mt-8 pt-6 border-t border-border flex flex-col sm:flex-row gap-3">
                 <Button variant="accent" className="flex-1 justify-center gap-1.5 font-bold" onClick={() => selectProgram(program)}>
-                    Daftar Program Ini
-                    <ArrowRight className="h-4 w-4" />
+                  Daftar Program Ini
+                  <ArrowRight className="h-4 w-4" />
                 </Button>
                 <Link href="/kontak">
                   <Button variant="outline" className="w-full sm:w-auto">

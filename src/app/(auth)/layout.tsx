@@ -158,7 +158,7 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
         </div>
 
         <div className="relative z-10 mt-8 hidden items-center justify-between text-xs text-white/70 lg:flex">
-          <span>© 2026 Helped By Dinda</span>
+          <span>© {new Date().getFullYear()} Helped By Dinda</span>
           <span className="inline-flex items-center gap-1 text-white/80">
             Mulai sekarang <ArrowRight className="h-3 w-3" />
           </span>

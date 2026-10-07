@@ -136,11 +136,11 @@ h6 {
     box-shadow: none !important;
   }
 
-  #fee-report .md\:hidden {
+  #fee-report [class*="md:hidden"] {
     display: none !important;
   }
 
-  #fee-report .hidden.md\:block {
+  #fee-report .hidden[class*="md:block"] {
     display: block !important;
   }
 

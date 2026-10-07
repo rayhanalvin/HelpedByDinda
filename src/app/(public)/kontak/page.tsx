@@ -37,9 +37,10 @@ export default function KontakPage() {
   });
 
   const centerAddress = paymentSettings?.centerAddress || site.address || "";
-  const centerQuery = paymentSettings?.centerLat !== null && paymentSettings?.centerLat !== undefined && paymentSettings?.centerLng !== null && paymentSettings?.centerLng !== undefined
-    ? `${paymentSettings.centerLat},${paymentSettings.centerLng}`
-    : centerAddress;
+  const centerQuery =
+    paymentSettings?.centerLat !== null && paymentSettings?.centerLat !== undefined && paymentSettings?.centerLng !== null && paymentSettings?.centerLng !== undefined
+      ? `${paymentSettings.centerLat},${paymentSettings.centerLng}`
+      : centerAddress;
   const googleMapsLink = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(centerQuery || "Pusat Belajar Helped By Dinda, Indonesia")}`;
 
   React.useEffect(() => {
@@ -230,7 +231,9 @@ export default function KontakPage() {
                 {receipt && (
                   <div className="mt-6 overflow-hidden rounded-2xl border border-emerald-200 bg-linear-to-br from-emerald-50 via-white to-primary/5 shadow-sm">
                     <div className="flex items-start gap-3 border-b border-emerald-100 p-4">
-                      <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-emerald-500 text-white shadow-sm"><Bot className="h-5 w-5" /></div>
+                      <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-emerald-500 text-white shadow-sm">
+                        <Bot className="h-5 w-5" />
+                      </div>
                       <div>
                         <p className="text-sm font-bold text-emerald-900">Konsultasi berhasil diterima</p>
                         <p className="mt-1 text-xs leading-relaxed text-emerald-800">Tiket {receipt.id.slice(0, 12)} sudah tercatat. WhatsApp hotline admin telah dibuka untuk melanjutkan konsultasi.</p>
@@ -238,7 +241,9 @@ export default function KontakPage() {
                     </div>
                     <div className="flex flex-wrap items-center justify-between gap-3 p-4">
                       <span className="text-xs font-semibold text-muted-foreground">Admin akan merespons melalui WhatsApp.</span>
-                      <a href={`https://wa.me/${receipt.hotline}`} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1.5 rounded-xl bg-emerald-600 px-3 py-2 text-xs font-bold text-white hover:bg-emerald-700"><ExternalLink className="h-3.5 w-3.5" /> Buka WhatsApp Lagi</a>
+                      <a href={`https://wa.me/${receipt.hotline}`} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1.5 rounded-xl bg-emerald-600 px-3 py-2 text-xs font-bold text-white hover:bg-emerald-700">
+                        <ExternalLink className="h-3.5 w-3.5" /> Buka WhatsApp Lagi
+                      </a>
                     </div>
                   </div>
                 )}
@@ -260,11 +265,7 @@ export default function KontakPage() {
               const address = paymentSettings?.centerAddress || site.address || undefined;
               const hasCoordinates = typeof paymentSettings?.centerLat === "number" && typeof paymentSettings?.centerLng === "number";
               // Combine coordinates, street name, and place title so people see the exact street name and marker
-              const urlMarkerQuery = hasCoordinates && address
-                ? `${paymentSettings.centerLat},${paymentSettings.centerLng} (${address})`
-                : hasCoordinates
-                  ? `${paymentSettings.centerLat},${paymentSettings.centerLng}`
-                  : null;
+              const urlMarkerQuery = hasCoordinates && address ? `${paymentSettings.centerLat},${paymentSettings.centerLng} (${address})` : hasCoordinates ? `${paymentSettings.centerLat},${paymentSettings.centerLng}` : null;
               const input = urlMarkerQuery || paymentSettings?.googleMapsUrl || address || null;
               const iframeSrc = extractIframeSrc(input);
               const src = iframeSrc || toEmbedUrl(input, address);

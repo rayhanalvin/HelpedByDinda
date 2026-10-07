@@ -25,14 +25,14 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
     return NextResponse.json({ ok: false, message: "Lengkapi data jadwal dengan benar." }, { status: 400 });
   }
   const sharedData = {
-      kelompokNama: schedule.kelompokId ? String(body.kelompokNama || schedule.kelompokNama || "") : null,
-      mataPelajaran: String(body.mataPelajaran).trim(),
-      tanggal: new Date(`${tanggal}T12:00:00`),
-      jamMulai,
-      jamSelesai,
-      mode: String(body.mode).toUpperCase() === "OFFLINE" ? ("OFFLINE" as const) : ("ONLINE" as const),
-      ruangan: String(body.ruangan || "").trim() || null,
-      catatan: String(body.catatan || "").trim() || null,
+    kelompokNama: schedule.kelompokId ? String(body.kelompokNama || schedule.kelompokNama || "") : null,
+    mataPelajaran: String(body.mataPelajaran).trim(),
+    tanggal: new Date(`${tanggal}T12:00:00`),
+    jamMulai,
+    jamSelesai,
+    mode: String(body.mode).toUpperCase() === "OFFLINE" ? ("OFFLINE" as const) : ("ONLINE" as const),
+    ruangan: String(body.ruangan || "").trim() || null,
+    catatan: String(body.catatan || "").trim() || null,
   };
   let updated;
   if (schedule.kelompokId) {

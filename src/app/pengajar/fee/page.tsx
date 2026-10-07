@@ -73,7 +73,9 @@ export default function PengajarFeePage() {
       // Keep the last successful fee snapshot if a feed is temporarily unavailable.
     }
   }, [loadInvoices]);
-  React.useEffect(() => { void loadFeeData(); }, [loadFeeData]);
+  React.useEffect(() => {
+    void loadFeeData();
+  }, [loadFeeData]);
   useVisiblePolling(loadFeeData, 30000);
 
   return (

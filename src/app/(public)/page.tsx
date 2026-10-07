@@ -187,7 +187,9 @@ export default async function HomePage() {
                   </div>
                   <div className="mt-6 flex items-center justify-between border-t border-border pt-4">
                     <span className="text-xs font-semibold text-foreground">{formatRupiah(program.price)} / bln</span>
-                    <Link href="/program" className="text-xs font-bold text-primary hover:underline">Detail</Link>
+                    <Link href="/program" className="text-xs font-bold text-primary hover:underline">
+                      Detail
+                    </Link>
                   </div>
                 </div>
               ))}

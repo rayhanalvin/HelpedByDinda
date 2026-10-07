@@ -175,7 +175,11 @@ export default function PengajarAbsenPage() {
           {schedule?.participantAttendance && ["IZIN", "SAKIT"].includes(schedule.participantAttendance.status) && (
             <div className="mt-3 rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">
               Murid mengajukan {schedule.participantAttendance.status.toLowerCase()}. {schedule.participantAttendance.catatan}
-              {schedule.participantAttendance.buktiData && <a href={schedule.participantAttendance.buktiData} target="_blank" rel="noreferrer" className="ml-2 font-semibold underline">Lihat bukti</a>}
+              {schedule.participantAttendance.buktiData && (
+                <a href={schedule.participantAttendance.buktiData} target="_blank" rel="noreferrer" className="ml-2 font-semibold underline">
+                  Lihat bukti
+                </a>
+              )}
             </div>
           )}
         </CardHeader>
@@ -228,7 +232,13 @@ export default function PengajarAbsenPage() {
             )}
             <p className="text-xs text-muted-foreground">Presensi otomatis dibuka saat jadwal mulai dan ditutup ketika sesi berakhir.</p>
           </div>
-          {schedule && <AttendanceExcuseForm jadwalId={schedule.jadwalId} disabled={Boolean(schedule.attendance?.startedAt || schedule.attendance?.finishedAt || (schedule.attendance && ["HADIR", "TERLAMBAT"].includes(schedule.attendance.status)))} onSubmitted={loadAttendance} />}
+          {schedule && (
+            <AttendanceExcuseForm
+              jadwalId={schedule.jadwalId}
+              disabled={Boolean(schedule.attendance?.startedAt || schedule.attendance?.finishedAt || (schedule.attendance && ["HADIR", "TERLAMBAT"].includes(schedule.attendance.status)))}
+              onSubmitted={loadAttendance}
+            />
+          )}
         </CardContent>
       </Card>
 
@@ -286,7 +296,11 @@ export default function PengajarAbsenPage() {
                   <span>{item.attendance ? new Date(item.attendance.waktuAbsen).toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" }) : "—"} WIB</span>
                   <span>{item.attendance?.catatan || item.catatan || "—"}</span>
                 </div>
-                {item.attendance?.buktiData && <a href={item.attendance.buktiData} target="_blank" rel="noreferrer" className="inline-flex text-xs font-semibold text-primary underline">Lihat bukti {item.attendance.buktiNama || "absensi"}</a>}
+                {item.attendance?.buktiData && (
+                  <a href={item.attendance.buktiData} target="_blank" rel="noreferrer" className="inline-flex text-xs font-semibold text-primary underline">
+                    Lihat bukti {item.attendance.buktiNama || "absensi"}
+                  </a>
+                )}
               </div>
             ))}
           </div>

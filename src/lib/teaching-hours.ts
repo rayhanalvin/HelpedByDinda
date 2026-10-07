@@ -32,7 +32,7 @@ export async function getTeachingHoursByTeacherRange(start: Date, end: Date) {
       userId: true,
       jadwal: {
         select: {
-            id: true,
+          id: true,
           pengajarId: true,
           kelompokId: true,
           muridId: true,

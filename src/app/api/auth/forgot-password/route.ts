@@ -63,7 +63,7 @@ export async function POST(req: Request) {
           </div>
           <p style="color: #64748b; font-size: 13px;">Tautan ini hanya berlaku selama <strong>1 jam</strong> dari sekarang. Jika Anda tidak mengajukan permintaan ini, silakan abaikan email ini dengan aman.</p>
           <hr style="border: 0; border-top: 1px solid #e2e8f0; margin: 20px 0;" />
-          <p style="color: #94a3b8; font-size: 11px; text-align: center;">© 2026 Helped By Dinda. Seluruh hak cipta dilindungi.</p>
+          <p style="color: #94a3b8; font-size: 11px; text-align: center;">© ${new Date().getFullYear()} Helped By Dinda. Seluruh hak cipta dilindungi.</p>
         </div>
       `,
     };

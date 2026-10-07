@@ -29,21 +29,24 @@ export async function GET() {
   ]);
 
   const [studentSchedules, teacherSchedules] = await Promise.all([
-    session.role === "PENGAJAR"
-      ? prisma.jadwal.findMany({ where: { pengajar: { userId: session.userId } }, include: { murid: { include: { user: { select: { name: true } } } } } })
-      : Promise.resolve([]),
+    session.role === "PENGAJAR" ? prisma.jadwal.findMany({ where: { pengajar: { userId: session.userId } }, include: { murid: { include: { user: { select: { name: true } } } } } }) : Promise.resolve([]),
     session.role === "MURID"
       ? prisma.jadwal.findMany({ where: { murid: { userId: session.userId }, pengajar: { isActive: true } }, include: { pengajar: { include: { user: { select: { name: true, avatarUrl: true } } } } } })
       : Promise.resolve([]),
   ]);
 
   const students = Array.from(new Map(studentSchedules.map((schedule) => [schedule.muridId, { id: schedule.muridId, name: schedule.murid.user.name, kelas: schedule.murid.kelas, sekolah: schedule.murid.sekolah }])).values());
-  const teachers = Array.from(new Map(teacherSchedules.map((schedule) => [schedule.pengajarId, { id: schedule.pengajarId, name: schedule.pengajar.user.name, avatarUrl: schedule.pengajar.user.avatarUrl, spesialisasi: schedule.pengajar.spesialisasi }])).values());
+  const teachers = Array.from(
+    new Map(teacherSchedules.map((schedule) => [schedule.pengajarId, { id: schedule.pengajarId, name: schedule.pengajar.user.name, avatarUrl: schedule.pengajar.user.avatarUrl, spesialisasi: schedule.pengajar.spesialisasi }])).values(),
+  );
 
   const pengajar = session.role === "PENGAJAR" ? await prisma.pengajar.findUnique({ where: { userId: session.userId }, select: { id: true, user: { select: { name: true } } } }) : null;
   const murid = session.role === "MURID" ? await prisma.murid.findUnique({ where: { userId: session.userId }, select: { id: true, user: { select: { name: true } } } }) : null;
 
-  return NextResponse.json({ ok: true, data: { rapot, assessments, students, teachers, period: currentPeriodLabel(), pengajarId: pengajar?.id || null, pengajarNama: pengajar?.user.name || null, muridId: murid?.id || null, muridNama: murid?.user.name || null } }, { headers: { "Cache-Control": "no-store" } });
+  return NextResponse.json(
+    { ok: true, data: { rapot, assessments, students, teachers, period: currentPeriodLabel(), pengajarId: pengajar?.id || null, pengajarNama: pengajar?.user.name || null, muridId: murid?.id || null, muridNama: murid?.user.name || null } },
+    { headers: { "Cache-Control": "no-store" } },
+  );
 }
 
 export async function POST(request: Request) {

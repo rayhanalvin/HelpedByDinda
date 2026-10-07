@@ -4,7 +4,7 @@ import * as React from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { LayoutDashboard, CalendarCheck2, FolderKanban, Calendar, Coins, UserCircle, Menu, X, Sparkles, LogOut, ChevronRight, Briefcase, ClipboardCheck, ClipboardList } from "lucide-react";
+import { LayoutDashboard, CalendarCheck2, FolderKanban, Calendar, Coins, UserCircle, Menu, X, Sparkles, LogOut, ChevronRight, Briefcase, ClipboardCheck, ClipboardList, BellRing } from "lucide-react";
 import { RoleSwitcher } from "@/components/shared/RoleSwitcher";
 import { BrandLogo, useSiteSettings } from "@/components/shared/BrandLogo";
 import { Badge } from "@/components/ui/badge";
@@ -21,6 +21,7 @@ const PENGAJAR_MENU = [
   { name: "Kelola Quiz", href: "/pengajar/quiz", icon: ClipboardCheck },
   { name: "Rapot Murid", href: "/pengajar/rapot", icon: ClipboardList },
   { name: "Jadwal Mengajar", href: "/pengajar/jadwal", icon: Calendar },
+  { name: "Katalog Ujian", href: "/pengajar/katalog-ujian", icon: BellRing },
   { name: "Rekap Fee Saya", href: "/pengajar/fee", icon: Coins },
   { name: "Profil Saya", href: "/pengajar/profil", icon: UserCircle },
 ];

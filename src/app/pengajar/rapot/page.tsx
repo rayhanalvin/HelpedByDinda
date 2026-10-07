@@ -12,7 +12,22 @@ import { apiFetch } from "@/lib/api";
 import { useVisiblePolling } from "@/lib/use-visible-polling";
 
 type Student = { id: string; name: string; kelas: string; sekolah: string };
-type RapotRow = { id: string; muridId: string; pengajarId: string; periode: string; nilaiQuiz: number; kehadiran: number; nilaiSekolah: number; keaktifan: number; nilaiAkhir: number; deskripsi: string; rekomendasi: string; status: string; updatedAt: string; murid: { user: { name: string } } };
+type RapotRow = {
+  id: string;
+  muridId: string;
+  pengajarId: string;
+  periode: string;
+  nilaiQuiz: number;
+  kehadiran: number;
+  nilaiSekolah: number;
+  keaktifan: number;
+  nilaiAkhir: number;
+  deskripsi: string;
+  rekomendasi: string;
+  status: string;
+  updatedAt: string;
+  murid: { user: { name: string } };
+};
 type AssessmentRow = { id: string; periode: string; rating: number; pemahamanMateri: number; komunikasi: number; ketepatanWaktu: number; deskripsi: string; status: string; createdAt: string; murid: { user: { name: string } } };
 const initialForm = { muridId: "", periode: "", nilaiQuiz: 0, kehadiran: 0, nilaiSekolah: 0, keaktifan: 0, deskripsi: "", rekomendasi: "" };
 
@@ -37,7 +52,9 @@ export default function PengajarRapotPage() {
       toast(error instanceof Error ? error.message : "Gagal memuat rapot dan daftar murid.", "error");
     }
   }, [toast]);
-  React.useEffect(() => { void load(); }, [load]);
+  React.useEffect(() => {
+    void load();
+  }, [load]);
   useVisiblePolling(load, 30000);
 
   const teacherAssessments = assessments;
@@ -176,60 +193,60 @@ export default function PengajarRapotPage() {
       </Card>
       <div className="grid gap-4 md:grid-cols-2">
         {items.map((item) => (
-            <Card key={item.id}>
-              <CardContent className="p-5">
-                <div className="flex items-start justify-between gap-3">
-                  <div>
-                    <Badge variant="secondary">{item.periode}</Badge>
-                    <h2 className="mt-3 font-heading text-lg font-bold">{item.murid.user.name}</h2>
-                    <p className="text-sm text-muted-foreground">Diperbarui {formatDateIndo(item.updatedAt)}</p>
-                  </div>
-                  <div className="grid size-14 place-items-center rounded-xl bg-secondary text-primary">
-                    <span className="font-heading text-2xl font-extrabold">{item.nilaiAkhir}</span>
-                  </div>
+          <Card key={item.id}>
+            <CardContent className="p-5">
+              <div className="flex items-start justify-between gap-3">
+                <div>
+                  <Badge variant="secondary">{item.periode}</Badge>
+                  <h2 className="mt-3 font-heading text-lg font-bold">{item.murid.user.name}</h2>
+                  <p className="text-sm text-muted-foreground">Diperbarui {formatDateIndo(item.updatedAt)}</p>
                 </div>
-                <div className="mt-4 grid grid-cols-2 gap-2 text-sm">
-                  <span>
-                    Quiz <b>{item.nilaiQuiz}</b>
-                  </span>
-                  <span>
-                    Hadir <b>{item.kehadiran}%</b>
-                  </span>
-                  <span>
-                    Sekolah <b>{item.nilaiSekolah}</b>
-                  </span>
-                  <span>
-                    Aktif <b>{item.keaktifan}</b>
-                  </span>
+                <div className="grid size-14 place-items-center rounded-xl bg-secondary text-primary">
+                  <span className="font-heading text-2xl font-extrabold">{item.nilaiAkhir}</span>
                 </div>
-                <p className="mt-4 text-sm text-muted-foreground">{item.deskripsi}</p>
-                <p className="mt-2 text-sm text-muted-foreground">
-                  <b>Rekomendasi:</b> {item.rekomendasi}
-                </p>
-                <div className="mt-5 flex justify-end gap-2 border-t pt-4 print-hidden">
-                  <Button size="sm" variant="outline" onClick={() => edit(item)}>
-                    <Pencil size={14} /> Edit
-                  </Button>
-                  <Button
-                    size="sm"
-                    variant="destructive"
-                    onClick={async () => {
-                      if (!window.confirm(`Hapus rapot ${item.murid.user.name} periode ${item.periode}?`)) return;
-                      try {
-                        await apiFetch("/api/rapot", { method: "DELETE", body: JSON.stringify({ id: item.id }) });
-                        setItems((current) => current.filter((currentItem) => currentItem.id !== item.id));
-                        toast("Rapot berhasil dihapus.", "info");
-                      } catch (error) {
-                        toast(error instanceof Error ? error.message : "Gagal menghapus rapot.", "error");
-                      }
-                    }}
-                  >
-                    <Trash2 size={14} />
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-          ))}
+              </div>
+              <div className="mt-4 grid grid-cols-2 gap-2 text-sm">
+                <span>
+                  Quiz <b>{item.nilaiQuiz}</b>
+                </span>
+                <span>
+                  Hadir <b>{item.kehadiran}%</b>
+                </span>
+                <span>
+                  Sekolah <b>{item.nilaiSekolah}</b>
+                </span>
+                <span>
+                  Aktif <b>{item.keaktifan}</b>
+                </span>
+              </div>
+              <p className="mt-4 text-sm text-muted-foreground">{item.deskripsi}</p>
+              <p className="mt-2 text-sm text-muted-foreground">
+                <b>Rekomendasi:</b> {item.rekomendasi}
+              </p>
+              <div className="mt-5 flex justify-end gap-2 border-t pt-4 print-hidden">
+                <Button size="sm" variant="outline" onClick={() => edit(item)}>
+                  <Pencil size={14} /> Edit
+                </Button>
+                <Button
+                  size="sm"
+                  variant="destructive"
+                  onClick={async () => {
+                    if (!window.confirm(`Hapus rapot ${item.murid.user.name} periode ${item.periode}?`)) return;
+                    try {
+                      await apiFetch("/api/rapot", { method: "DELETE", body: JSON.stringify({ id: item.id }) });
+                      setItems((current) => current.filter((currentItem) => currentItem.id !== item.id));
+                      toast("Rapot berhasil dihapus.", "info");
+                    } catch (error) {
+                      toast(error instanceof Error ? error.message : "Gagal menghapus rapot.", "error");
+                    }
+                  }}
+                >
+                  <Trash2 size={14} />
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        ))}
       </div>
       <section>
         <div className="mb-3 flex items-center gap-2">

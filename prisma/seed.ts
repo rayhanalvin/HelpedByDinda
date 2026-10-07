@@ -164,10 +164,50 @@ async function main() {
   }
 
   const programs = [
-    { code: "sd", category: "SD", title: "Bimbingan Tematik & Berhitung Ceria", target: "Siswa Kelas 1 - 6 SD", price: 650000, description: "Pendampingan harian untuk membangun dasar logika berhitung, literasi membaca cepat, dan PR sekolah tanpa stres.", subjects: ["Matematika Dasar & Logika", "Bahasa Indonesia & Membaca", "IPA & Tematik Terpadu"], facilities: ["2 sesi bimbingan per minggu", "Presensi kehadiran digital", "Modul materi PDF bergambar", "Laporan evaluasi belajar bulanan"], popular: false },
-    { code: "smp", category: "SMP", title: "Mastery Konsep MIPA & Bahasa Inggris SMP", target: "Siswa Kelas 7 - 9 SMP", price: 750000, description: "Mempersiapkan siswa menguasai konsep esensial SMP dengan trik penyelesaian soal terstruktur.", subjects: ["Matematika Aljabar & Geometri", "Fisika & Biologi Terpadu", "Bahasa Inggris Grammar & Vocab"], facilities: ["2 sesi per minggu", "Presensi digital", "Akses video pembelajaran", "Simulasi ujian"], popular: false },
-    { code: "sma", category: "SMA", title: "Prestasi Akademik & Pengawalan Nilai Rapor SMA", target: "Siswa Kelas 10 - 12 SMA", price: 900000, description: "Fokus menjaga nilai rapor tetap tinggi untuk seleksi SNBP serta penguatan konsep MIPA tingkat lanjut.", subjects: ["Matematika Wajib & Lanjut", "Fisika Mekanika & Listrik", "Kimia & Biologi SMA"], facilities: ["3 sesi per minggu", "Akses video materi", "Katalog pengingat ujian", "Konsultasi PR"], popular: true },
-    { code: "utbk", category: "UTBK", title: "Super Intensif Lolos UTBK SNBT", target: "Kelas 12 & Alumni", price: 1100000, description: "Program persiapan intensif menembus PTN favorit dengan strategi soal dan manajemen waktu.", subjects: ["Tes Potensi Skolastik", "Penalaran Matematika", "Literasi Bahasa Indonesia & Inggris"], facilities: ["4 sesi per minggu", "Simulasi CBT", "Analisis kelemahan subtes", "Mentoring personal"], popular: true },
+    {
+      code: "sd",
+      category: "SD",
+      title: "Bimbingan Tematik & Berhitung Ceria",
+      target: "Siswa Kelas 1 - 6 SD",
+      price: 650000,
+      description: "Pendampingan harian untuk membangun dasar logika berhitung, literasi membaca cepat, dan PR sekolah tanpa stres.",
+      subjects: ["Matematika Dasar & Logika", "Bahasa Indonesia & Membaca", "IPA & Tematik Terpadu"],
+      facilities: ["2 sesi bimbingan per minggu", "Presensi kehadiran digital", "Modul materi PDF bergambar", "Laporan evaluasi belajar bulanan"],
+      popular: false,
+    },
+    {
+      code: "smp",
+      category: "SMP",
+      title: "Mastery Konsep MIPA & Bahasa Inggris SMP",
+      target: "Siswa Kelas 7 - 9 SMP",
+      price: 750000,
+      description: "Mempersiapkan siswa menguasai konsep esensial SMP dengan trik penyelesaian soal terstruktur.",
+      subjects: ["Matematika Aljabar & Geometri", "Fisika & Biologi Terpadu", "Bahasa Inggris Grammar & Vocab"],
+      facilities: ["2 sesi per minggu", "Presensi digital", "Akses video pembelajaran", "Simulasi ujian"],
+      popular: false,
+    },
+    {
+      code: "sma",
+      category: "SMA",
+      title: "Prestasi Akademik & Pengawalan Nilai Rapor SMA",
+      target: "Siswa Kelas 10 - 12 SMA",
+      price: 900000,
+      description: "Fokus menjaga nilai rapor tetap tinggi untuk seleksi SNBP serta penguatan konsep MIPA tingkat lanjut.",
+      subjects: ["Matematika Wajib & Lanjut", "Fisika Mekanika & Listrik", "Kimia & Biologi SMA"],
+      facilities: ["3 sesi per minggu", "Akses video materi", "Katalog pengingat ujian", "Konsultasi PR"],
+      popular: true,
+    },
+    {
+      code: "utbk",
+      category: "UTBK",
+      title: "Super Intensif Lolos UTBK SNBT",
+      target: "Kelas 12 & Alumni",
+      price: 1100000,
+      description: "Program persiapan intensif menembus PTN favorit dengan strategi soal dan manajemen waktu.",
+      subjects: ["Tes Potensi Skolastik", "Penalaran Matematika", "Literasi Bahasa Indonesia & Inggris"],
+      facilities: ["4 sesi per minggu", "Simulasi CBT", "Analisis kelemahan subtes", "Mentoring personal"],
+      popular: true,
+    },
   ];
 
   for (const program of programs) {

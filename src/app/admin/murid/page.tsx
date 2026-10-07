@@ -38,18 +38,23 @@ export default function AdminMuridPage() {
   const [loading, setLoading] = React.useState(false);
   const defaultKelas = KELAS_OPTIONS.find((option) => option.value.startsWith("SMA"))?.value || "SMA10";
 
-  const loadMurid = React.useCallback(async (silent = false) => {
-    try {
-      if (!silent) setLoading(true);
-      const result = await apiFetch<{ ok: boolean; data: MuridRow[] }>("/api/admin/murid");
-      setMuridList(result.data || []);
-    } catch (error) {
-      if (!silent) toast(error instanceof Error ? error.message : "Gagal memuat data murid.", "error");
-    } finally {
-      if (!silent) setLoading(false);
-    }
-  }, [toast]);
-  React.useEffect(() => { void loadMurid(); }, [loadMurid]);
+  const loadMurid = React.useCallback(
+    async (silent = false) => {
+      try {
+        if (!silent) setLoading(true);
+        const result = await apiFetch<{ ok: boolean; data: MuridRow[] }>("/api/admin/murid");
+        setMuridList(result.data || []);
+      } catch (error) {
+        if (!silent) toast(error instanceof Error ? error.message : "Gagal memuat data murid.", "error");
+      } finally {
+        if (!silent) setLoading(false);
+      }
+    },
+    [toast],
+  );
+  React.useEffect(() => {
+    void loadMurid();
+  }, [loadMurid]);
   useVisiblePolling(() => loadMurid(true), 30000);
 
   // Modal State

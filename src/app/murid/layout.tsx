@@ -187,7 +187,7 @@ export default function MuridLayout({ children }: { children: React.ReactNode })
                 <GraduationCap className="h-3.5 w-3.5" />
                 Mode Murid Aktif
               </Badge>
-              <span className="text-xs text-muted-foreground">Semester Ganjil 2025/2026</span>
+              <span className="text-xs text-muted-foreground">Semester Ganjil</span>
             </div>
           </div>
 

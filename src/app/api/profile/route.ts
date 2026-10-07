@@ -21,7 +21,9 @@ export async function GET() {
       avatarUrl: true,
       role: true,
       pengajar: { select: { id: true, spesialisasi: true, bio: true, nominalPerJam: true, totalJamBulanIni: true, bankName: true, bankAccountNumber: true, bankAccountName: true } },
-      murid: { select: { kelas: true, sekolah: true, namaWali: true, phoneWali: true, paketBulanan: true, programId: true, programNama: true, programKategori: true, statusBayarBulanIni: true, onboardingComplete: true, onboardingCategory: true } },
+      murid: {
+        select: { kelas: true, sekolah: true, namaWali: true, phoneWali: true, paketBulanan: true, programId: true, programNama: true, programKategori: true, statusBayarBulanIni: true, onboardingComplete: true, onboardingCategory: true },
+      },
       createdAt: true,
       updatedAt: true,
     },
@@ -156,13 +158,9 @@ export async function PUT(req: Request) {
       select: { id: true, email: true, name: true, phone: true, avatarUrl: true, role: true },
     });
     const murid = await tx.murid.findUnique({ where: { userId: session.userId } });
-    const updatedMurid = murid && Object.keys(muridUpdates).length > 0
-      ? await tx.murid.update({ where: { id: murid.id }, data: muridUpdates })
-      : murid;
+    const updatedMurid = murid && Object.keys(muridUpdates).length > 0 ? await tx.murid.update({ where: { id: murid.id }, data: muridUpdates }) : murid;
     const pengajar = await tx.pengajar.findUnique({ where: { userId: session.userId } });
-    const updatedPengajar = pengajar && Object.keys(pengajarUpdates).length > 0
-      ? await tx.pengajar.update({ where: { id: pengajar.id }, data: pengajarUpdates })
-      : pengajar;
+    const updatedPengajar = pengajar && Object.keys(pengajarUpdates).length > 0 ? await tx.pengajar.update({ where: { id: pengajar.id }, data: pengajarUpdates }) : pengajar;
     return { user, murid: updatedMurid, pengajar: updatedPengajar };
   });
 

@@ -51,7 +51,9 @@ export default function MuridJadwalPage() {
       });
   }, []);
 
-  React.useEffect(() => { fetchSchedules(); }, [fetchSchedules]);
+  React.useEffect(() => {
+    fetchSchedules();
+  }, [fetchSchedules]);
   useVisiblePolling(() => fetchSchedules(true), 30000);
 
   const muridSchedules = schedules.filter((j) => {
@@ -107,7 +109,12 @@ export default function MuridJadwalPage() {
                   </div>
 
                   <h3 className="text-lg font-bold text-foreground">{item.mataPelajaran}</h3>
-                  {item.kelompokNama && <p className="text-xs font-semibold text-primary">Kelompok sesi: {item.kelompokNama}{item.kelompokMurid?.length ? ` · ${item.kelompokMurid.join(", ")}` : ""}</p>}
+                  {item.kelompokNama && (
+                    <p className="text-xs font-semibold text-primary">
+                      Kelompok sesi: {item.kelompokNama}
+                      {item.kelompokMurid?.length ? ` · ${item.kelompokMurid.join(", ")}` : ""}
+                    </p>
+                  )}
 
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs text-muted-foreground pt-1">
                     <div className="flex items-center gap-2">

@@ -11,13 +11,18 @@ export async function GET() {
 
   // Aggregate stats from the database
   const period = getCurrentPeriod();
-  const [totalMurid, totalPengajar, activePayments, feesThisMonth, teachingHours] = await Promise.all([
+  const [totalMurid, totalPengajar, activePayments, feesThisMonth, teachingHours, upcomingUjian] = await Promise.all([
     prisma.murid.count({ where: { isActive: true } }),
     prisma.pengajar.count({ where: { isActive: true } }),
     prisma.payment.findMany({ where: { status: "SUCCESS" } }),
     // Only sum the fees for the current month (periode: YYYY-MM)
     prisma.fee.findMany({ where: { periode: period } }),
     getTeachingHoursByTeacher(period),
+    prisma.ujian.findMany({
+      take: 4,
+      where: { isPublished: true, tanggal: { gte: new Date() } },
+      orderBy: { tanggal: "asc" },
+    }),
   ]);
 
   const totalPembayaranMasuk = activePayments.reduce((sum, p) => sum + p.amount, 0);
@@ -52,6 +57,15 @@ export async function GET() {
       totalPembayaranMasuk,
       totalFeeHarusDibayar,
       totalJamMengajar,
+      upcomingUjian: upcomingUjian.map((u) => ({
+        id: u.id,
+        namaUjian: u.namaUjian,
+        mataPelajaran: u.mataPelajaran,
+        kelasSasaran: u.kelasSasaran,
+        tanggal: u.tanggal.toISOString().split("T")[0],
+        jam: u.jam,
+        pengajarNama: u.pengajarNama,
+      })),
       recentAbsensi: recentAbsensi.map((a) => ({
         id: a.id,
         userName: a.user.name,

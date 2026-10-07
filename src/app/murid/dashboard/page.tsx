@@ -8,10 +8,23 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import * as React from "react";
 import { useProfileName } from "@/components/shared/ProfileAvatarUploader";
 import { apiFetch } from "@/lib/api";
-import { DUMMY_MURID, DUMMY_MATERI, DUMMY_KATALOG_UJIAN } from "@/lib/dummy-data";
+import { DUMMY_MATERI } from "@/lib/dummy-data";
 import { formatRupiah, formatDateIndo, formatTimeIndo } from "@/lib/utils";
 import * as ApiTypes from "@/types/api";
 import { useVisiblePolling } from "@/lib/use-visible-polling";
+
+type UjianItem = {
+  id: string;
+  namaUjian: string;
+  mataPelajaran: string;
+  kelasSasaran: "SD" | "SMP" | "SMA" | "UTBK";
+  tanggal: string;
+  jam: string;
+  deskripsi: string;
+  lokasi: string;
+  pengajarNama: string;
+  isPublished: boolean;
+};
 
 export default function MuridDashboardPage() {
   const [profile, setProfile] = React.useState({
@@ -38,6 +51,20 @@ export default function MuridDashboardPage() {
 
   const [schedules, setSchedules] = React.useState<APIJadwal[]>([]);
   const [paymentSummary, setPaymentSummary] = React.useState({ amount: 0, status: "PENDING" });
+  const [ujianList, setUjianList] = React.useState<UjianItem[]>([]);
+
+  const loadUjian = React.useCallback(async () => {
+    try {
+      const res = await apiFetch<{ ok: boolean; data: UjianItem[] }>("/api/ujian");
+      if (res.ok) setUjianList(res.data || []);
+    } catch {
+      // Keep existing data when the exam catalog is temporarily unavailable.
+    }
+  }, []);
+  React.useEffect(() => {
+    void loadUjian();
+  }, [loadUjian]);
+  useVisiblePolling(loadUjian, 30000);
 
   React.useEffect(() => {
     const loadMetadata = async () => {
@@ -63,7 +90,9 @@ export default function MuridDashboardPage() {
       // Keep the existing dashboard data if the schedule feed is temporarily unavailable.
     }
   }, []);
-  React.useEffect(() => { void loadSchedules(); }, [loadSchedules]);
+  React.useEffect(() => {
+    void loadSchedules();
+  }, [loadSchedules]);
   useVisiblePolling(loadSchedules, 30000);
 
   const loadPayment = React.useCallback(async () => {
@@ -74,7 +103,9 @@ export default function MuridDashboardPage() {
       // Keep the dashboard available if the payment feed is temporarily unavailable.
     }
   }, []);
-  React.useEffect(() => { void loadPayment(); }, [loadPayment]);
+  React.useEffect(() => {
+    void loadPayment();
+  }, [loadPayment]);
   useVisiblePolling(loadPayment, 30000);
 
   const { name: activeName } = useProfileName("murid", profile.name, profile.userId);
@@ -88,7 +119,9 @@ export default function MuridDashboardPage() {
       // The dashboard remains usable when no reminder feed is available.
     }
   }, []);
-  React.useEffect(() => { void loadReminders(); }, [loadReminders]);
+  React.useEffect(() => {
+    void loadReminders();
+  }, [loadReminders]);
   useVisiblePolling(loadReminders, 30000);
 
   const now = new Date();
@@ -104,7 +137,12 @@ export default function MuridDashboardPage() {
       return firstTime - secondTime;
     })
     .slice(0, 5);
-  const ujianTerdekat = DUMMY_KATALOG_UJIAN.filter((u) => u.kelasSasaran === profile.kelas);
+  const publishedUjian = ujianList.filter((u) => u.isPublished);
+  const ujianTerdekat = publishedUjian
+    .filter((u) => u.kelasSasaran === profile.kelas)
+    .sort((a, b) => a.tanggal.localeCompare(b.tanggal) || a.jam.localeCompare(b.jam))
+    .slice(0, 5);
+  const nearestUjian = ujianTerdekat[0];
 
   // Compute today's sessions from the same server-backed schedule list.
   const todayISO = new Date().toISOString().slice(0, 10);
@@ -182,8 +220,8 @@ export default function MuridDashboardPage() {
           <CardContent className="p-5 flex items-center justify-between">
             <div>
               <p className="text-xs text-muted-foreground font-medium">Ujian Terdekat</p>
-              <h3 className="text-xl font-bold text-foreground mt-0.5">UTS Matematika</h3>
-              <p className="text-[11px] text-amber-600 font-semibold mt-1">Data ujian terbaru</p>
+              <h3 className="text-xl font-bold text-foreground mt-0.5">{nearestUjian ? nearestUjian.namaUjian : "Belum Ada"}</h3>
+              <p className="text-[11px] text-amber-600 font-semibold mt-1">{nearestUjian ? `${formatDateIndo(nearestUjian.tanggal)} • ${nearestUjian.jam} WIB` : "Belum ada ujian terbit"}</p>
             </div>
             <div className="h-11 w-11 rounded-2xl bg-amber-100 text-amber-700 flex items-center justify-center shrink-0">
               <BellRing className="h-5 w-5" />
@@ -307,21 +345,26 @@ export default function MuridDashboardPage() {
               </div>
             </CardHeader>
             <CardContent className="space-y-3">
-              {ujianTerdekat.slice(0, 2).map((u) => (
-                <div key={u.id} className="rounded-xl border border-border p-3 bg-muted/20 space-y-1.5">
-                  <div className="flex items-center justify-between">
-                    <span className="text-[10px] font-bold text-primary uppercase">{u.mataPelajaran}</span>
-                    <Badge variant="warning" className="text-[10px] py-0">
-                      H-3 Ujian
-                    </Badge>
+              {ujianTerdekat.slice(0, 3).map((u) => {
+                const target = new Date(`${u.tanggal}T00:00:00`);
+                const diff = Math.ceil((target.getTime() - new Date().setHours(0, 0, 0, 0)) / (1000 * 60 * 60 * 24));
+                return (
+                  <div key={u.id} className="rounded-xl border border-border p-3 bg-muted/20 space-y-1.5">
+                    <div className="flex items-center justify-between">
+                      <span className="text-[10px] font-bold text-primary uppercase">{u.mataPelajaran}</span>
+                      <Badge variant={diff <= 5 ? "warning" : "secondary"} className="text-[10px] py-0">
+                        {diff > 0 ? `H-${diff}` : diff === 0 ? "Hari Ini" : "Lewat"}
+                      </Badge>
+                    </div>
+                    <h5 className="font-bold text-xs text-foreground">{u.namaUjian}</h5>
+                    <p className="text-[11px] text-muted-foreground flex items-center gap-1">
+                      <Clock className="h-3 w-3 text-muted-foreground" />
+                      {formatDateIndo(u.tanggal)} • {u.jam}
+                    </p>
                   </div>
-                  <h5 className="font-bold text-xs text-foreground">{u.namaUjian}</h5>
-                  <p className="text-[11px] text-muted-foreground flex items-center gap-1">
-                    <Clock className="h-3 w-3 text-muted-foreground" />
-                    {formatDateIndo(u.tanggal)} • {u.jam}
-                  </p>
-                </div>
-              ))}
+                );
+              })}
+              {ujianTerdekat.length === 0 && <p className="text-xs text-muted-foreground">Belum ada ujian untuk kelasmu.</p>}
             </CardContent>
           </Card>
 

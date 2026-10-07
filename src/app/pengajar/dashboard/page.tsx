@@ -74,7 +74,9 @@ export default function PengajarDashboardPage() {
       // Keep the dashboard available with the last successful snapshot.
     }
   }, []);
-  React.useEffect(() => { void loadDashboard(); }, [loadDashboard]);
+  React.useEffect(() => {
+    void loadDashboard();
+  }, [loadDashboard]);
   useVisiblePolling(loadDashboard, 30000);
 
   const sesiHariIni = jadwalPengajar.filter((schedule) => schedule.tanggal.slice(0, 10) === new Date().toISOString().slice(0, 10)).length;

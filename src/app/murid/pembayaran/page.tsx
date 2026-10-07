@@ -88,7 +88,9 @@ export default function MuridPembayaranPage() {
       toast(error instanceof Error ? error.message : "Gagal memuat pembayaran.", "error");
     }
   }, [loadInvoices, toast]);
-  React.useEffect(() => { void loadPayments(); }, [loadPayments]);
+  React.useEffect(() => {
+    void loadPayments();
+  }, [loadPayments]);
   useVisiblePolling(loadPayments, 30000);
 
   const activeBill = {

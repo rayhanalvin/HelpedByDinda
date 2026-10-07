@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import Link from "next/link";
-import { Users, GraduationCap, CreditCard, Coins, Send, Plus, ArrowRight, Loader2 } from "lucide-react";
+import { Users, GraduationCap, CreditCard, Coins, Send, Plus, ArrowRight, Loader2, BellRing } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -34,6 +34,15 @@ type DashboardStats = {
     muridNama: string;
     tanggal: string;
     jamMulai: string;
+  }>;
+  upcomingUjian: Array<{
+    id: string;
+    namaUjian: string;
+    mataPelajaran: string;
+    kelasSasaran: string;
+    tanggal: string;
+    jam: string;
+    pengajarNama: string;
   }>;
 };
 
@@ -336,6 +345,39 @@ export default function AdminDashboardPage() {
                 <span className="text-muted-foreground">Webhook Verification</span>
                 <span className="font-bold text-primary">SHA512 Active</span>
               </div>
+            </CardContent>
+          </Card>
+
+          {/* Ujian Mendatang Widget */}
+          <Card className="border-border shadow-xs">
+            <CardHeader className="pb-3">
+              <div className="flex items-center justify-between">
+                <CardTitle className="text-base flex items-center gap-2">
+                  <BellRing className="h-4 w-4 text-amber-500" />
+                  Ujian Mendatang
+                </CardTitle>
+                <Link href="/admin/katalog-ujian" className="text-xs text-primary font-semibold hover:underline">
+                  Kelola
+                </Link>
+              </div>
+            </CardHeader>
+            <CardContent className="space-y-2.5">
+              {(stats.upcomingUjian || []).map((u) => (
+                <div key={u.id} className="rounded-xl border border-border p-3 bg-muted/20 space-y-1">
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="text-[10px] font-bold text-primary uppercase">{u.mataPelajaran}</span>
+                    <Badge variant="secondary" className="text-[10px]">
+                      {u.kelasSasaran}
+                    </Badge>
+                  </div>
+                  <p className="font-bold text-xs text-foreground">{u.namaUjian}</p>
+                  <p className="text-[11px] text-muted-foreground">
+                    {formatDateIndo(u.tanggal)} • {u.jam} WIB
+                  </p>
+                  <p className="text-[10px] text-muted-foreground">PIC: {u.pengajarNama || "-"}</p>
+                </div>
+              ))}
+              {(stats.upcomingUjian || []).length === 0 && <p className="text-xs text-muted-foreground">Belum ada ujian terbit mendatang.</p>}
             </CardContent>
           </Card>
         </div>

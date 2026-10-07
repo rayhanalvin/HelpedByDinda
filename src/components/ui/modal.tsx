@@ -33,25 +33,15 @@ export function Modal({ isOpen, onClose, title, description, children, className
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       {/* Backdrop */}
-      <div
-        className="fixed inset-0 bg-black/50 backdrop-blur-xs transition-opacity animate-in fade-in duration-200"
-        onClick={onClose}
-      />
+      <div className="fixed inset-0 bg-black/50 backdrop-blur-xs transition-opacity animate-in fade-in duration-200" onClick={onClose} />
 
       {/* Dialog box */}
       <div
         role="dialog"
         aria-modal="true"
-        className={cn(
-          "relative z-50 max-h-[calc(100dvh-2rem)] w-full max-w-lg overflow-y-auto overscroll-contain rounded-2xl border border-border bg-card p-5 shadow-2xl animate-in zoom-in-95 fade-in duration-200 sm:p-6",
-          className
-        )}
+        className={cn("relative z-50 max-h-[calc(100dvh-2rem)] w-full max-w-lg overflow-y-auto overscroll-contain rounded-2xl border border-border bg-card p-5 shadow-2xl animate-in zoom-in-95 fade-in duration-200 sm:p-6", className)}
       >
-        <button
-          onClick={onClose}
-          className="absolute right-4 top-4 rounded-lg p-1.5 text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
-          aria-label="Tutup"
-        >
+        <button onClick={onClose} className="absolute right-4 top-4 rounded-lg p-1.5 text-muted-foreground hover:bg-muted hover:text-foreground transition-colors" aria-label="Tutup">
           <X className="h-5 w-5" />
         </button>
 

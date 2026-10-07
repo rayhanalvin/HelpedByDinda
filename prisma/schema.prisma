@@ -94,6 +94,7 @@ model Pengajar {
   materi            Materi[]
   user              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   quizzes           Quiz[]
+  ujian             Ujian[]
 
   @@map("pengajar")
 }
@@ -466,6 +467,27 @@ model Testimonials {
   user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@map("testimonials")
+}
+
+model Ujian {
+  id            String   @id @default(cuid())
+  namaUjian     String
+  mataPelajaran String
+  kelasSasaran  String
+  tanggal       DateTime
+  jam           String
+  deskripsi     String
+  lokasi        String
+  pengajarId    String?
+  pengajarNama  String
+  isPublished   Boolean  @default(false)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  pengajar      Pengajar? @relation(fields: [pengajarId], references: [id], onDelete: SetNull)
+
+  @@index([kelasSasaran, tanggal])
+  @@index([isPublished, tanggal])
+  @@map("ujian")
 }
 
 model Message {

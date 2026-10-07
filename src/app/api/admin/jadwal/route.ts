@@ -68,9 +68,7 @@ export async function POST(req: Request) {
     kelompokId,
     kelompokNama,
   };
-  const createdIds = await prisma.$transaction(
-    selectedMuridIds.map((muridId) => prisma.jadwal.create({ data: { ...sharedData, muridId }, select: { id: true } })),
-  );
+  const createdIds = await prisma.$transaction(selectedMuridIds.map((muridId) => prisma.jadwal.create({ data: { ...sharedData, muridId }, select: { id: true } })));
   const jadwal = await prisma.jadwal.findMany({
     where: { id: { in: createdIds.map((item) => item.id) } },
     include: { pengajar: { include: { user: true } }, murid: { include: { user: true } } },

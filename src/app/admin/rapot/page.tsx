@@ -9,8 +9,31 @@ import { apiFetch } from "@/lib/api";
 import { useToast } from "@/components/ui/toast";
 import { useVisiblePolling } from "@/lib/use-visible-polling";
 
-type RapotRow = { id: string; periode: string; nilaiQuiz: number; kehadiran: number; nilaiSekolah: number; keaktifan: number; nilaiAkhir: number; deskripsi: string; status: string; murid: { user: { name: string } }; pengajar: { user: { name: string } } };
-type AssessmentRow = { id: string; periode: string; rating: number; pemahamanMateri: number; komunikasi: number; ketepatanWaktu: number; deskripsi: string; status: string; murid: { user: { name: string } }; pengajar: { user: { name: string } } };
+type RapotRow = {
+  id: string;
+  periode: string;
+  nilaiQuiz: number;
+  kehadiran: number;
+  nilaiSekolah: number;
+  keaktifan: number;
+  nilaiAkhir: number;
+  deskripsi: string;
+  status: string;
+  murid: { user: { name: string } };
+  pengajar: { user: { name: string } };
+};
+type AssessmentRow = {
+  id: string;
+  periode: string;
+  rating: number;
+  pemahamanMateri: number;
+  komunikasi: number;
+  ketepatanWaktu: number;
+  deskripsi: string;
+  status: string;
+  murid: { user: { name: string } };
+  pengajar: { user: { name: string } };
+};
 
 export default function AdminRapotPage() {
   const { toast } = useToast();
@@ -28,7 +51,9 @@ export default function AdminRapotPage() {
       setLoading(false);
     }
   }, [toast]);
-  React.useEffect(() => { void load(); }, [load]);
+  React.useEffect(() => {
+    void load();
+  }, [load]);
   useVisiblePolling(load, 30000);
   const averageScore = rapot.length ? Math.round(rapot.reduce((sum, item) => sum + item.nilaiAkhir, 0) / rapot.length) : 0;
   const averageRating = assessments.length ? (assessments.reduce((sum, item) => sum + item.rating, 0) / assessments.length).toFixed(1) : "0.0";
@@ -102,7 +127,9 @@ export default function AdminRapotPage() {
                   </div>
                   <div className="flex items-center gap-2">
                     <Badge variant={item.status === "TERBIT" ? "success" : "warning"}>{item.status}</Badge>
-                    <Button size="icon" variant="ghost" aria-label="Hapus rapot" onClick={() => void deleteRapot(item.id)}><Trash2 size={15} /></Button>
+                    <Button size="icon" variant="ghost" aria-label="Hapus rapot" onClick={() => void deleteRapot(item.id)}>
+                      <Trash2 size={15} />
+                    </Button>
                   </div>
                 </div>
                 <div className="mt-4 grid grid-cols-4 gap-2 text-center text-xs">

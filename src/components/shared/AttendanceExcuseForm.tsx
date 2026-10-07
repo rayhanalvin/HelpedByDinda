@@ -71,7 +71,13 @@ export function AttendanceExcuseForm({ jadwalId, disabled = false, onSubmitted }
       </div>
       <div className="grid grid-cols-2 gap-2 rounded-xl bg-muted p-1 sm:col-span-2 sm:w-fit">
         {(["IZIN", "SAKIT"] as const).map((value) => (
-          <button key={value} type="button" disabled={disabled || saving} onClick={() => setStatus(value)} className={`min-h-10 rounded-lg px-4 text-sm font-semibold ${status === value ? "bg-card text-primary shadow-xs" : "text-muted-foreground"}`}>
+          <button
+            key={value}
+            type="button"
+            disabled={disabled || saving}
+            onClick={() => setStatus(value)}
+            className={`min-h-10 rounded-lg px-4 text-sm font-semibold ${status === value ? "bg-card text-primary shadow-xs" : "text-muted-foreground"}`}
+          >
             {value === "IZIN" ? "Izin" : "Sakit"}
           </button>
         ))}
@@ -80,9 +86,22 @@ export function AttendanceExcuseForm({ jadwalId, disabled = false, onSubmitted }
         <Upload className="h-4 w-4" /> {proof ? proof.name : "Pilih foto bukti"}
         <input type="file" accept="image/jpeg,image/png,image/webp" capture="environment" className="sr-only" disabled={disabled || saving} onChange={selectProof} />
       </label>
-      <input value={catatan} onChange={(event) => setCatatan(event.target.value)} disabled={disabled || saving} maxLength={500} placeholder="Catatan tambahan (opsional)" className="min-h-11 min-w-0 rounded-xl border border-input bg-card px-3 text-sm" />
-      {proof && <div className="flex items-center gap-2 text-xs text-emerald-700 sm:col-span-2"><FileCheck2 className="h-4 w-4" /> Bukti siap dikirim</div>}
-      <Button type="submit" variant="outline" isLoading={saving} disabled={disabled} className="sm:col-span-2 sm:w-fit">Kirim Pengajuan {status === "IZIN" ? "Izin" : "Sakit"}</Button>
+      <input
+        value={catatan}
+        onChange={(event) => setCatatan(event.target.value)}
+        disabled={disabled || saving}
+        maxLength={500}
+        placeholder="Catatan tambahan (opsional)"
+        className="min-h-11 min-w-0 rounded-xl border border-input bg-card px-3 text-sm"
+      />
+      {proof && (
+        <div className="flex items-center gap-2 text-xs text-emerald-700 sm:col-span-2">
+          <FileCheck2 className="h-4 w-4" /> Bukti siap dikirim
+        </div>
+      )}
+      <Button type="submit" variant="outline" isLoading={saving} disabled={disabled} className="sm:col-span-2 sm:w-fit">
+        Kirim Pengajuan {status === "IZIN" ? "Izin" : "Sakit"}
+      </Button>
       {disabled && <p className="text-xs text-muted-foreground sm:col-span-2">Pengajuan hanya dapat dikirim sebelum presensi sesi dimulai.</p>}
     </form>
   );

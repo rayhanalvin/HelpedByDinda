@@ -161,13 +161,10 @@ export async function GET(req: Request) {
 
   const payload: ReturnType<typeof normalizeSchedule>[] = [];
   const scheduleIds = schedules.map((schedule) => schedule.id);
-  const participantUserIds = Array.from(new Set([
-    session.userId,
-    ...schedules.map((schedule) => session.role === "PENGAJAR" ? schedule.murid?.user?.id : schedule.pengajar?.user?.id).filter((userId): userId is string => Boolean(userId)),
-  ]));
-  const attendanceRows = scheduleIds.length
-    ? await prisma.absensi.findMany({ where: { jadwalId: { in: scheduleIds }, userId: { in: participantUserIds } } })
-    : [];
+  const participantUserIds = Array.from(
+    new Set([session.userId, ...schedules.map((schedule) => (session.role === "PENGAJAR" ? schedule.murid?.user?.id : schedule.pengajar?.user?.id)).filter((userId): userId is string => Boolean(userId))]),
+  );
+  const attendanceRows = scheduleIds.length ? await prisma.absensi.findMany({ where: { jadwalId: { in: scheduleIds }, userId: { in: participantUserIds } } }) : [];
   const attendanceByParticipant = new Map(attendanceRows.map((attendance) => [`${attendance.jadwalId}:${attendance.userId}`, attendance]));
 
   for (const schedule of schedules) {
@@ -242,17 +239,19 @@ export async function POST(req: Request) {
     const status = String(body.status || "").toUpperCase();
     const proofData = String(body.proofData || "");
     const proofMimeType = String(body.proofMimeType || "").toLowerCase();
-    const proofName = String(body.proofName || "Bukti absensi").trim().slice(0, 160);
+    const proofName = String(body.proofName || "Bukti absensi")
+      .trim()
+      .slice(0, 160);
     if (!["IZIN", "SAKIT"].includes(status)) return NextResponse.json({ ok: false, message: "Pilih status izin atau sakit." }, { status: 400 });
     if (!["image/jpeg", "image/png", "image/webp"].includes(proofMimeType) || !/^data:image\/(jpeg|png|webp);base64,[A-Za-z0-9+/=]+$/.test(proofData) || proofData.length > 4_200_000) {
       return NextResponse.json({ ok: false, message: "Lampirkan gambar JPG, PNG, atau WEBP maksimal 3 MB." }, { status: 400 });
     }
-    const absenceSchedules = session.role === "PENGAJAR" && schedule.kelompokId
-      ? await prisma.jadwal.findMany({ where: { kelompokId: schedule.kelompokId }, select: { id: true, mataPelajaran: true, tanggal: true } })
-      : [{ id: schedule.id, mataPelajaran: schedule.mataPelajaran, tanggal: schedule.tanggal }];
-    const existingGroupAttendance = session.role === "PENGAJAR" && schedule.kelompokId
-      ? await prisma.absensi.findMany({ where: { userId: session.userId, jadwalId: { in: absenceSchedules.map((item) => item.id) } } })
-      : existing ? [existing] : [];
+    const absenceSchedules =
+      session.role === "PENGAJAR" && schedule.kelompokId
+        ? await prisma.jadwal.findMany({ where: { kelompokId: schedule.kelompokId }, select: { id: true, mataPelajaran: true, tanggal: true } })
+        : [{ id: schedule.id, mataPelajaran: schedule.mataPelajaran, tanggal: schedule.tanggal }];
+    const existingGroupAttendance =
+      session.role === "PENGAJAR" && schedule.kelompokId ? await prisma.absensi.findMany({ where: { userId: session.userId, jadwalId: { in: absenceSchedules.map((item) => item.id) } } }) : existing ? [existing] : [];
     if (existingGroupAttendance.some((item) => item.startedAt || item.finishedAt || ["HADIR", "TERLAMBAT"].includes(item.status))) {
       return NextResponse.json({ ok: false, message: "Absensi tidak dapat diubah setelah sesi dimulai." }, { status: 409 });
     }
@@ -263,7 +262,18 @@ export async function POST(req: Request) {
       for (const target of absenceSchedules) {
         const saved = await transaction.absensi.upsert({
           where: { jadwalId_userId: { jadwalId: target.id, userId: session.userId } },
-          create: { jadwalId: target.id, userId: session.userId, status: status as "IZIN" | "SAKIT", waktuAbsen: new Date(), mataPelajaran: target.mataPelajaran, tanggal: target.tanggal, catatan, buktiData: proofData, buktiMimeType: proofMimeType, buktiNama: proofName },
+          create: {
+            jadwalId: target.id,
+            userId: session.userId,
+            status: status as "IZIN" | "SAKIT",
+            waktuAbsen: new Date(),
+            mataPelajaran: target.mataPelajaran,
+            tanggal: target.tanggal,
+            catatan,
+            buktiData: proofData,
+            buktiMimeType: proofMimeType,
+            buktiNama: proofName,
+          },
           update: { status: status as "IZIN" | "SAKIT", waktuAbsen: new Date(), catatan, buktiData: proofData, buktiMimeType: proofMimeType, buktiNama: proofName },
         });
         if (target.id === schedule.id) targetAttendance = saved;
@@ -276,9 +286,8 @@ export async function POST(req: Request) {
   const hasValidLocation = location && Number.isFinite(location.latitude) && Number.isFinite(location.longitude) && Math.abs(Number(location.latitude)) <= 90 && Math.abs(Number(location.longitude)) <= 180;
   if (!hasValidLocation) return NextResponse.json({ ok: false, message: "Lokasi perangkat wajib diizinkan untuk mencatat absensi." }, { status: 400 });
 
-  const groupSchedules = session.role === "PENGAJAR" && schedule.kelompokId
-    ? await prisma.jadwal.findMany({ where: { kelompokId: schedule.kelompokId }, select: { id: true, mataPelajaran: true, tanggal: true, jamMulai: true } })
-    : [schedule];
+  const groupSchedules =
+    session.role === "PENGAJAR" && schedule.kelompokId ? await prisma.jadwal.findMany({ where: { kelompokId: schedule.kelompokId }, select: { id: true, mataPelajaran: true, tanggal: true, jamMulai: true } }) : [schedule];
 
   if (action === "start") {
     if (existing && !(session.role === "PENGAJAR" && schedule.kelompokId)) {
@@ -323,11 +332,37 @@ export async function POST(req: Request) {
     for (const groupSchedule of groupSchedules) {
       const current = await transaction.absensi.findUnique({ where: { jadwalId_userId: { jadwalId: groupSchedule.id, userId: session.userId } } });
       const saved = current
-        ? await transaction.absensi.update({ where: { id: current.id }, data: { finishedAt, endLatitude: current.endLatitude ?? Number(location.latitude), endLongitude: current.endLongitude ?? Number(location.longitude), endAccuracy: current.endAccuracy ?? (Number.isFinite(location.accuracy) ? Number(location.accuracy) : null), catatan: current.catatan || "Sesi selesai tercatat." } })
-        : await transaction.absensi.create({ data: { jadwalId: groupSchedule.id, userId: session.userId, status: "HADIR", waktuAbsen: new Date(), finishedAt, endLatitude: Number(location.latitude), endLongitude: Number(location.longitude), endAccuracy: Number.isFinite(location.accuracy) ? Number(location.accuracy) : null, mataPelajaran: groupSchedule.mataPelajaran, tanggal: groupSchedule.tanggal, catatan: "Sesi selesai tercatat." } });
+        ? await transaction.absensi.update({
+            where: { id: current.id },
+            data: {
+              finishedAt,
+              endLatitude: current.endLatitude ?? Number(location.latitude),
+              endLongitude: current.endLongitude ?? Number(location.longitude),
+              endAccuracy: current.endAccuracy ?? (Number.isFinite(location.accuracy) ? Number(location.accuracy) : null),
+              catatan: current.catatan || "Sesi selesai tercatat.",
+            },
+          })
+        : await transaction.absensi.create({
+            data: {
+              jadwalId: groupSchedule.id,
+              userId: session.userId,
+              status: "HADIR",
+              waktuAbsen: new Date(),
+              finishedAt,
+              endLatitude: Number(location.latitude),
+              endLongitude: Number(location.longitude),
+              endAccuracy: Number.isFinite(location.accuracy) ? Number(location.accuracy) : null,
+              mataPelajaran: groupSchedule.mataPelajaran,
+              tanggal: groupSchedule.tanggal,
+              catatan: "Sesi selesai tercatat.",
+            },
+          });
 
       const finishedAttendances = await transaction.absensi.findMany({ where: { jadwalId: groupSchedule.id }, select: { userId: true, finishedAt: true } });
-      const requiredUserIds = [schedule.pengajar.userId, groupSchedule.id === schedule.id ? schedule.murid.userId : (await transaction.jadwal.findUniqueOrThrow({ where: { id: groupSchedule.id }, select: { murid: { select: { userId: true } } } })).murid.userId];
+      const requiredUserIds = [
+        schedule.pengajar.userId,
+        groupSchedule.id === schedule.id ? schedule.murid.userId : (await transaction.jadwal.findUniqueOrThrow({ where: { id: groupSchedule.id }, select: { murid: { select: { userId: true } } } })).murid.userId,
+      ];
       const allParticipantsFinished = requiredUserIds.every((userId) => finishedAttendances.some((item) => item.userId === userId && item.finishedAt));
       await transaction.jadwal.update({ where: { id: groupSchedule.id }, data: { status: allParticipantsFinished ? "SELESAI" : "BERJALAN" } });
       if (groupSchedule.id === schedule.id) {

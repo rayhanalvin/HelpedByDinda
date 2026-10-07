@@ -30,7 +30,7 @@ export default function PublicLayout({ children }: { children: React.ReactNode }
         <div className="flex items-center gap-2 mx-auto sm:mx-0">
           <span className="flex h-2 w-2 rounded-full bg-accent animate-pulse" />
           <span className="font-medium text-primary">Pendaftaran Periode Baru Dibuka!</span>
-          <span className="hidden md:inline text-muted-foreground">khusus siswa SD, SMP, SMA & UTBK 2026.</span>
+          <span className="hidden md:inline text-muted-foreground">khusus siswa SD, SMP, SMA & UTBK.</span>
         </div>
         <div className="mx-auto sm:mx-0">
           <RoleSwitcher />
@@ -168,7 +168,7 @@ export default function PublicLayout({ children }: { children: React.ReactNode }
                 </li>
                 <li>
                   <Link href="/program" className="hover:text-primary transition-colors">
-                    Mahasiswa (semester 1-8) & UTBK 2026
+                    Mahasiswa (semester 1-8) & UTBK
                   </Link>
                 </li>
               </ul>
@@ -203,7 +203,7 @@ export default function PublicLayout({ children }: { children: React.ReactNode }
           </div>
 
           <div className="mt-8 border-t border-border pt-6 flex flex-col sm:flex-row items-center justify-between text-xs text-muted-foreground gap-4">
-            <p>© 2026 {site.name}. Seluruh hak cipta dilindungi.</p>
+            <p>© {new Date().getFullYear()} {site.name}. Seluruh hak cipta dilindungi.</p>
             <div className="flex gap-4">
               <Link href="/tentang" className="hover:text-primary">
                 Tentang Kami

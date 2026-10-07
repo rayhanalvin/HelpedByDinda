@@ -45,9 +45,7 @@ export async function GET() {
   }
 
   const groupIds = Array.from(new Set(jadwal.map((schedule) => schedule.kelompokId).filter((id): id is string => Boolean(id))));
-  const groupedSchedules = groupIds.length
-    ? await prisma.jadwal.findMany({ where: { kelompokId: { in: groupIds } }, include: { murid: { include: { user: { select: { name: true } } } } } })
-    : [];
+  const groupedSchedules = groupIds.length ? await prisma.jadwal.findMany({ where: { kelompokId: { in: groupIds } }, include: { murid: { include: { user: { select: { name: true } } } } } }) : [];
   const participantsByGroup = new Map<string, string[]>();
   for (const schedule of groupedSchedules) {
     if (!schedule.kelompokId) continue;

@@ -38,7 +38,6 @@ export default async function TentangPage() {
           </div>
         </section>
       ))}
-
     </div>
   );
 }

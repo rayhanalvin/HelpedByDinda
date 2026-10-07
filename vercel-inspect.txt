@@ -1,0 +1,17 @@
+﻿node.exe : Vercel CLI 62.7.0 (Node.js 22.14.0)
+At C:\Users\HP\AppData\Roaming\npm\vercel.ps1:24 char:5
++     & "node$exe"  "$basedir/node_modules/vercel/dist/vc.js" $args
++     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (Vercel CLI 62.7.0 (Node.js 22.14. 
+   0):String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+> No existing credentials found. Starting login flow...
+> 
+  Visit https://vercel.com/oauth/device?user_code=NMPC-LLGX
+
+Waiting for authentication...
+[2K[1A[2K[G> Success! Logged in.
+Fetching deployment "dpl_FK5hCahk5XGqUUUiXYHj4CA9ujE4" in rayhanalvin
+Error: Can't find the deployment "dpl_FK5hCahk5XGqUUUiXYHj4CA9ujE4" under the 
+context "rayhanalvin"

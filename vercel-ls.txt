@@ -1,0 +1,19 @@
+﻿node.exe : Vercel CLI 62.7.0 (Node.js 22.14.0)
+At C:\Users\HP\AppData\Roaming\npm\vercel.ps1:24 char:5
++     & "node$exe"  "$basedir/node_modules/vercel/dist/vc.js" $args
++     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (Vercel CLI 62.7.0 (Node.js 22.14. 
+   0):String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+Fetching deployments in rayhanalvin
+> Deployments under rayhanalvin [874ms]
+
+  Age     Project                         Deployment                           
+                        Status      Environment     Duration     Username      
+  
+  1h      rayhanalvin/helped-by-dinda     
+https://helped-by-dinda-nvy7riphj-rayhanalvin.vercel.app     ΓùÅ Ready     
+Production      2m           rayhanalvin     
+
+https://helped-by-dinda-nvy7riphj-rayhanalvin.vercel.app

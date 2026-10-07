@@ -45,7 +45,7 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
               "pointer-events-auto flex items-center justify-between gap-3 rounded-xl border p-4 shadow-lg transition-all animate-in slide-in-from-bottom-5 duration-300",
               t.type === "success" && "bg-white border-emerald-200 text-emerald-950",
               t.type === "error" && "bg-white border-rose-200 text-rose-950",
-              t.type === "info" && "bg-white border-primary/20 text-foreground"
+              t.type === "info" && "bg-white border-primary/20 text-foreground",
             )}
           >
             <div className="flex items-center gap-3">
@@ -54,10 +54,7 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
               {t.type === "info" && <Info className="h-5 w-5 text-primary shrink-0" />}
               <p className="text-sm font-medium">{t.message}</p>
             </div>
-            <button
-              onClick={() => removeToast(t.id)}
-              className="text-muted-foreground hover:text-foreground p-1 rounded-md"
-            >
+            <button onClick={() => removeToast(t.id)} className="text-muted-foreground hover:text-foreground p-1 rounded-md">
               <X className="h-4 w-4" />
             </button>
           </div>

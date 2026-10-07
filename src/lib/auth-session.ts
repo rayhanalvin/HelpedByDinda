@@ -2,11 +2,13 @@ import { jwtVerify, SignJWT } from "jose";
 import { cookies } from "next/headers";
 import { prisma } from "@/lib/db";
 
-const rawSecret = process.env.AUTH_SECRET;
-if (!rawSecret) {
-  throw new Error("AUTH_SECRET environment variable is required and must be set");
+function getSecret() {
+  const rawSecret = process.env.AUTH_SECRET;
+  if (!rawSecret) {
+    throw new Error("AUTH_SECRET environment variable is required and must be set");
+  }
+  return new TextEncoder().encode(rawSecret);
 }
-const secret = new TextEncoder().encode(rawSecret);
 
 export type SessionPayload = {
   userId: string;
@@ -23,11 +25,11 @@ export function normalizeRole(role?: string | null) {
 }
 
 export async function createSessionToken(payload: SessionPayload) {
-  return new SignJWT({ ...payload, role: normalizeRole(payload.role) }).setProtectedHeader({ alg: "HS256" }).setIssuedAt().setExpirationTime("7d").sign(secret);
+  return new SignJWT({ ...payload, role: normalizeRole(payload.role) }).setProtectedHeader({ alg: "HS256" }).setIssuedAt().setExpirationTime("7d").sign(getSecret());
 }
 
 export async function verifySessionToken(token: string) {
-  const { payload } = await jwtVerify(token, secret);
+  const { payload } = await jwtVerify(token, getSecret());
   const normalizedPayload = {
     ...(payload as Record<string, unknown>),
     role: normalizeRole(String((payload as Record<string, unknown>).role || "")),
