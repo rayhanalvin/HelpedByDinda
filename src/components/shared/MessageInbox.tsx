@@ -97,18 +97,8 @@ export function MessageInbox() {
   }, []);
 
   React.useEffect(() => {
-    void load();
-  }, [load]);
-
-  React.useEffect(() => {
-    if (!open) {
-      // Keep the unread badge fresh occasionally in the background.
-      const slow = window.setInterval(() => void load(), 60000);
-      return () => window.clearInterval(slow);
-    }
-    const fast = window.setInterval(() => void load(), 10000);
-    return () => window.clearInterval(fast);
-  }, [open, load]);
+    const interval = window.setInterval(() => void load(), 10000);
+    return () => window.clearInterval(interval);
 
   // When the inbox is opened, prefetch small thumbnails for image attachments to make them easier to view.
   const loadThumbnailsForMessages = React.useCallback(async () => {

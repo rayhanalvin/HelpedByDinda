@@ -86,34 +86,7 @@ export default function PublicLayout({ children }: { children: React.ReactNode }
         </div>
 
         {/* Mobile Navigation Drawer */}
-        {mobileMenuOpen && (
-          <div className="border-b border-border bg-card px-4 pt-2 pb-6 md:hidden animate-in slide-in-from-top-2 duration-200">
-            <nav className="flex flex-col space-y-2">
-              {NAV_LINKS.map((link) => (
-                <Link
-                  key={link.name}
-                  href={link.href}
-                  onClick={() => setMobileMenuOpen(false)}
-                  className={cn("rounded-xl px-4 py-3 text-sm font-medium transition-colors", pathname === link.href ? "bg-primary/10 text-primary font-semibold" : "text-foreground hover:bg-muted")}
-                >
-                  {link.name}
-                </Link>
-              ))}
-            </nav>
-            <div className="mt-4 flex flex-col gap-2 pt-4 border-t border-border">
-              <Link href="/login" onClick={() => setMobileMenuOpen(false)}>
-                <Button variant="outline" className="w-full justify-center">
-                  Masuk ke Akun
-                </Button>
-              </Link>
-              <Link href="/register" onClick={() => setMobileMenuOpen(false)}>
-                <Button variant="accent" className="w-full justify-center">
-                  Daftar Murid Baru
-                </Button>
-              </Link>
-            </div>
-          </div>
-        )}
+      {mobileMenuOpen && <div className="hidden" />}
       </header>
 
       {/* Main Content */}
