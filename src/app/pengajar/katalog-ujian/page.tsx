@@ -67,9 +67,7 @@ export default function PengajarKatalogUjianPage() {
               {item.mataPelajaran} · PIC {item.pengajarNama || "-"}
             </p>
           </div>
-          <Badge variant={item.pengajarId === myPIC ? "success" : "default"}>
-            {item.pengajarId === myPIC ? "Ujian Saya" : "Terbit"}
-          </Badge>
+          <Badge variant={item.pengajarId === myPIC ? "success" : "default"}>{item.pengajarId === myPIC ? "Ujian Saya" : "Terbit"}</Badge>
         </div>
         <div className="mt-5 grid gap-2 text-sm text-muted-foreground">
           <span className="flex items-center gap-2">

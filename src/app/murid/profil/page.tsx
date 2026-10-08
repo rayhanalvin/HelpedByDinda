@@ -155,9 +155,7 @@ export default function MuridProfilPage() {
               <p className="text-xs text-muted-foreground">
                 {getKelasLabel(formData.kelas)} • {formData.sekolah}
               </p>
-              <p className="text-[11px] text-primary font-medium">
-                Terdaftar sejak {initialData.createdAt ? new Date(initialData.createdAt).toLocaleDateString("id-ID", { month: "long", year: "numeric" }) : "-"}
-              </p>
+              <p className="text-[11px] text-primary font-medium">Terdaftar sejak {initialData.createdAt ? new Date(initialData.createdAt).toLocaleDateString("id-ID", { month: "long", year: "numeric" }) : "-"}</p>
             </div>
           </CardContent>
         </Card>

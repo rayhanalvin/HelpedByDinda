@@ -209,11 +209,7 @@ export default function AdminKatalogUjianPage() {
 
       {formOpen && (
         <div className="fixed inset-0 z-50 grid place-items-center bg-black/40 p-4" onMouseDown={() => setFormOpen(false)}>
-          <form
-            onSubmit={handleSubmit}
-            onMouseDown={(event) => event.stopPropagation()}
-            className="w-full max-w-lg space-y-4 rounded-2xl bg-card p-6 shadow-xl"
-          >
+          <form onSubmit={handleSubmit} onMouseDown={(event) => event.stopPropagation()} className="w-full max-w-lg space-y-4 rounded-2xl bg-card p-6 shadow-xl">
             <h2 className="text-xl font-bold">{editingId ? "Edit Ujian" : "Tambah Ujian"}</h2>
             <Input required placeholder="Nama ujian (cth: Try Out UTBK #1)" value={form.namaUjian} onChange={(event) => setForm({ ...form, namaUjian: event.target.value })} />
             <div className="grid grid-cols-2 gap-3">

@@ -86,7 +86,7 @@ export default function PublicLayout({ children }: { children: React.ReactNode }
         </div>
 
         {/* Mobile Navigation Drawer */}
-      {mobileMenuOpen && <div className="hidden" />}
+        {mobileMenuOpen && <div className="hidden" />}
       </header>
 
       {/* Main Content */}
@@ -176,7 +176,9 @@ export default function PublicLayout({ children }: { children: React.ReactNode }
           </div>
 
           <div className="mt-8 border-t border-border pt-6 flex flex-col sm:flex-row items-center justify-between text-xs text-muted-foreground gap-4">
-            <p>© {new Date().getFullYear()} {site.name}. Seluruh hak cipta dilindungi.</p>
+            <p>
+              © {new Date().getFullYear()} {site.name}. Seluruh hak cipta dilindungi.
+            </p>
             <div className="flex gap-4">
               <Link href="/tentang" className="hover:text-primary">
                 Tentang Kami

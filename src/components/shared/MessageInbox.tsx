@@ -97,8 +97,10 @@ export function MessageInbox() {
   }, []);
 
   React.useEffect(() => {
+    if (!open) return;
     const interval = window.setInterval(() => void load(), 10000);
     return () => window.clearInterval(interval);
+  }, [open, load]);
 
   // When the inbox is opened, prefetch small thumbnails for image attachments to make them easier to view.
   const loadThumbnailsForMessages = React.useCallback(async () => {
