@@ -12,6 +12,13 @@ import { apiFetch } from "@/lib/api";
 import { Download, FileCheck, Receipt as ReceiptIcon, Upload } from "lucide-react";
 import { useVisiblePolling } from "@/lib/use-visible-polling";
 
+const periodeLabel = (periode?: string | null) => {
+  if (!periode || !/^\d{4}-\d{2}$/.test(periode)) return "Bulan ini";
+  const [year, month] = periode.split("-").map(Number);
+  const date = new Date(Date.UTC(year, month - 1, 1));
+  return date.toLocaleDateString("id-ID", { month: "long", year: "numeric" });
+};
+
 type PaymentRow = {
   id: string;
   amount: number;
@@ -42,6 +49,8 @@ export default function MuridPembayaranPage() {
   const [settings, setSettings] = React.useState<{ bankName: string | null; accountNumber: string | null; accountName: string | null } | null>(null);
   const [billAmount, setBillAmount] = React.useState(0);
   const [billStatus, setBillStatus] = React.useState<"pending" | "dibayar" | "gagal">("pending");
+  const [billPeriode, setBillPeriode] = React.useState<string>("");
+  const [invoiceTitle, setInvoiceTitle] = React.useState<string | null>(null);
   const [isSnapModalOpen, setIsSnapModalOpen] = React.useState(false);
   const [isPaying, setIsPaying] = React.useState(false);
   const [paymentHistory, setPaymentHistory] = React.useState<PaymentRow[]>([]);
@@ -80,12 +89,22 @@ export default function MuridPembayaranPage() {
 
   const loadPayments = React.useCallback(async () => {
     try {
-      const result = await apiFetch<{ ok: boolean; data: PaymentRow[]; settings: typeof settings; billAmount: number; billStatus: string }>("/api/payments");
+      const result = await apiFetch<{
+        ok: boolean;
+        data: PaymentRow[];
+        settings: typeof settings;
+        billAmount: number;
+        billStatus: string;
+        billPeriode?: string;
+        invoiceTitle?: string | null;
+      }>("/api/payments");
       setPayments(result.data || []);
       setPaymentHistory(result.data || []);
       setSettings(result.settings);
       setBillAmount(result.billAmount || 0);
       setBillStatus(result.billStatus === "SUCCESS" ? "dibayar" : result.billStatus === "FAILED" || result.billStatus === "EXPIRED" ? "gagal" : "pending");
+      if (result.billPeriode) setBillPeriode(result.billPeriode);
+      if (typeof result.invoiceTitle === "string") setInvoiceTitle(result.invoiceTitle);
       await loadInvoices();
     } catch (error) {
       toast(error instanceof Error ? error.message : "Gagal memuat pembayaran.", "error");
@@ -98,9 +117,9 @@ export default function MuridPembayaranPage() {
 
   const activeBill = {
     orderId: payments[0]?.orderId || "Belum ada invoice",
-    periode: new Date().toLocaleDateString("id-ID", { month: "long", year: "numeric" }),
+    periode: periodeLabel(billPeriode),
     jumlah: billAmount || payments[0]?.amount || 0,
-    program: "Bimbel SMA (Kelas 11)",
+    program: invoiceTitle || "Bimbel SMA (Kelas 11)",
   };
 
   const createPayment = async () => {
@@ -300,7 +319,7 @@ export default function MuridPembayaranPage() {
                 {paymentHistory.map((item) => (
                   <tr key={item.id} className="hover:bg-muted/30 transition-colors">
                     <td className="py-3.5 px-4 font-mono text-xs font-semibold text-foreground">{item.orderId}</td>
-                    <td className="py-3.5 px-4 font-medium text-foreground">{new Date(item.createdAt).toLocaleDateString("id-ID", { month: "long", year: "numeric" })}</td>
+                    <td className="py-3.5 px-4 font-medium text-foreground">{item.id === payments[0]?.id && billPeriode ? periodeLabel(billPeriode) : new Date(item.createdAt).toLocaleDateString("id-ID", { month: "long", year: "numeric" })}</td>
                     <td className="py-3.5 px-4 font-bold text-foreground tabular-nums">{formatRupiah(item.amount)}</td>
                     <td className="py-3.5 px-4 text-xs text-muted-foreground">{item.paymentMethod || "-"}</td>
                     <td className="py-3.5 px-4">
@@ -323,7 +342,7 @@ export default function MuridPembayaranPage() {
                 </div>
                 <div className="flex items-center justify-between pt-1">
                   <div>
-                    <p className="text-xs text-muted-foreground">Periode {new Date(item.createdAt).toLocaleDateString("id-ID", { month: "long", year: "numeric" })}</p>
+                    <p className="text-xs text-muted-foreground">Periode {item.id === payments[0]?.id && billPeriode ? periodeLabel(billPeriode) : new Date(item.createdAt).toLocaleDateString("id-ID", { month: "long", year: "numeric" })}</p>
                     <p className="text-base font-extrabold text-foreground tabular-nums">{formatRupiah(item.amount)}</p>
                   </div>
                   <div className="text-right text-xs text-muted-foreground">

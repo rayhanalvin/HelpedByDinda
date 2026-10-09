@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/components/ui/toast";
-import { formatRupiah } from "@/lib/utils";
+import { formatRupiah, formatDateIndo } from "@/lib/utils";
 import { apiFetch } from "@/lib/api";
 import { useVisiblePolling } from "@/lib/use-visible-polling";
 
@@ -179,6 +179,9 @@ export default function AdminPembayaranPage() {
                   <p className="mt-1 font-mono text-sm font-semibold">{formatRupiah(item.amount)}</p>
                   <p className="text-xs text-muted-foreground">
                     Metode: {item.paymentMethod === "BANK_TRANSFER" ? "Transfer bank" : item.paymentMethod ? "Metode lama" : "-"} · Tujuan: {item.recipientBankName || "-"} {item.recipientAccountNumber || ""}
+                  </p>
+                  <p className="text-[11px] text-muted-foreground">
+                    Buat: {formatDateIndo(item.createdAt)} {item.paidAt ? `· Bayar: ${formatDateIndo(item.paidAt)}` : ""}
                   </p>
                   {item.paymentProofName && (
                     <p className="mt-1 flex items-center gap-1 text-xs font-semibold text-emerald-700">

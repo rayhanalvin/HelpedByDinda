@@ -212,7 +212,7 @@ export default function MuridLayout({ children }: { children: React.ReactNode })
       {mobileDrawerOpen && (
         <div className="fixed inset-0 z-50 flex lg:hidden">
           <div className="fixed inset-0 bg-black/50 backdrop-blur-xs transition-opacity" onClick={() => setMobileDrawerOpen(false)} />
-          <div className="relative flex flex-col w-72 max-w-[80vw] bg-card border-r border-border h-full p-4 shadow-2xl z-50 animate-in slide-in-from-left duration-200">
+          <div className="relative flex flex-col w-72 max-w-[80vw] bg-card border-r border-border h-dvh overflow-y-auto p-4 shadow-2xl z-50 animate-in slide-in-from-left duration-200">
             <div className="flex items-center justify-between pb-4 border-b border-border">
               <div className="flex items-center gap-2">
                 <BrandLogo compact className="" showWordmark={false} />

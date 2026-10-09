@@ -18,6 +18,17 @@ type DashboardStats = {
   totalPembayaranMasuk: number;
   totalFeeHarusDibayar: number;
   totalJamMengajar: number;
+  period: string;
+  monthLabel: string;
+  jumlahTransaksiBulanIni: number;
+  jumlahTransaksiMenunggu: number;
+  recentPembayaran?: Array<{
+    id: string;
+    muridNama: string;
+    amount: number;
+    paidAt: string | null;
+    createdAt: string;
+  }>;
   recentAbsensi: Array<{
     id: string;
     userName: string;
@@ -114,6 +125,7 @@ export default function AdminDashboardPage() {
   const totalPengajar = stats.totalPengajar;
   const totalPembayaranMasuk = stats.totalPembayaranMasuk;
   const totalFeeHarusDibayar = stats.totalFeeHarusDibayar;
+  const monthLabel = stats.monthLabel || "Bulan Ini";
 
   return (
     <div className="space-y-8">
@@ -174,18 +186,22 @@ export default function AdminDashboardPage() {
         </Card>
 
         {/* Card 3: Pembayaran Masuk */}
-        <Card className="border-border shadow-xs hover:border-primary/40 transition-all">
-          <CardContent className="p-5 flex items-center justify-between">
-            <div>
-              <p className="text-xs text-muted-foreground font-medium">Pembayaran Masuk (Juli)</p>
-              <h3 className="text-2xl font-black text-emerald-700 mt-0.5 tabular-nums">{formatRupiah(totalPembayaranMasuk)}</h3>
-              <p className="text-[11px] text-muted-foreground mt-1">2 Invoice Lunas Midtrans</p>
-            </div>
-            <div className="h-12 w-12 rounded-2xl bg-emerald-100 text-emerald-700 flex items-center justify-center shrink-0">
-              <CreditCard className="h-6 w-6" />
-            </div>
-          </CardContent>
-        </Card>
+        <Link href="/admin/pembayaran" className="block group">
+          <Card className="border-border shadow-xs hover:border-emerald-500/60 hover:shadow-md transition-all">
+            <CardContent className="p-5 flex items-center justify-between">
+              <div>
+                <p className="text-xs text-muted-foreground font-medium">Pembayaran Masuk ({monthLabel})</p>
+                <h3 className="text-2xl font-black text-emerald-700 mt-0.5 tabular-nums group-hover:underline">{formatRupiah(totalPembayaranMasuk)}</h3>
+                <p className="text-[11px] text-emerald-700 font-semibold mt-1">
+                  {stats.jumlahTransaksiBulanIni} Invoice Lunas {stats.jumlahTransaksiMenunggu > 0 ? `• ${stats.jumlahTransaksiMenunggu} menunggu` : ""}
+                </p>
+              </div>
+              <div className="h-12 w-12 rounded-2xl bg-emerald-100 text-emerald-700 flex items-center justify-center shrink-0">
+                <CreditCard className="h-6 w-6 group-hover:scale-110" />
+              </div>
+            </CardContent>
+          </Card>
+        </Link>
 
         {/* Card 4: Total Fee Pengajar */}
         <Card className="border-border shadow-xs hover:border-primary/40 transition-all">
@@ -206,6 +222,45 @@ export default function AdminDashboardPage() {
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
         {/* Left: Presensi & Aktivitas Terbaru */}
         <div className="lg:col-span-8 space-y-6">
+          {/* Pembayaran Realtime Feed */}
+          <Card className="border-border shadow-xs">
+            <CardHeader className="flex flex-row items-center justify-between pb-3">
+              <div>
+                <CardTitle className="text-base flex items-center gap-2">
+                  <CreditCard className="h-4 w-4 text-emerald-600" />
+                  Pembayaran Masuk Realtime
+                </CardTitle>
+                <p className="text-xs text-muted-foreground">Transaksi LUNAS yang telah terkonfirmasi op {monthLabel}</p>
+              </div>
+              <Link href="/admin/pembayaran">
+                <Button variant="ghost" size="sm" className="text-xs font-semibold text-primary">
+                  Tracking <ArrowRight className="h-3.5 w-3.5 ml-1" />
+                </Button>
+              </Link>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-3">
+                {(stats.recentPembayaran || []).map((pay) => (
+                  <div key={pay.id} className="p-3.5 rounded-2xl border border-border bg-card flex items-center justify-between gap-4">
+                    <div className="flex items-center gap-3">
+                      <div className="h-9 w-9 rounded-xl bg-emerald-100 text-emerald-700 flex items-center justify-center font-bold text-xs">Rp</div>
+                      <div>
+                        <p className="text-xs font-bold text-foreground">{pay.muridNama}</p>
+                        <p className="text-[11px] text-muted-foreground">{formatDateIndo(pay.paidAt || pay.createdAt)}</p>
+                      </div>
+                    </div>
+                    <Badge variant="success" className="text-xs font-semibold tabular-nums">
+                      +{formatRupiah(pay.amount)}
+                    </Badge>
+                  </div>
+                ))}
+                {(stats.recentPembayaran || []).length === 0 && (
+                  <div className="text-center py-6 text-xs text-muted-foreground">Belum ada pembayaran masuk op {monthLabel}.</div>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+
           <Card className="border-border shadow-xs">
             <CardHeader className="flex flex-row items-center justify-between pb-3">
               <div>

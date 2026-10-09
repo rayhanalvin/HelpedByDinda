@@ -397,7 +397,7 @@ export default function AdminPengingatPage() {
           <CardDescription>Riwayat lengkap email yang telah dikirimkan oleh sistem atau dipicu secara manual oleh admin</CardDescription>
         </CardHeader>
         <CardContent className="p-0">
-          <div className="overflow-x-auto">
+          <div className="hidden md:block overflow-x-auto">
             <table className="w-full text-left text-sm">
               <thead className="border-b border-border text-xs uppercase font-semibold text-muted-foreground bg-muted/30">
                 <tr>
@@ -453,6 +453,44 @@ export default function AdminPengingatPage() {
                 ))}
               </tbody>
             </table>
+          </div>
+          {/* Mobile Card View */}
+          <div className="grid grid-cols-1 gap-3 p-4 md:hidden">
+            {logs.map((log) => (
+              <div key={log.id} className="rounded-2xl border border-border p-4 bg-card space-y-3">
+                <div className="flex items-start justify-between gap-2">
+                  <div>
+                    <Badge variant="default" className="text-[10px] uppercase">
+                      {log.tipe}
+                    </Badge>
+                    <p className="mt-1.5 font-bold text-sm text-foreground">{log.targetNama}</p>
+                    <p className="text-xs text-muted-foreground">{log.targetEmail}</p>
+                  </div>
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-xs font-bold text-emerald-700 flex items-center gap-1">
+                      <CheckCircle2 className="h-3.5 w-3.5" /> {log.status.toUpperCase()}
+                    </span>
+                    <Button size="sm" variant="ghost" onClick={() => openEditLog(log)} aria-label="Edit log">
+                      <Pencil className="h-3.5 w-3.5" />
+                    </Button>
+                    <Button size="sm" variant="destructive" onClick={() => handleDeleteLog(String(log.id))}>
+                      Hapus
+                    </Button>
+                  </div>
+                </div>
+                <p className="text-xs text-foreground">{log.keterangan}</p>
+                <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-muted-foreground border-t border-border pt-2">
+                  <span className="font-mono">{new Date(log.sentAt).toLocaleString("id-ID")}</span>
+                  {log.attachmentData ? (
+                    <a href={log.attachmentData} download={log.attachmentName || "lampiran"} className="inline-flex items-center gap-1 font-semibold text-primary hover:underline">
+                      <Paperclip className="h-3.5 w-3.5" /> {log.attachmentName || "Dokumen"}
+                    </a>
+                  ) : (
+                    <span>-</span>
+                  )}
+                </div>
+              </div>
+            ))}
           </div>
         </CardContent>
       </Card>

@@ -73,7 +73,69 @@ export default function PublicLayout({ children }: { children: React.ReactNode }
         </div>
 
         {/* Mobile Navigation Drawer */}
-        {mobileMenuOpen && <div className="hidden" />}
+        {mobileMenuOpen && (
+          <div className="fixed inset-0 z-50 lg:hidden">
+            <div
+              className="fixed inset-0 bg-black/50 backdrop-blur-sm transition-opacity animate-in fade-in duration-200"
+              onClick={() => setMobileMenuOpen(false)}
+              aria-hidden="true"
+            />
+            <div className="relative flex flex-col w-72 max-w-[84vw] bg-card border-r border-border h-dvh shadow-2xl z-50 overflow-y-auto px-5 py-6 animate-in slide-in-from-left duration-200">
+              <div className="flex items-center justify-between pb-2.5 border-b border-border">
+                <Link href="/" className="flex items-center gap-2">
+                  <BrandLogo compact className="" showWordmark={false} />
+                  <span className="font-bold text-sm text-foreground leading-tight">{site.name}</span>
+                </Link>
+                <button
+                  type="button"
+                  onClick={() => setMobileMenuOpen(false)}
+                  aria-label="Tutup menu"
+                  className="p-2 rounded-lg hover:bg-muted text-muted-foreground"
+                >
+                  <X className="h-5 w-5" />
+                </button>
+              </div>
+
+              <div className="flex-1 px-1 py-4 space-y-1">
+                {NAV_LINKS.map((link) => {
+                  const isActive = pathname === link.href;
+                  return (
+                    <Link
+                      key={link.name}
+                      href={link.href}
+                      onClick={() => setMobileMenuOpen(false)}
+                      className={cn(
+                        "flex items-center justify-between px-3 py-2.5 rounded-xl text-sm font-semibold transition-colors",
+                        isActive ? "bg-primary text-white" : "text-muted-foreground hover:bg-muted hover:text-foreground",
+                      )}
+                    >
+                      <span>{link.name}</span>
+                      {isActive && <ArrowRight className="h-4 w-4" />}
+                    </Link>
+                  );
+                })}
+              </div>
+
+              <div className="px-1 pt-3 border-t border-border flex flex-col gap-2.5">
+                <Link
+                  href="/login"
+                  onClick={() => setMobileMenuOpen(false)}
+                  className="flex items-center justify-center rounded-xl border border-border bg-card px-3 py-2.5 text-sm font-semibold text-foreground hover:bg-muted"
+                >
+                  Masuk
+                </Link>
+                <Link
+                  href="/register"
+                  onClick={() => setMobileMenuOpen(false)}
+                  className="flex items-center justify-center rounded-xl bg-primary px-3 py-2.5 text-sm font-semibold text-white"
+                >
+                  Daftar Sekarang
+                  <ArrowRight className="h-4 w-4 ml-1" />
+                </Link>
+              </div>
+            </div>
+          </div>
+        )}
       </header>
 
       {/* Main Content */}

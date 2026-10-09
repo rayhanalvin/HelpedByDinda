@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { getSessionUser } from "@/lib/auth-session";
-import { getCurrentPeriod, getTeachingHoursByTeacher } from "@/lib/teaching-hours";
+import { getCurrentPeriod, getPeriodRange, getTeachingHoursByTeacher } from "@/lib/teaching-hours";
 
 export async function GET() {
   const session = await getSessionUser();
@@ -11,10 +11,23 @@ export async function GET() {
 
   // Aggregate stats from the database
   const period = getCurrentPeriod();
-  const [totalMurid, totalPengajar, activePayments, feesThisMonth, teachingHours, upcomingUjian] = await Promise.all([
+  const { start, end } = getPeriodRange(period);
+  const monthStart = start;
+  const monthEnd = end;
+
+  const [totalMurid, totalPengajar, activePayments, monthPayments, feesThisMonth, teachingHours, upcomingUjian] = await Promise.all([
     prisma.murid.count({ where: { isActive: true } }),
     prisma.pengajar.count({ where: { isActive: true } }),
     prisma.payment.findMany({ where: { status: "SUCCESS" } }),
+    // Payments of the current period (any state) for the subscription overview
+    prisma.payment.findMany({
+      where: {
+        OR: [
+          { paidAt: { gte: monthStart, lt: monthEnd } },
+          { paidAt: null, createdAt: { gte: monthStart, lt: monthEnd } },
+        ],
+      },
+    }),
     // Only sum the fees for the current month (periode: YYYY-MM)
     prisma.fee.findMany({ where: { periode: period } }),
     getTeachingHoursByTeacher(period),
@@ -25,9 +38,24 @@ export async function GET() {
     }),
   ]);
 
-  const totalPembayaranMasuk = activePayments.reduce((sum, p) => sum + p.amount, 0);
+  const totalPembayaranMasuk = activePayments
+    .filter((p) => p.paidAt && p.paidAt >= monthStart && p.paidAt < monthEnd)
+    .reduce((sum, p) => sum + p.amount, 0);
+  const jumlahTransaksiBulanIni = monthPayments.filter((p) => p.status === "SUCCESS").length;
+  const jumlahTransaksiMenunggu = monthPayments.filter((p) => p.status === "PENDING" || p.status === "PROCESSING").length;
   const totalJamMengajar = [...teachingHours.values()].reduce((sum, hours) => sum + hours, 0);
   const totalFeeHarusDibayar = feesThisMonth.reduce((sum, f) => sum + (teachingHours.get(f.pengajarId) || 0) * f.nominalPerJam, 0);
+
+  // Recent paid students of this month (for the realtime feed)
+  const recentPembayaran = await prisma.payment.findMany({
+    take: 5,
+    where: {
+      status: "SUCCESS",
+      paidAt: { gte: monthStart, lt: monthEnd },
+    },
+    orderBy: { paidAt: "desc" },
+    include: { murid: { include: { user: { select: { name: true } } } } },
+  });
 
   // Get recent absensi
   const recentAbsensi = await prisma.absensi.findMany({
@@ -49,6 +77,8 @@ export async function GET() {
     },
   });
 
+  const monthLabel = new Intl.DateTimeFormat("id-ID", { month: "long", year: "numeric", timeZone: "Asia/Jakarta" }).format(monthStart);
+
   return NextResponse.json({
     ok: true,
     data: {
@@ -57,6 +87,17 @@ export async function GET() {
       totalPembayaranMasuk,
       totalFeeHarusDibayar,
       totalJamMengajar,
+      period,
+      monthLabel,
+      jumlahTransaksiBulanIni,
+      jumlahTransaksiMenunggu,
+      recentPembayaran: recentPembayaran.map((p) => ({
+        id: p.id,
+        muridNama: p.murid.user.name,
+        amount: p.amount,
+        paidAt: p.paidAt?.toISOString() || null,
+        createdAt: p.createdAt.toISOString(),
+      })),
       upcomingUjian: upcomingUjian.map((u) => ({
         id: u.id,
         namaUjian: u.namaUjian,

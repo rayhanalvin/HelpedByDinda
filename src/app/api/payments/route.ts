@@ -49,16 +49,25 @@ export async function GET() {
   const murid = await prisma.murid.findUnique({ where: { userId: session.userId } });
   if (!murid) return NextResponse.json({ ok: false, message: "Profil murid tidak ditemukan." }, { status: 404 });
 
-  const [payments, settings] = await Promise.all([
+  const [payments, settings, latestInvoice] = await Promise.all([
     prisma.payment.findMany({ where: { muridId: murid.id }, orderBy: { createdAt: "desc" } }),
     prisma.paymentSettings.findUnique({ where: { id: "default" }, select: { bankName: true, accountNumber: true, accountName: true } }),
+    prisma.invoice.findFirst({
+      where: { targetRole: "MURID", targetUserId: session.userId },
+      orderBy: { createdAt: "desc" },
+      select: { id: true, periode: true, title: true, createdAt: true },
+    }),
   ]);
 
   const latestActive = payments.find((payment) => payment.status === "PENDING" || payment.status === "PROCESSING") || payments[0];
   const billAmount = latestActive ? latestActive.amount : murid.paketBulanan;
   const billStatus = latestActive ? latestActive.status : murid.statusBayarBulanIni;
+  const billPeriode = latestInvoice?.periode || (latestActive ? latestActive.createdAt.toISOString().slice(0, 7) : new Date().toISOString().slice(0, 7));
 
-  return NextResponse.json({ ok: true, data: payments.map(paymentView), settings, billAmount, billStatus }, { headers: { "Cache-Control": "no-store" } });
+  return NextResponse.json(
+    { ok: true, data: payments.map(paymentView), settings, billAmount, billStatus, billPeriode, invoiceTitle: latestInvoice?.title || null },
+    { headers: { "Cache-Control": "no-store" } },
+  );
 }
 
 export async function POST(req: Request) {
