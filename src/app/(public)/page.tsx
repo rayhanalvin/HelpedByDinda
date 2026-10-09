@@ -13,7 +13,6 @@ export default async function HomePage() {
   let beritaTerbaru: Array<{ id: string; slug: string; judul: string; ringkasan: string | null; isi: string; thumbnailUrl: string | null; kategori: string; createdAt: Date }> = [];
   let pengajar: Array<{ id: string; name: string; avatarUrl: string | null; spesialisasi: string; bio: string | null }> = [];
   const programs: Array<{ id: string; category: string; title: string; target: string; price: number; description: string; popular: boolean }> = [];
-  let testimonials: Array<{ id: string; text: string; rating: number; author: { name: string; role: string; avatarUrl: string | null }; createdAt: Date }> = [];
   const portalContent = await getPortalContent("beranda");
 
   try {
@@ -60,25 +59,6 @@ export default async function HomePage() {
     console.warn("Homepage programs unavailable:", error instanceof Error ? error.message : error);
   }
   
-  try {
-    const rows = await prisma.testimonials.findMany({
-      where: { isPublished: true },
-      include: { user: { select: { name: true, role: true, avatarUrl: true } } },
-      orderBy: { createdAt: "desc" },
-      take: 10,
-    });
-    testimonials = rows.map((item) => ({
-      id: item.id,
-      text: item.text,
-      rating: item.rating,
-      author: { name: item.user.name, role: item.user.role, avatarUrl: item.user.avatarUrl },
-      createdAt: item.createdAt,
-    }));
-  } catch (error) {
-    console.warn("Homepage testimonials unavailable:", error instanceof Error ? error.message : error);
-    testimonials = [];
-  }
-
   return (
     <div className="flex flex-col gap-16 pb-20 overflow-hidden">
       {/* Hero Section */}
@@ -117,42 +97,6 @@ export default async function HomePage() {
               </Button>
             </Link>
           </div>
-
-          {/* Testimonials / Comments Section */}
-          <section className="mt-20 text-center">
-            <h2 className="text-3xl lg:text-4xl font-extrabold tracking-tight text-foreground mb-6">
-              Apa Kata Mereka?
-            </h2>
-            <p className="text-lg text-muted-foreground max-w-2xl mx-auto leading-relaxed">
-              Lihat pengalaman belajar bersama kami dari para murid, orang tua, dan pengajar.
-            </p>
-
-            <div className="mt-12 grid grid-cols-1 lg:grid-cols-3 gap-8">
-              {testimonials.length > 0 ? (
-                testimonials.map((comment) => (
-                  <Card key={comment.id} className="text-left border-border bg-card">
-                    <CardContent className="p-6 space-y-4 text-muted-foreground">
-                      <div className="flex items-center gap-1">
-                        {[...Array(comment.rating)].map((_, i) => (
-                          <Star key={i} className="h-4 w-4 fill-primary text-primary" />
-                        ))}
-                      </div>
-                      <blockquote className="text-sm leading-relaxed italic">&ldquo;{comment.text}&rdquo;</blockquote>
-                      <div className="flex items-center gap-3">
-                        <img src={comment.author.avatarUrl || "/placeholder-avatar.png"} alt={comment.author.name} className="h-12 w-12 rounded-full object-cover bg-secondary" />
-                        <div>
-                          <p className="font-bold text-foreground">{comment.author.name}</p>
-                          <p className="text-xs text-muted-foreground">{comment.author.role}</p>
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
-                ))
-              ) : (
-                <p className="text-muted-foreground p-8 text-center col-span-full">Belum ada testimoni.</p>
-              )}
-            </div>
-          </section>
 
           {/* Quick Statistics Banner */}
           <div className="mt-14 grid grid-cols-2 gap-4 md:grid-cols-4 max-w-4xl mx-auto">
@@ -345,63 +289,6 @@ export default async function HomePage() {
           ) : (
             <div className="md:col-span-3 rounded-2xl border border-dashed border-border bg-muted/30 p-6 text-sm text-muted-foreground">Belum ada berita publik yang dipublikasikan.</div>
           )}
-        </div>
-      </section>
-
-      {/* Testimoni Realistis */}
-      <section className="bg-muted/40 py-16 border-y border-border">
-        <div className="container mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-          <div className="text-center max-w-xl mx-auto mb-12">
-            <Badge variant="default" className="mb-2">
-              Apa Kata Mereka?
-            </Badge>
-            <h2 className="text-3xl font-extrabold tracking-tight text-foreground">Dipercaya Ratusan Orang Tua & Murid</h2>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <div className="rounded-2xl border border-border bg-card p-6 shadow-xs">
-              <div className="flex text-amber-400 gap-1 mb-3">
-                {[...Array(5)].map((_, i) => (
-                  <Star key={i} className="h-4 w-4 fill-amber-400" />
-                ))}
-              </div>
-              <p className="text-sm text-foreground italic leading-relaxed">
-                &ldquo;Sejak ikut bimbel di Helped By Dinda, nilai matematika anak saya (Rizky) melonjak dari 65 jadi 92. Jadwalnya sangat teratur dan absennya tercatat rapi di HP.&rdquo;
-              </p>
-              <div className="mt-4 pt-3 border-t border-border">
-                <p className="text-xs font-bold text-foreground">Ir. Hendra Maulana</p>
-                <p className="text-[11px] text-muted-foreground">Wali Murid Siswa Kelas 11 SMAN 1 Jakarta</p>
-              </div>
-            </div>
-
-            <div className="rounded-2xl border border-border bg-card p-6 shadow-xs">
-              <div className="flex text-amber-400 gap-1 mb-3">
-                {[...Array(5)].map((_, i) => (
-                  <Star key={i} className="h-4 w-4 fill-amber-400" />
-                ))}
-              </div>
-              <p className="text-sm text-foreground italic leading-relaxed">
-                &ldquo;Tutor Kak Siti asyik banget! Belajar grammar Bahasa Inggris sekarang nggak takut salah lagi. Materi videonya bisa diputar ulang kapan saja di rumah.&rdquo;
-              </p>
-              <div className="mt-4 pt-3 border-t border-border">
-                <p className="text-xs font-bold text-foreground">Aisyah Nur Fadilah</p>
-                <p className="text-[11px] text-muted-foreground">Siswa Kelas 8 SMPN 5 Bandung</p>
-              </div>
-            </div>
-
-            <div className="rounded-2xl border border-border bg-card p-6 shadow-xs">
-              <div className="flex text-amber-400 gap-1 mb-3">
-                {[...Array(5)].map((_, i) => (
-                  <Star key={i} className="h-4 w-4 fill-amber-400" />
-                ))}
-              </div>
-              <p className="text-sm text-foreground italic leading-relaxed">&ldquo;Bedah soal UTBK bareng Kak Andi dan Kak Budi bikin saya paham konsep cepatnya. Alhamdulillah sekarang lolos di Teknik Elektro ITB!&rdquo;</p>
-              <div className="mt-4 pt-3 border-t border-border">
-                <p className="text-xs font-bold text-foreground">Fajar Ramadhan</p>
-                <p className="text-[11px] text-muted-foreground">Alumni Kelas UTBK SMAN 3 Surabaya</p>
-              </div>
-            </div>
-          </div>
         </div>
       </section>
 

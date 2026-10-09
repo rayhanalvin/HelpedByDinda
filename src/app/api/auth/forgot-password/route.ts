@@ -19,25 +19,30 @@ export async function POST(req: Request) {
       return NextResponse.json({ ok: true, message: "Koneksi berhasil. Jika email terdaftar, instruksi setel ulang sandi dikirimkan." });
     }
 
-    // Generate token
-    const token = crypto.randomBytes(32).toString("hex");
+    // Generate 6-digit verification code
+    const code = crypto.randomInt(100000, 1000000).toString();
     const expiry = new Date(Date.now() + 3600000); // 1 hour validity
 
     await prisma.user.update({
       where: { id: user.id },
       data: {
-        resetToken: token,
+        resetToken: code,
         resetTokenExpiry: expiry,
       },
     });
 
     // Send email dispatch
-    const resetUrl = `${process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"}/reset-password?token=${token}`;
-
     const host = process.env.SMTP_HOST || "smtp.gmail.com";
     const port = Number(process.env.SMTP_PORT || "587");
     const userMail = process.env.SMTP_USER || "cs.helpeddinda@gmail.com";
     const passMail = process.env.SMTP_PASS || "";
+
+    if (!passMail) {
+      return NextResponse.json(
+        { ok: false, message: "Konfigurasi SMTP belum lengkap. Hubungi admin untuk menyetel App Password Gmail." },
+        { status: 500 },
+      );
+    }
 
     const transporter = nodemailer.createTransport({
       host,
@@ -52,16 +57,16 @@ export async function POST(req: Request) {
     const mailOptions = {
       from: `"Helped By Dinda" <${userMail}>`,
       to: user.email,
-      subject: "Setel Ulang Kata Sandi Akun Helped By Dinda",
+      subject: "Kode Verifikasi Setel Ulang Kata Sandi Helped By Dinda",
       html: `
         <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e2e8f0; rounded-lg: 12px;">
           <h2 style="color: #6366f1; text-align: center;">Helped By Dinda</h2>
           <p>Halo, <strong>${user.name}</strong></p>
-          <p>Kami menerima permintaan untuk menyetel ulang kata sandi akun Anda. Silakan klik tautan di bawah ini untuk mengganti kata sandi Anda:</p>
+          <p>Kami menerima permintaan untuk menyetel ulang kata sandi akun Anda. Gunakan kode verifikasi di bawah ini untuk melanjutkan:</p>
           <div style="text-align: center; margin: 30px 0;">
-            <a href="${resetUrl}" style="background-color: #6366f1; color: white; padding: 12px 24px; text-decoration: none; border-radius: 8px; font-weight: bold; display: inline-block;">Setel Ulang Password</a>
+            <span style="background-color: #6366f1; color: white; padding: 16px 24px; border-radius: 8px; font-weight: bold; font-size: 24px; letter-spacing: 4px; display: inline-block;">${code}</span>
           </div>
-          <p style="color: #64748b; font-size: 13px;">Tautan ini hanya berlaku selama <strong>1 jam</strong> dari sekarang. Jika Anda tidak mengajukan permintaan ini, silakan abaikan email ini dengan aman.</p>
+          <p style="color: #64748b; font-size: 13px;">Kode ini hanya berlaku selama <strong>1 jam</strong> dari sekarang. Jika Anda tidak mengajukan permintaan ini, silakan abaikan email ini dengan aman.</p>
           <hr style="border: 0; border-top: 1px solid #e2e8f0; margin: 20px 0;" />
           <p style="color: #94a3b8; font-size: 11px; text-align: center;">© ${new Date().getFullYear()} Helped By Dinda. Seluruh hak cipta dilindungi.</p>
         </div>

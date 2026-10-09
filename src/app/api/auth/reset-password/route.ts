@@ -4,7 +4,7 @@ import bcrypt from "bcryptjs";
 
 export async function POST(req: Request) {
   try {
-    const { token, password } = await req.json();
+    const { token, email, password } = await req.json();
 
     if (!token || !password) {
       return NextResponse.json({ ok: false, message: "Token dan sandi baru wajib diisi." }, { status: 400 });
@@ -14,10 +14,11 @@ export async function POST(req: Request) {
       return NextResponse.json({ ok: false, message: "Kata sandi minimal berisi 6 karakter." }, { status: 400 });
     }
 
-    // Locate the matching token
+    // Locate the matching token (optionally scoped to the email)
     const user = await prisma.user.findFirst({
       where: {
         resetToken: token,
+        ...(email ? { email: String(email).trim().toLowerCase() } : {}),
         resetTokenExpiry: {
           gt: new Date(),
         },

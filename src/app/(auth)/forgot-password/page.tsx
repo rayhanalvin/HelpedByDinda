@@ -48,21 +48,28 @@ export default function ForgotPasswordPage() {
 
       <div className="text-center sm:text-left space-y-1.5">
         <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-foreground">Lupa Kata Sandi</h1>
-        <p className="text-xs sm:text-sm text-muted-foreground">Kami akan mengirimkan petunjuk penyetelan ulang kata sandi ke kotak masuk Anda.</p>
+        <p className="text-xs sm:text-sm text-muted-foreground">Kami akan mengirimkan kode verifikasi 6 digit ke email Anda untuk menyetel ulang kata sandi.</p>
       </div>
 
       {sent ? (
         <div className="rounded-2xl border border-emerald-100 bg-emerald-50/50 p-5 space-y-3">
           <div className="flex items-center gap-2.5 text-emerald-800">
             <CheckCircle2 className="h-5 w-5 shrink-0 text-emerald-600" />
-            <span className="font-bold text-sm">Instruksi Berhasil Dikirim!</span>
+            <span className="font-bold text-sm">Kode Verifikasi Dikirim!</span>
           </div>
           <p className="text-xs text-emerald-700 leading-relaxed">
-            Tautan pengaturan ulang sudah dikirimkan ke email <strong className="font-extrabold">{email}</strong>. Silakan periksa kotak masuk atau folder spam Anda.
+            Kode 6 digit sudah dikirimkan ke email <strong className="font-extrabold">{email}</strong>. Periksa kotak masuk atau folder spam, lalu lanjutkan untuk memasukkan kode dan mengganti kata sandi.
           </p>
-          <Button variant="outline" className="w-full text-xs" onClick={() => setSent(false)}>
-            Kirim Ulang Email
-          </Button>
+          <div className="grid grid-cols-1 gap-2">
+            <Link href="/reset-password">
+              <Button variant="default" className="w-full text-xs font-bold">
+                Masukkan Kode & Ganti Sandi
+              </Button>
+            </Link>
+            <Button variant="outline" className="w-full text-xs" onClick={() => setSent(false)}>
+              Kirim Ulang Kode
+            </Button>
+          </div>
         </div>
       ) : (
         <form onSubmit={handleSubmit} className="space-y-4">

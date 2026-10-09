@@ -3,7 +3,7 @@
 import * as React from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
-import { ArrowLeft, CheckCircle2, ChevronRight } from "lucide-react";
+import { ArrowLeft, CheckCircle2, ChevronRight, KeyRound } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { BrandLogo } from "@/components/shared/BrandLogo";
@@ -15,7 +15,9 @@ function ResetPasswordForm() {
   const searchParams = useSearchParams();
   const { toast } = useToast();
 
-  const token = searchParams.get("token");
+  const tokenFromUrl = searchParams.get("token") || "";
+  const [code, setCode] = React.useState(tokenFromUrl);
+  const [email, setEmail] = React.useState("");
   const [password, setPassword] = React.useState("");
   const [confirmPassword, setConfirmPassword] = React.useState("");
   const [loading, setLoading] = React.useState(false);
@@ -24,8 +26,8 @@ function ResetPasswordForm() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!token) {
-      toast("Token pengaturan ulang tidak valid.", "error");
+    if (!code || code.length !== 6) {
+      toast("Kode verifikasi tidak valid. Periksa kembali email Anda.", "error");
       return;
     }
 
@@ -44,7 +46,7 @@ function ResetPasswordForm() {
       const response = await fetch("/api/auth/reset-password", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ token, password }),
+        body: JSON.stringify({ token: code, email: email.trim() || undefined, password }),
       });
       const data = await response.json();
 
@@ -69,7 +71,7 @@ function ResetPasswordForm() {
 
       <div className="text-center sm:text-left space-y-1.5">
         <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-foreground">Setel Ulang Sandi</h1>
-        <p className="text-xs sm:text-sm text-muted-foreground">Silakan tentukan kata sandi baru yang aman untuk akun bimbingan Anda.</p>
+        <p className="text-xs sm:text-sm text-muted-foreground">Masukkan kode verifikasi dari email, lalu tentukan kata sandi baru.</p>
       </div>
 
       {success ? (
@@ -87,6 +89,20 @@ function ResetPasswordForm() {
         </div>
       ) : (
         <form onSubmit={handleSubmit} className="space-y-4">
+          <div className="space-y-1.5">
+            <label className="text-xs font-semibold text-foreground">Email Terdaftar</label>
+            <Input type="email" placeholder="nama@email.com" value={email} onChange={(e) => setEmail(e.target.value)} />
+          </div>
+
+          <div className="space-y-1.5">
+            <label className="text-xs font-semibold text-foreground">Kode Verifikasi</label>
+            <div className="relative">
+              <Input inputMode="numeric" maxLength={6} placeholder="123456" value={code} onChange={(e) => setCode(e.target.value.replace(/\D/g, ""))} className="pl-10 text-center text-lg font-bold tracking-[0.5em]" />
+              <KeyRound className="absolute left-3.5 top-3.5 h-4 w-4 text-muted-foreground" />
+            </div>
+            <p className="text-[11px] text-muted-foreground">Kode 6 digit dikirim ke email Anda, berlaku 1 jam.</p>
+          </div>
+
           <div className="space-y-1.5">
             <label className="text-xs font-semibold text-foreground">Kata Sandi Baru</label>
             <PasswordInput required placeholder="Minimal 6 karakter" value={password} onChange={(e) => setPassword(e.target.value)} showLockIcon />
