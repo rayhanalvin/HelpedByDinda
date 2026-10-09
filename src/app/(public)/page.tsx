@@ -12,7 +12,8 @@ export const dynamic = "force-dynamic";
 export default async function HomePage() {
   let beritaTerbaru: Array<{ id: string; slug: string; judul: string; ringkasan: string | null; isi: string; thumbnailUrl: string | null; kategori: string; createdAt: Date }> = [];
   let pengajar: Array<{ id: string; name: string; avatarUrl: string | null; spesialisasi: string; bio: string | null }> = [];
-  let programs: Array<{ id: string; category: string; title: string; target: string; price: number; description: string; popular: boolean }> = [];
+  const programs: Array<{ id: string; category: string; title: string; target: string; price: number; description: string; popular: boolean }> = [];
+  let testimonials: Array<{ id: string; text: string; rating: number; author: { name: string; role: string; avatarUrl: string | null }; createdAt: Date }> = [];
   const portalContent = await getPortalContent("beranda");
 
   try {
@@ -39,14 +40,43 @@ export default async function HomePage() {
   }
 
   try {
-    programs = await prisma.program.findMany({
+    const rows = await prisma.program.findMany({
       where: { isPublished: true },
-      orderBy: [{ popular: "desc" }, { createdAt: "asc" }],
+      orderBy: [{ category: "asc" }, { createdAt: "asc" }],
       take: 4,
-      select: { id: true, category: true, title: true, target: true, price: true, description: true, popular: true },
     });
+    programs.push(
+      ...rows.map((item) => ({
+        id: item.id,
+        category: item.category,
+        title: item.title,
+        target: item.target,
+        price: item.price,
+        description: item.description,
+        popular: item.popular,
+      })),
+    );
   } catch (error) {
     console.warn("Homepage programs unavailable:", error instanceof Error ? error.message : error);
+  }
+  
+  try {
+    const rows = await prisma.testimonials.findMany({
+      where: { isPublished: true },
+      include: { user: { select: { name: true, role: true, avatarUrl: true } } },
+      orderBy: { createdAt: "desc" },
+      take: 10,
+    });
+    testimonials = rows.map((item) => ({
+      id: item.id,
+      text: item.text,
+      rating: item.rating,
+      author: { name: item.user.name, role: item.user.role, avatarUrl: item.user.avatarUrl },
+      createdAt: item.createdAt,
+    }));
+  } catch (error) {
+    console.warn("Homepage testimonials unavailable:", error instanceof Error ? error.message : error);
+    testimonials = [];
   }
 
   return (
@@ -87,6 +117,42 @@ export default async function HomePage() {
               </Button>
             </Link>
           </div>
+
+          {/* Testimonials / Comments Section */}
+          <section className="mt-20 text-center">
+            <h2 className="text-3xl lg:text-4xl font-extrabold tracking-tight text-foreground mb-6">
+              Apa Kata Mereka?
+            </h2>
+            <p className="text-lg text-muted-foreground max-w-2xl mx-auto leading-relaxed">
+              Lihat pengalaman belajar bersama kami dari para murid, orang tua, dan pengajar.
+            </p>
+
+            <div className="mt-12 grid grid-cols-1 lg:grid-cols-3 gap-8">
+              {testimonials.length > 0 ? (
+                testimonials.map((comment) => (
+                  <Card key={comment.id} className="text-left border-border bg-card">
+                    <CardContent className="p-6 space-y-4 text-muted-foreground">
+                      <div className="flex items-center gap-1">
+                        {[...Array(comment.rating)].map((_, i) => (
+                          <Star key={i} className="h-4 w-4 fill-primary text-primary" />
+                        ))}
+                      </div>
+                      <blockquote className="text-sm leading-relaxed italic">&ldquo;{comment.text}&rdquo;</blockquote>
+                      <div className="flex items-center gap-3">
+                        <img src={comment.author.avatarUrl || "/placeholder-avatar.png"} alt={comment.author.name} className="h-12 w-12 rounded-full object-cover bg-secondary" />
+                        <div>
+                          <p className="font-bold text-foreground">{comment.author.name}</p>
+                          <p className="text-xs text-muted-foreground">{comment.author.role}</p>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))
+              ) : (
+                <p className="text-muted-foreground p-8 text-center col-span-full">Belum ada testimoni.</p>
+              )}
+            </div>
+          </section>
 
           {/* Quick Statistics Banner */}
           <div className="mt-14 grid grid-cols-2 gap-4 md:grid-cols-4 max-w-4xl mx-auto">

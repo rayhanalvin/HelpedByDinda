@@ -4,7 +4,6 @@ import * as React from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { ArrowRight, CheckCircle2, ChevronLeft, ChevronRight, Sparkles } from "lucide-react";
-import { RoleSwitcher } from "@/components/shared/RoleSwitcher";
 import { BrandLogo } from "@/components/shared/BrandLogo";
 import { usePathname } from "next/navigation";
 
@@ -166,10 +165,6 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
       </div>
 
       <div className="relative flex min-h-[calc(100vh-340px)] flex-1 flex-col justify-center px-4 py-8 sm:px-6 md:px-10 lg:min-h-screen lg:px-16">
-        <div className="absolute top-4 right-4 sm:top-6 sm:right-6">
-          <RoleSwitcher />
-        </div>
-
         <div className="mx-auto w-full max-w-md">{children}</div>
       </div>
     </div>

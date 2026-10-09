@@ -3,9 +3,8 @@
 import * as React from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Sparkles, Menu, X, BookOpen, ArrowRight, PhoneCall, Mail, MapPin } from "lucide-react";
+import { Menu, X, ArrowRight, PhoneCall, Mail, MapPin } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { RoleSwitcher } from "@/components/shared/RoleSwitcher";
 import { BrandLogo, useSiteSettings } from "@/components/shared/BrandLogo";
 import { cn } from "@/lib/utils";
 
@@ -25,18 +24,6 @@ export default function PublicLayout({ children }: { children: React.ReactNode }
 
   return (
     <div className="flex min-h-screen flex-col bg-background">
-      {/* Top Banner Alert / Demo switch */}
-      <div className="bg-primary/5 border-b border-primary/10 px-4 py-2 text-center text-xs sm:text-sm text-foreground flex flex-wrap items-center justify-between gap-2">
-        <div className="flex items-center gap-2 mx-auto sm:mx-0">
-          <span className="flex h-2 w-2 rounded-full bg-accent animate-pulse" />
-          <span className="font-medium text-primary">Pendaftaran Periode Baru Dibuka!</span>
-          <span className="hidden md:inline text-muted-foreground">khusus siswa SD, SMP, SMA & UTBK.</span>
-        </div>
-        <div className="mx-auto sm:mx-0">
-          <RoleSwitcher />
-        </div>
-      </div>
-
       {/* Main Navbar */}
       <header className="sticky top-0 z-40 w-full border-b border-border bg-background/95 backdrop-blur-md">
         <div className="container mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
@@ -151,21 +138,6 @@ export default function PublicLayout({ children }: { children: React.ReactNode }
             <div>
               <h3 className="text-sm font-semibold text-foreground tracking-wider uppercase mb-3">Portal Pengguna</h3>
               <ul className="space-y-2 text-sm text-muted-foreground">
-                <li>
-                  <Link href="/" className="hover:text-primary transition-colors">
-                    Dasbor Murid
-                  </Link>
-                </li>
-                <li>
-                  <Link href="/" className="hover:text-primary transition-colors">
-                    Dasbor Pengajar
-                  </Link>
-                </li>
-                <li>
-                  <Link href="/" className="hover:text-primary transition-colors">
-                    Dasbor Admin
-                  </Link>
-                </li>
                 <li>
                   <Link href="/" className="hover:text-primary transition-colors">
                     Hubungi Dukungan

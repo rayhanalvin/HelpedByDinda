@@ -25,7 +25,6 @@ import {
   WalletCards,
   ClipboardList,
 } from "lucide-react";
-import { RoleSwitcher } from "@/components/shared/RoleSwitcher";
 import { LogoutButton } from "@/components/shared/LogoutButton";
 import { BrandLogo, useSiteSettings } from "@/components/shared/BrandLogo";
 import { Badge } from "@/components/ui/badge";
@@ -158,9 +157,6 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           </div>
 
           <div className="flex items-center gap-1.5 sm:gap-2.5">
-            <span className="hidden md:block">
-              <RoleSwitcher />
-            </span>
             <div className="relative group">
               <Image src={avatarUrl} alt={adminName} width={32} height={32} unoptimized className="h-8 w-8 rounded-lg object-cover border border-border cursor-pointer" />
               <div className="absolute right-0 top-10 z-40 hidden min-w-44 flex-col gap-1 rounded-xl border border-border bg-card p-2 shadow-xl group-hover:flex group-focus-within:flex">

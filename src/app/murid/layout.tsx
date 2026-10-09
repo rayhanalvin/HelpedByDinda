@@ -5,7 +5,6 @@ import Image from "next/image";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { LayoutDashboard, CalendarCheck2, BookOpenCheck, CreditCard, Calendar, BellRing, ClipboardCheck, UserCircle, Menu, X, Sparkles, ChevronRight, GraduationCap, ClipboardList, FileCheck2 } from "lucide-react";
-import { RoleSwitcher } from "@/components/shared/RoleSwitcher";
 import { LogoutButton } from "@/components/shared/LogoutButton";
 import { BrandLogo, useSiteSettings } from "@/components/shared/BrandLogo";
 import { Badge } from "@/components/ui/badge";
@@ -191,9 +190,6 @@ export default function MuridLayout({ children }: { children: React.ReactNode })
 
           <div className="flex items-center gap-1.5 sm:gap-2.5">
             <MessageInbox />
-            <span className="hidden md:block">
-              <RoleSwitcher />
-            </span>
             <div className="relative group">
               <Link href="/murid/profil" className="flex items-center gap-2 p-1 rounded-xl hover:bg-muted transition-colors">
                 <Image src={avatarUrl} alt={activeMuridName} width={32} height={32} unoptimized className="h-8 w-8 rounded-lg object-cover border border-border" />
