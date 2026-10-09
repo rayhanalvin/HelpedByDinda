@@ -15,6 +15,11 @@ export default function ForgotPasswordPage() {
   const [sent, setSent] = React.useState(false);
   const [devCode, setDevCode] = React.useState("");
 
+  React.useEffect(() => {
+    const fromUrl = new URLSearchParams(window.location.search).get("email");
+    if (fromUrl) setEmail(fromUrl);
+  }, []);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!email) return;

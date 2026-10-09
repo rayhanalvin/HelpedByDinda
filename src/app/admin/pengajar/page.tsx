@@ -258,11 +258,11 @@ export default function AdminPengajarPage() {
                           role="pengajar"
                           defaultAvatarUrl={p.avatarUrl || "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&auto=format&fit=crop&q=80"}
                           name={p.name}
-                          userId={Number(p.userId)}
+                          userId={p.userId}
                           className="h-10 w-10 rounded-xl object-cover border border-border"
                         />
                         <div>
-                          <ProfileNamePreview role="pengajar" defaultName={p.name} userId={Number(p.userId)} className="font-bold text-foreground" />
+                          <ProfileNamePreview role="pengajar" defaultName={p.name} userId={p.userId} className="font-bold text-foreground" />
                           <p className="text-xs text-muted-foreground">{p.email}</p>
                         </div>
                       </div>

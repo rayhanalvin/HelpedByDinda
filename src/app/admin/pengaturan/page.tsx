@@ -274,7 +274,7 @@ export default function AdminPengaturanPage() {
                 <label className="text-xs font-semibold text-foreground">Email Pengirim Resend</label>
                 <div className="flex gap-2">
                   <Input value={settings.emailPengirim} onChange={(e) => setSettings({ ...settings, emailPengirim: e.target.value })} />
-                  <Button type="button" variant="ghost" onClick={() => window.location.assign(`/forgot-password?email=${encodeURIComponent(settings.emailPengirim || localAdminEmail)}`)}>
+                  <Button type="button" variant="ghost" onClick={() => { window.location.href = `/forgot-password?email=${encodeURIComponent(settings.emailPengirim || localAdminEmail)}`; }}>
                     Lupa Sandi
                   </Button>
                 </div>

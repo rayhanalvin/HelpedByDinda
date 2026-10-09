@@ -226,11 +226,11 @@ export default function AdminMuridPage() {
                           role="murid"
                           defaultAvatarUrl={m.avatarUrl || "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80"}
                           name={m.name}
-                          userId={Number(m.userId)}
+                          userId={m.userId}
                           className="h-10 w-10 rounded-xl object-cover border border-border"
                         />
                         <div>
-                          <ProfileNamePreview role="murid" defaultName={m.name} userId={Number(m.userId)} className="font-bold text-foreground" />
+                          <ProfileNamePreview role="murid" defaultName={m.name} userId={m.userId} className="font-bold text-foreground" />
                           <p className="text-xs text-muted-foreground">{m.email}</p>
                         </div>
                       </div>

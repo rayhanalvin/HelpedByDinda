@@ -167,7 +167,7 @@ export default function PengajarProfilPage() {
                 <label className="text-xs font-semibold text-foreground">Alamat Email</label>
                 <div className="flex gap-2">
                   <Input type="email" required value={formData.email} onChange={(e) => setFormData({ ...formData, email: e.target.value })} />
-                  <Button type="button" variant="ghost" onClick={() => window.location.assign(`/forgot-password?email=${encodeURIComponent(formData.email || localEmail)}`)} className="whitespace-nowrap">
+                  <Button type="button" variant="ghost" onClick={() => { window.location.href = `/forgot-password?email=${encodeURIComponent(formData.email || localEmail)}`; }} className="whitespace-nowrap">
                     Lupa Sandi
                   </Button>
                 </div>

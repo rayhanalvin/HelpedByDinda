@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { getSessionUser } from "@/lib/auth-session";
-import nodemailer, { SendMailOptions } from "nodemailer";
+import { createTransport, SendMailOptions } from "nodemailer";
 
 function parseDataUrl(dataUrl: string | null | undefined) {
   if (!dataUrl) return null;
@@ -46,7 +46,7 @@ export async function POST(req: Request) {
   const passMail = process.env.SMTP_PASS || "";
   const from = process.env.EMAIL_FROM || `Helped By Dinda <${userMail}>`;
 
-  const transporter = nodemailer.createTransport({
+  const transporter = createTransport({
     host,
     port,
     secure: port === 465,

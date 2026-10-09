@@ -4,21 +4,34 @@ import bcrypt from "bcryptjs";
 
 export async function POST(req: Request) {
   try {
-    const { token, email, password } = await req.json();
+    let token: unknown;
+    let email: unknown;
+    let password: unknown;
+    try {
+      const body = await req.json();
+      token = body?.token;
+      email = body?.email;
+      password = body?.password;
+    } catch {
+      return NextResponse.json({ ok: false, message: "Body permintaan tidak valid." }, { status: 400 });
+    }
 
-    if (!token || !password) {
+    const tokenStr = String(token || "");
+    const passwordStr = String(password || "");
+    const emailStr = String(email || "").trim().toLowerCase();
+
+    if (!tokenStr || !passwordStr) {
       return NextResponse.json({ ok: false, message: "Token dan sandi baru wajib diisi." }, { status: 400 });
     }
 
-    if (password.length < 6) {
+    if (passwordStr.length < 6) {
       return NextResponse.json({ ok: false, message: "Kata sandi minimal berisi 6 karakter." }, { status: 400 });
     }
 
     // Rate-limit: maksimal 5 percobaan kode sebelum harus minta kode baru
-    const resetTokenStr = String(token);
+    const resetTokenStr = tokenStr;
     const attemptLock = await prisma.user.findFirst({
       where: {
-        ...(email ? { email: String(email).trim().toLowerCase() } : {}),
         resetToken: resetTokenStr,
       },
       select: { id: true, resetAttempts: true },
@@ -34,8 +47,8 @@ export async function POST(req: Request) {
     // Locate the matching token (optionally scoped to the email)
     const user = await prisma.user.findFirst({
       where: {
-        resetToken: token,
-        ...(email ? { email: String(email).trim().toLowerCase() } : {}),
+        resetToken: tokenStr,
+        ...(emailStr ? { email: emailStr } : {}),
         resetTokenExpiry: {
           gt: new Date(),
         },
@@ -53,7 +66,7 @@ export async function POST(req: Request) {
     }
 
     // Salt and hash the new password
-    const passwordHash = await bcrypt.hash(password, 10);
+    const passwordHash = await bcrypt.hash(passwordStr, 10);
 
     // Reset database fields
     await prisma.user.update({

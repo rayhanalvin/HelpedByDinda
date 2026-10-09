@@ -23,20 +23,26 @@ export function useProfileAvatar(role: ProfileRole, defaultAvatarUrl: string, us
   const [avatarUrl, setAvatarUrl] = React.useState(defaultAvatarUrl);
 
   React.useEffect(() => {
+    if (!userId) {
+      // No user identity yet: always show the server-provided value.
+      setAvatarUrl(defaultAvatarUrl);
+      return;
+    }
     const storageKey = getStorageKey(role, userId);
-    const fallbackKey = getStorageKey(role);
+    // Cleanup legacy generic (user-id-less) keys to avoid cross-account leaks.
+    window.localStorage.removeItem(getStorageKey(role));
     const syncAvatar = () => {
-      const storedAvatar = window.localStorage.getItem(storageKey) || window.localStorage.getItem(fallbackKey);
+      const storedAvatar = window.localStorage.getItem(storageKey);
       setAvatarUrl(storedAvatar || defaultAvatarUrl);
     };
     syncAvatar();
 
     const handleAvatarChange = (event: StorageEvent | Event) => {
-      if (event instanceof StorageEvent && event.key !== storageKey && event.key !== fallbackKey) {
+      if (event instanceof StorageEvent && event.key !== storageKey) {
         return;
       }
 
-      const nextAvatar = window.localStorage.getItem(storageKey) || window.localStorage.getItem(fallbackKey);
+      const nextAvatar = window.localStorage.getItem(storageKey);
       setAvatarUrl(nextAvatar || defaultAvatarUrl);
     };
 
@@ -71,19 +77,25 @@ export function useProfileName(role: ProfileRole, defaultName: string, userId?: 
   const [name, setName] = React.useState(defaultName);
 
   React.useEffect(() => {
-    const fallbackKey = getNameStorageKey(role);
+    if (!userId) {
+      // No user identity yet: always show the server-provided value.
+      setName(defaultName);
+      return;
+    }
+    // Cleanup legacy generic (user-id-less) keys to avoid cross-account leaks.
+    window.localStorage.removeItem(getNameStorageKey(role));
     const syncName = () => {
-      const storedName = window.localStorage.getItem(storageKey) || window.localStorage.getItem(fallbackKey);
+      const storedName = window.localStorage.getItem(storageKey);
       setName(storedName || defaultName);
     };
     syncName();
 
     const handleNameChange = (event: StorageEvent | Event) => {
-      if (event instanceof StorageEvent && event.key !== storageKey && event.key !== fallbackKey) {
+      if (event instanceof StorageEvent && event.key !== storageKey) {
         return;
       }
 
-      const nextName = window.localStorage.getItem(storageKey) || window.localStorage.getItem(fallbackKey);
+      const nextName = window.localStorage.getItem(storageKey);
       setName(nextName || defaultName);
     };
 
@@ -116,16 +128,20 @@ export function useProfileEmail(role: ProfileRole, defaultEmail: string, userId?
   const [email, setEmail] = React.useState(defaultEmail || "");
 
   React.useEffect(() => {
-    const fallbackKey = `helped-by-dinda-email:${role}`;
+    if (!userId) {
+      setEmail(defaultEmail || "");
+      return;
+    }
+    window.localStorage.removeItem(`helped-by-dinda-email:${role}`);
     const syncEmail = () => {
-      const stored = window.localStorage.getItem(storageKey) || window.localStorage.getItem(fallbackKey);
+      const stored = window.localStorage.getItem(storageKey);
       setEmail(stored || defaultEmail || "");
     };
     syncEmail();
 
     const handleChange = (event: StorageEvent | Event) => {
-      if (event instanceof StorageEvent && event.key !== storageKey && event.key !== fallbackKey) return;
-      const next = window.localStorage.getItem(storageKey) || window.localStorage.getItem(fallbackKey) || defaultEmail || "";
+      if (event instanceof StorageEvent && event.key !== storageKey) return;
+      const next = window.localStorage.getItem(storageKey) || defaultEmail || "";
       setEmail(next);
     };
 
