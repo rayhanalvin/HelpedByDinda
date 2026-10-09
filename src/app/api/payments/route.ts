@@ -54,7 +54,11 @@ export async function GET() {
     prisma.paymentSettings.findUnique({ where: { id: "default" }, select: { bankName: true, accountNumber: true, accountName: true } }),
   ]);
 
-  return NextResponse.json({ ok: true, data: payments.map(paymentView), settings, billAmount: murid.paketBulanan, billStatus: murid.statusBayarBulanIni }, { headers: { "Cache-Control": "no-store" } });
+  const latestActive = payments.find((payment) => payment.status === "PENDING" || payment.status === "PROCESSING") || payments[0];
+  const billAmount = latestActive ? latestActive.amount : murid.paketBulanan;
+  const billStatus = latestActive ? latestActive.status : murid.statusBayarBulanIni;
+
+  return NextResponse.json({ ok: true, data: payments.map(paymentView), settings, billAmount, billStatus }, { headers: { "Cache-Control": "no-store" } });
 }
 
 export async function POST(req: Request) {

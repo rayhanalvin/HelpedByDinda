@@ -21,16 +21,62 @@ export async function POST(req: Request) {
   const title = String(form.get("title") || "");
   const periode = String(form.get("periode") || "");
   const targetRole = String(form.get("targetRole") || "MURID").toUpperCase();
+  const targetUserId = String(form.get("targetUserId") || "").trim();
+  const amountRaw = String(form.get("amount") || "");
+  const amount = amountRaw && !Number.isNaN(Number(amountRaw)) && Number(amountRaw) > 0 ? Number(amountRaw) : null;
 
-  if (!(file instanceof File)) return NextResponse.json({ ok: false, message: "Pilih file invoice." }, { status: 400 });
-  if (!allowed.has(file.type)) return NextResponse.json({ ok: false, message: "Format file tidak didukung." }, { status: 400 });
-  if (file.size > maxSize) return NextResponse.json({ ok: false, message: "Ukuran file melebihi 8 MB." }, { status: 400 });
+  let dataUrl: string | null = null;
+  let fileName: string | null = null;
+  let fileMimeType: string | null = null;
+  if (file instanceof File) {
+    if (!allowed.has(file.type)) return NextResponse.json({ ok: false, message: "Format file tidak didukung." }, { status: 400 });
+    if (file.size > maxSize) return NextResponse.json({ ok: false, message: "Ukuran file melebihi 8 MB." }, { status: 400 });
+    const bytes = Buffer.from(await file.arrayBuffer());
+    dataUrl = `data:${file.type};base64,${bytes.toString("base64")}`;
+    fileName = file.name;
+    fileMimeType = file.type;
+  }
 
-  const bytes = Buffer.from(await file.arrayBuffer());
-  const dataUrl = `data:${file.type};base64,${bytes.toString("base64")}`;
+  if (!targetUserId && !dataUrl) return NextResponse.json({ ok: false, message: "Kies murid of upload file invoice." }, { status: 400 });
 
-  const inv = await prisma.invoice.create({
-    data: { title: title || null, periode: periode || null, targetRole: targetRole === "PENGAJAR" ? "PENGAJAR" : "MURID", amount: null, fileData: dataUrl, fileName: file.name, fileMimeType: file.type },
+  const finalTargetRole = targetRole === "PENGAJAR" ? "PENGAJAR" : "MURID";
+  const inv = await prisma.$transaction(async (transaction) => {
+    const invoice = await transaction.invoice.create({
+      data: {
+        title: title || null,
+        periode: periode || null,
+        targetRole: finalTargetRole,
+        targetUserId: targetUserId || null,
+        amount,
+        fileData: dataUrl,
+        fileName,
+        fileMimeType,
+      },
+    });
+
+    if (finalTargetRole === "MURID" && targetUserId) {
+      const murid = await transaction.murid.findUnique({ where: { userId: targetUserId } });
+      if (murid) {
+        const settings = await transaction.paymentSettings.findUnique({ where: { id: "default" } });
+        const orderId = `INV-${murid.id}-${Date.now()}`;
+        await transaction.payment.create({
+          data: {
+            muridId: murid.id,
+            userId: targetUserId,
+            amount: amount ?? murid.paketBulanan,
+            orderId,
+            paymentMethod: "BANK_TRANSFER",
+            recipientBankName: settings?.bankName || null,
+            recipientAccountNumber: settings?.accountNumber || null,
+            recipientAccountName: settings?.accountName || null,
+            status: "PENDING",
+          },
+        });
+        await transaction.murid.update({ where: { id: murid.id }, data: { statusBayarBulanIni: "PENDING" } });
+      }
+    }
+
+    return invoice;
   });
 
   return NextResponse.json({ ok: true, data: inv });
