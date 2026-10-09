@@ -1,15 +1,15 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { getSessionUser } from "@/lib/auth-session";
-import { getFeePeriodWindow, getReferenceDate, type FeePeriodType } from "@/lib/fee-periods";
+import { feePeriodRange, getFeePeriodWindow, getReferenceDate, type FeePeriodType } from "@/lib/fee-periods";
 import { getTeachingHoursByTeacherRange } from "@/lib/teaching-hours";
 
 function getPeriodType(value: string | null): FeePeriodType {
-  return value === "WEEKLY" ? "WEEKLY" : "MONTHLY";
+  return value === "WEEKLY" ? "WEEKLY" : value === "CUSTOM" ? "CUSTOM" : "MONTHLY";
 }
 
-async function synchronizePayouts(type: FeePeriodType, referenceDate: Date) {
-  const period = getFeePeriodWindow(type, referenceDate);
+async function synchronizePayouts(type: FeePeriodType, referenceDate: Date, manualNominal?: number | null, manualTotalFee?: number | null, customRange?: ReturnType<typeof feePeriodRange>) {
+  const period = customRange || getFeePeriodWindow(type, referenceDate);
   const [teachers, hoursByTeacher] = await Promise.all([
     prisma.pengajar.findMany({
       where: { isActive: true },
@@ -21,8 +21,8 @@ async function synchronizePayouts(type: FeePeriodType, referenceDate: Date) {
   for (const teacher of teachers) {
     const totalJam = hoursByTeacher.get(teacher.id) || 0;
     const monthlyFee = type === "MONTHLY" ? await prisma.fee.findFirst({ where: { pengajarId: teacher.id, periode: period.key } }) : null;
-    const nominalPerJam = monthlyFee?.nominalPerJam || teacher.nominalPerJam;
-    const totalFee = totalJam * nominalPerJam;
+    const nominalPerJam = manualNominal ?? monthlyFee?.nominalPerJam ?? teacher.nominalPerJam;
+    const totalFee = manualTotalFee ?? (manualNominal ? totalJam * manualNominal : totalJam * nominalPerJam);
 
     await prisma.feePayout.upsert({
       where: { pengajarId_periodType_periodKey: { pengajarId: teacher.id, periodType: type, periodKey: period.key } },
@@ -30,11 +30,13 @@ async function synchronizePayouts(type: FeePeriodType, referenceDate: Date) {
         pengajarId: teacher.id,
         periodType: type,
         periodKey: period.key,
+        periodLabel: customRange ? `Kustom ${customRange.start.toISOString().slice(0, 10)} - ${customRange.end.toISOString().slice(0, 10)}` : null,
         periodStart: period.start,
         periodEnd: period.end,
         totalJam,
         nominalPerJam,
         totalFee,
+        manualTotalFee: manualTotalFee && manualTotalFee > 0 ? manualTotalFee : null,
         status: monthlyFee?.status || "PENDING",
         paidAt: monthlyFee?.paidAt || null,
         payoutMethod: monthlyFee?.payoutMethod || null,
@@ -45,7 +47,9 @@ async function synchronizePayouts(type: FeePeriodType, referenceDate: Date) {
         periodEnd: period.end,
         totalJam,
         nominalPerJam,
-        totalFee,
+        totalFee: manualTotalFee && manualTotalFee > 0 ? manualTotalFee : totalFee,
+        manualTotalFee: manualTotalFee && manualTotalFee > 0 ? manualTotalFee : null,
+        ...(manualNominal !== null && manualNominal !== undefined ? { nominalPerJam: manualNominal } : {}),
         ...(monthlyFee ? { status: monthlyFee.status, paidAt: monthlyFee.paidAt, payoutMethod: monthlyFee.payoutMethod, payoutReference: monthlyFee.payoutReference } : {}),
       },
     });
@@ -61,7 +65,12 @@ export async function GET(req: Request) {
   const searchParams = new URL(req.url).searchParams;
   const type = getPeriodType(searchParams.get("periodType"));
   const referenceDate = getReferenceDate(searchParams.get("date"));
-  const { period } = await synchronizePayouts(type, referenceDate);
+  const customRange = type === "CUSTOM" ? feePeriodRange(type, searchParams.get("start"), searchParams.get("end")) : null;
+  const manualNominalRaw = searchParams.get("nominalPerJam");
+  const manualTotalRaw = searchParams.get("manualTotalFee");
+  const manualNominal = manualNominalRaw && !Number.isNaN(Number(manualNominalRaw)) ? Number(manualNominalRaw) : null;
+  const manualTotalFee = manualTotalRaw && !Number.isNaN(Number(manualTotalRaw)) ? Number(manualTotalRaw) : null;
+  const { period } = await synchronizePayouts(type, referenceDate, manualNominal, manualTotalFee, customRange);
   const payouts = await prisma.feePayout.findMany({
     where: { periodType: type, periodKey: period.key },
     orderBy: { createdAt: "asc" },
@@ -83,9 +92,11 @@ export async function GET(req: Request) {
         email: payout.pengajar.user.email,
         periodType: payout.periodType,
         periodKey: payout.periodKey,
+        periodLabel: payout.periodLabel,
         totalJam: payout.totalJam,
         nominalPerJam: payout.nominalPerJam,
         totalFee: payout.totalFee,
+        manualTotalFee: payout.manualTotalFee,
         status: payout.status,
         paidAt: payout.paidAt,
         payoutMethod: payout.payoutMethod,
@@ -113,9 +124,25 @@ export async function PUT(req: Request) {
   if (!payout) return NextResponse.json({ ok: false, message: "Tracking fee tidak ditemukan." }, { status: 404 });
   const paidAt = body.paidAt ? new Date(String(body.paidAt)) : new Date();
   const updated = await prisma.$transaction(async (transaction) => {
+    const updateData: { status: "PAID"; paidAt: Date; payoutMethod: string; payoutReference: string | null; nominalPerJam?: number; totalFee?: number; manualTotalFee?: number | null } = {
+      status: "PAID",
+      paidAt,
+      payoutMethod,
+      payoutReference: String(body.payoutReference || "").trim() || null,
+    };
+    const newNominal = body.nominalPerJam !== undefined && body.nominalPerJam !== "" ? Number(body.nominalPerJam) : null;
+    const newManualTotal = body.manualTotalFee !== undefined && body.manualTotalFee !== "" ? Number(body.manualTotalFee) : null;
+    if (newNominal !== null && !Number.isNaN(newNominal) && newNominal > 0) {
+      updateData.nominalPerJam = newNominal;
+      updateData.totalFee = newManualTotal !== null && !Number.isNaN(newManualTotal) && newManualTotal > 0 ? newManualTotal : payout.totalJam * newNominal;
+      updateData.manualTotalFee = newManualTotal !== null && !Number.isNaN(newManualTotal) && newManualTotal > 0 ? newManualTotal : null;
+    } else if (newManualTotal !== null && !Number.isNaN(newManualTotal) && newManualTotal >= 0) {
+      updateData.totalFee = newManualTotal;
+      updateData.manualTotalFee = newManualTotal > 0 ? newManualTotal : null;
+    }
     const result = await transaction.feePayout.update({
       where: { id },
-      data: { status: "PAID", paidAt, payoutMethod, payoutReference: String(body.payoutReference || "").trim() || null },
+      data: updateData,
     });
 
     if (payout.periodType === "MONTHLY") {

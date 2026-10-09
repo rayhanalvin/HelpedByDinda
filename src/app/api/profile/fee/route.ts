@@ -9,8 +9,6 @@ export async function GET(req: Request) {
     return NextResponse.json({ ok: false, message: "Unauthorized" }, { status: 401 });
   }
 
-  const requestedPeriode = new URL(req.url).searchParams.get("periode");
-  const periode = requestedPeriode && /^\d{4}-(0[1-9]|1[0-2])$/.test(requestedPeriode) ? requestedPeriode : undefined;
   const pengajar = await prisma.pengajar.findUnique({ where: { userId: session.userId } });
 
   if (!pengajar) {
@@ -20,12 +18,13 @@ export async function GET(req: Request) {
   const fees = await prisma.fee.findMany({
     where: {
       pengajarId: pengajar.id,
-      ...(periode ? { periode } : {}),
     },
-    orderBy: [{ periode: "desc" }, { createdAt: "desc" }],
+    orderBy: [{ createdAt: "desc" }],
   });
-  const hoursByTeacher = await getTeachingHoursByTeacher(periode || getCurrentPeriod());
-  const synchronizedHours = hoursByTeacher.get(pengajar.id) || 0;
+  const payouts = await prisma.feePayout.findMany({
+    where: { pengajarId: pengajar.id },
+    orderBy: [{ periodStart: "desc" }],
+  });
 
   return NextResponse.json({
     ok: true,
@@ -34,9 +33,9 @@ export async function GET(req: Request) {
       pengajarId: fee.pengajarId,
       pengajarNama: "",
       periode: fee.periode,
-      totalJam: fee.periode === (periode || getCurrentPeriod()) ? synchronizedHours : fee.totalJam,
+      totalJam: fee.totalJam,
       nominalPerJam: fee.nominalPerJam,
-      totalFee: fee.periode === (periode || getCurrentPeriod()) ? synchronizedHours * fee.nominalPerJam : fee.totalFee,
+      totalFee: fee.totalFee,
       status: fee.status,
       teacherBankName: fee.payoutBankName ?? pengajar.bankName,
       teacherAccountNumber: fee.payoutAccountNumber ?? pengajar.bankAccountNumber,
@@ -48,6 +47,22 @@ export async function GET(req: Request) {
       paymentProofMimeType: fee.paymentProofMimeType,
       paymentProofUploadedAt: fee.paymentProofUploadedAt,
       paidAt: fee.paidAt,
+    })),
+    payouts: payouts.map((payout) => ({
+      id: payout.id,
+      periodType: payout.periodType,
+      periodKey: payout.periodKey,
+      periodLabel: payout.periodLabel,
+      periodStart: payout.periodStart,
+      periodEnd: payout.periodEnd,
+      totalJam: payout.totalJam,
+      nominalPerJam: payout.nominalPerJam,
+      totalFee: payout.totalFee,
+      manualTotalFee: payout.manualTotalFee,
+      status: payout.status,
+      paidAt: payout.paidAt,
+      payoutMethod: payout.payoutMethod,
+      payoutReference: payout.payoutReference,
     })),
   });
 }

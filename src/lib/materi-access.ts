@@ -24,6 +24,9 @@ export function serializeMaterial(item: {
   kelas: string;
   kategori: string;
   fileUrl: string | null;
+  fileData: string | null;
+  fileName: string | null;
+  fileMimeType: string | null;
   bunnyVideoId: string | null;
   thumbnailUrl: string | null;
   isPublished: boolean;
@@ -39,6 +42,9 @@ export function serializeMaterial(item: {
     kelasLabel: getKelasLabel(item.kelas),
     kategori: item.kategori,
     fileUrl: item.fileUrl,
+    fileData: item.fileData,
+    fileName: item.fileName,
+    fileMimeType: item.fileMimeType,
     bunnyVideoId: item.bunnyVideoId,
     thumbnailUrl: item.thumbnailUrl,
     isPublished: item.isPublished,

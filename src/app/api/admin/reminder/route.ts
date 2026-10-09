@@ -41,7 +41,19 @@ export async function POST(req: Request) {
   const session = await getSessionUser();
   if (!session || session.role !== "ADMIN") return NextResponse.json({ ok: false, message: "Unauthorized" }, { status: 401 });
 
-  const body = await req.json();
+  let body: Record<string, string> = {};
+  let attachment: File | null = null;
+  const contentType = req.headers.get("content-type") || "";
+  if (contentType.includes("multipart/form-data")) {
+    const form = await req.formData();
+    for (const [key, value] of form.entries()) {
+      if (typeof value === "string") body[key] = value;
+    }
+    const file = form.get("attachment");
+    if (file && typeof file !== "string") attachment = file;
+  } else {
+    body = await req.json();
+  }
   const type = String(body.type || "")
     .trim()
     .toLowerCase();
@@ -98,6 +110,16 @@ export async function POST(req: Request) {
     }),
   });
 
+  let attachmentPayload: { attachmentData: string; attachmentName: string; attachmentMimeType: string } | null = null;
+  if (attachment) {
+    const buffer = Buffer.from(await attachment.arrayBuffer());
+    attachmentPayload = {
+      attachmentData: `data:${attachment.type};base64,${buffer.toString("base64")}`,
+      attachmentName: attachment.name,
+      attachmentMimeType: attachment.type,
+    };
+  }
+
   const logs = await prisma.$transaction(
     uniqueTargets.map((target) =>
       prisma.reminderLog.create({
@@ -108,7 +130,8 @@ export async function POST(req: Request) {
           targetEmail: target.email,
           targetRole: target.role,
           status: "sent",
-          keterangan: `Pengingat ${type} dikirim oleh admin.`,
+          keterangan: String(body.keterangan || (body.message && body.message.trim() ? body.message : `Pengingat ${type} dikirim oleh admin.`)).slice(0, 500),
+          ...(attachmentPayload || {}),
         },
       }),
     ),
@@ -141,4 +164,60 @@ export async function DELETE(req: Request) {
   const deleted = await prisma.reminderLog.deleteMany({ where: { id } });
   if (!deleted.count) return NextResponse.json({ ok: false, message: "Log tidak ditemukan." }, { status: 404 });
   return NextResponse.json({ ok: true, deletedId: id }, { headers: { "Cache-Control": "no-store, max-age=0" } });
+}
+
+export async function PATCH(req: Request) {
+  const session = await getSessionUser();
+  if (!session || session.role !== "ADMIN") return NextResponse.json({ ok: false, message: "Unauthorized" }, { status: 401 });
+
+  let body: Record<string, string> = {};
+  let attachment: File | null = null;
+  const contentType = req.headers.get("content-type") || "";
+  if (contentType.includes("multipart/form-data")) {
+    const form = await req.formData();
+    for (const [key, value] of form.entries()) {
+      if (typeof value === "string") body[key] = value;
+    }
+    const file = form.get("attachment");
+    if (file && typeof file !== "string") attachment = file;
+  } else {
+    body = await req.json();
+  }
+
+  const id = String(body.id || "").trim();
+  if (!id) return NextResponse.json({ ok: false, message: "ID log wajib diisi." }, { status: 400 });
+
+  const existing = await prisma.reminderLog.findUnique({ where: { id } });
+  if (!existing) return NextResponse.json({ ok: false, message: "Log tidak ditemukan." }, { status: 404 });
+
+  let attachmentPayload: { attachmentData: string; attachmentName: string; attachmentMimeType: string } | null = null;
+  if (attachment) {
+    const buffer = Buffer.from(await attachment.arrayBuffer());
+    attachmentPayload = {
+      attachmentData: `data:${attachment.type};base64,${buffer.toString("base64")}`,
+      attachmentName: attachment.name,
+      attachmentMimeType: attachment.type,
+    };
+  }
+
+  const data: Record<string, unknown> = {};
+  if (typeof body.keterangan !== "undefined") data.keterangan = String(body.keterangan).slice(0, 500);
+  if (typeof body.targetNama !== "undefined") data.targetNama = String(body.targetNama).slice(0, 200);
+  if (typeof body.targetEmail !== "undefined") data.targetEmail = String(body.targetEmail).slice(0, 250);
+  if (typeof body.status !== "undefined") data.status = String(body.status).slice(0, 50);
+  let removeAttachment = body.removeAttachment === "true";
+  if (attachmentPayload) {
+    data.attachmentData = attachmentPayload.attachmentData;
+    data.attachmentName = attachmentPayload.attachmentName;
+    data.attachmentMimeType = attachmentPayload.attachmentMimeType;
+    removeAttachment = false;
+  }
+  if (removeAttachment) {
+    data.attachmentData = null;
+    data.attachmentName = null;
+    data.attachmentMimeType = null;
+  }
+
+  const updated = await prisma.reminderLog.update({ where: { id }, data });
+  return NextResponse.json({ ok: true, data: updated }, { headers: { "Cache-Control": "no-store, max-age=0" } });
 }

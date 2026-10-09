@@ -21,8 +21,26 @@ type AttendanceRow = {
   finishedAt: string | null;
 };
 
+type PayoutRow = {
+  id: string;
+  periodType: string;
+  periodKey: string;
+  periodLabel: string | null;
+  periodStart: string;
+  periodEnd: string;
+  totalJam: number;
+  nominalPerJam: number;
+  totalFee: number;
+  manualTotalFee: number | null;
+  status: "PENDING" | "PAID";
+  paidAt: string | null;
+  payoutMethod: string | null;
+  payoutReference: string | null;
+};
+
 export default function PengajarFeePage() {
   const [feeCurrent, setFeeCurrent] = React.useState<ApiTypes.FeeRow | null>(null);
+  const [payouts, setPayouts] = React.useState<PayoutRow[]>([]);
   const [teachingSessions, setTeachingSessions] = React.useState<AttendanceRow[]>([]);
   const [profile, setProfile] = React.useState({ nominalPerJam: 0 });
   const [previewProof, setPreviewProof] = React.useState<{ name: string; url: string; mimeType: string | null } | null>(null);
@@ -62,10 +80,11 @@ export default function PengajarFeePage() {
   const loadFeeData = React.useCallback(async () => {
     try {
       const [feeRes, profileRes] = await Promise.all([
-        apiFetch<{ ok: boolean; data: ApiTypes.FeeRow[]; attendance: AttendanceRow[] }>(`/api/profile/fee?periode=${new Date().toISOString().slice(0, 7)}`),
+        apiFetch<{ ok: boolean; data: ApiTypes.FeeRow[]; attendance: AttendanceRow[]; payouts: PayoutRow[] }>(`/api/profile/fee?periode=${new Date().toISOString().slice(0, 7)}`),
         apiFetch<{ ok: boolean; user: { pengajar: { nominalPerJam: number } | null } }>("/api/profile"),
       ]);
       setFeeCurrent(feeRes.data?.[0] || null);
+      setPayouts(feeRes.payouts || []);
       setTeachingSessions(feeRes.attendance || []);
       setProfile({ nominalPerJam: profileRes.user.pengajar?.nominalPerJam || feeRes.data?.[0]?.nominalPerJam || 0 });
       await loadInvoices();
@@ -138,6 +157,52 @@ export default function PengajarFeePage() {
           )}
         </CardContent>
       </Card>
+
+      {/* Histori Tracking Fee (Weekly / Custom) */}
+      {payouts.length > 0 && (
+        <Card className="border-border shadow-xs">
+          <CardHeader>
+            <CardTitle className="text-lg">Histori Tracking Fee (Mingguan / Kustom)</CardTitle>
+            <CardDescription>Rekap fee yang disinkronisasi dari admin untuk periode mingguan dan kustom</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="overflow-x-auto">
+              <table className="w-full text-left text-sm">
+                <thead className="border-b border-border text-xs uppercase font-semibold text-muted-foreground bg-muted/30">
+                  <tr>
+                    <th className="py-3 px-4">Periode</th>
+                    <th className="py-3 px-4">Jam</th>
+                    <th className="py-3 px-4">Nominal/Jam</th>
+                    <th className="py-3 px-4">Total Fee</th>
+                    <th className="py-3 px-4">Status</th>
+                    <th className="py-3 px-4">Dibayar</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-border">
+                  {payouts.map((payout) => (
+                    <tr key={payout.id} className="hover:bg-muted/30 transition-colors">
+                      <td className="py-3.5 px-4 font-semibold text-foreground text-xs">
+                        {payout.periodLabel || `${payout.periodType} ${payout.periodKey}`}
+                      </td>
+                      <td className="py-3.5 px-4 text-xs font-bold tabular-nums">{payout.totalJam}</td>
+                      <td className="py-3.5 px-4 text-xs tabular-nums">{formatRupiah(payout.nominalPerJam)}</td>
+                      <td className="py-3.5 px-4 text-xs font-bold text-emerald-700 tabular-nums">
+                        {formatRupiah(payout.manualTotalFee ?? payout.totalFee)}
+                      </td>
+                      <td className="py-3.5 px-4">
+                        <Badge variant={payout.status === "PAID" ? "success" : "warning"}>
+                          {payout.status === "PAID" ? "DIBYAR" : "PENDING"}
+                        </Badge>
+                      </td>
+                      <td className="py-3.5 px-4 text-xs text-muted-foreground">{payout.paidAt ? formatDateIndo(payout.paidAt) : "-"}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Rincian Sesi Kehadiran yang Dihitung */}
       <Card className="border-border shadow-xs">

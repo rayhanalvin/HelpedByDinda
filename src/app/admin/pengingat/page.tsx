@@ -11,7 +11,7 @@ import { DUMMY_REMINDER_LOGS } from "@/lib/dummy-data";
 import { apiFetch } from "@/lib/api";
 import { useVisiblePolling } from "@/lib/use-visible-polling";
 import * as ApiTypes from "@/types/api";
-import { MessageSquarePlus } from "lucide-react";
+import { MessageSquarePlus, Pencil, Paperclip, Download, X } from "lucide-react";
 
 export default function AdminPengingatPage() {
   const { toast } = useToast();
@@ -26,6 +26,11 @@ export default function AdminPengingatPage() {
   const [messageTarget, setMessageTarget] = React.useState<"ALL" | "MURID" | "PENGAJAR">("ALL");
   const [sendingMsg, setSendingMsg] = React.useState(false);
   const [attachment, setAttachment] = React.useState<File | null>(null);
+  const [reminderAttachment, setReminderAttachment] = React.useState<File | null>(null);
+  const [editingLog, setEditingLog] = React.useState<ApiTypes.ReminderLog | null>(null);
+  const [editKeterangan, setEditKeterangan] = React.useState("");
+  const [editAttachment, setEditAttachment] = React.useState<File | null>(null);
+  const [savingEdit, setSavingEdit] = React.useState(false);
 
   const loadLogs = React.useCallback(async () => {
     setLoadingLogs(true);
@@ -84,8 +89,19 @@ export default function AdminPengingatPage() {
   const handleSendReminder = async (type: "mengajar" | "bayar" | "absen" | "invoice_murid" | "invoice_pengajar") => {
     setLoadingType(type);
     try {
-      await apiFetch<{ ok: boolean; data: ApiTypes.ReminderLog[] }>("/api/admin/reminder", { method: "POST", body: JSON.stringify({ type }) });
+      let body: FormData | string;
+      if (reminderAttachment) {
+        const fd = new FormData();
+        fd.append("type", type);
+        fd.append("keterangan", `Pengingat ${type} dikirim oleh admin (dengan lampiran dokumen).`);
+        fd.append("attachment", reminderAttachment);
+        body = fd;
+      } else {
+        body = JSON.stringify({ type });
+      }
+      await apiFetch<{ ok: boolean; data: ApiTypes.ReminderLog[] }>("/api/admin/reminder", { method: "POST", body });
       setLoadingType(null);
+      setReminderAttachment(null);
       toast("Pengingat dikirim dan dicatat pada audit log.", "success");
       await loadLogs();
     } catch (err) {
@@ -101,6 +117,54 @@ export default function AdminPengingatPage() {
       setLogs((prev) => prev.filter((l) => l.id !== id));
     } catch (err) {
       toast(err instanceof Error ? err.message : "Gagal menghapus log", "error");
+    }
+  };
+
+  const openEditLog = (log: ApiTypes.ReminderLog) => {
+    setEditingLog(log);
+    setEditKeterangan(log.keterangan || "");
+    setEditAttachment(null);
+  };
+
+  const handleSaveLog = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingLog) return;
+    setSavingEdit(true);
+    try {
+      let body: FormData | string;
+      if (editAttachment) {
+        const fd = new FormData();
+        fd.append("id", editingLog.id);
+        fd.append("keterangan", editKeterangan);
+        fd.append("attachment", editAttachment);
+        body = fd;
+      } else {
+        body = JSON.stringify({ id: editingLog.id, keterangan: editKeterangan });
+      }
+      await apiFetch("/api/admin/reminder", { method: "PATCH", body });
+      toast("Log pengingat diperbarui.", "success");
+      setEditingLog(null);
+      setEditAttachment(null);
+      await loadLogs();
+    } catch (err) {
+      toast(err instanceof Error ? err.message : "Gagal memperbarui log.", "error");
+    } finally {
+      setSavingEdit(false);
+    }
+  };
+
+  const handleRemoveAttachment = async () => {
+    if (!editingLog) return;
+    setSavingEdit(true);
+    try {
+      await apiFetch("/api/admin/reminder", { method: "PATCH", body: JSON.stringify({ id: editingLog.id, removeAttachment: "true" }) });
+      toast("Lampiran dihapus.", "success");
+      setEditingLog(null);
+      await loadLogs();
+    } catch (err) {
+      toast(err instanceof Error ? err.message : "Gagal menghapus lampiran.", "error");
+    } finally {
+      setSavingEdit(false);
     }
   };
 
@@ -127,8 +191,12 @@ export default function AdminPengingatPage() {
               <p className="font-semibold text-foreground">Target: {targets.activeTeachers} Pengajar Aktif</p>
               <p className="text-muted-foreground">Template: Resend HTML Mengajar</p>
             </div>
+            <label className="inline-flex items-center gap-1.5 rounded-xl border border-border px-3 py-2 text-xs font-semibold hover:bg-muted cursor-pointer">
+              <Paperclip className="h-3.5 w-3.5" /> {reminderAttachment ? reminderAttachment.name : "Lampiran dokumen (opsional)"}
+              <input type="file" accept="application/pdf,image/*,.doc,.docx,.xls,.xlsx" className="sr-only" onChange={(event) => setReminderAttachment(event.target.files?.[0] || null)} />
+            </label>
             <Button variant="default" isLoading={loadingType === "mengajar"} onClick={() => handleSendReminder("mengajar")} className="w-full font-bold gap-2">
-              <Send className="h-4 w-4" /> Kirim Pengingat Mengajar
+              <Send className="h-4 w-4" /> {reminderAttachment ? "Kirim Pengingat + Dokumen" : "Kirim Pengingat Mengajar"}
             </Button>
           </CardContent>
         </Card>
@@ -147,8 +215,12 @@ export default function AdminPengingatPage() {
               <p className="font-semibold text-foreground">Target: {targets.pendingStudents} Tagihan Pending</p>
               <p className="text-muted-foreground">Template: Invoice Reminder Midtrans</p>
             </div>
+            <label className="inline-flex items-center gap-1.5 rounded-xl border border-border px-3 py-2 text-xs font-semibold hover:bg-muted cursor-pointer">
+              <Paperclip className="h-3.5 w-3.5" /> {reminderAttachment ? reminderAttachment.name : "Lampiran dokumen (opsional)"}
+              <input type="file" accept="application/pdf,image/*,.doc,.docx,.xls,.xlsx" className="sr-only" onChange={(event) => setReminderAttachment(event.target.files?.[0] || null)} />
+            </label>
             <Button variant="accent" isLoading={loadingType === "bayar"} onClick={() => handleSendReminder("bayar")} className="w-full font-bold gap-2">
-              <Send className="h-4 w-4" /> Kirim Pengingat SPP
+              <Send className="h-4 w-4" /> {reminderAttachment ? "Kirim SPP + Dokumen" : "Kirim Pengingat SPP"}
             </Button>
           </CardContent>
         </Card>
@@ -167,8 +239,12 @@ export default function AdminPengingatPage() {
               <p className="font-semibold text-foreground">Target: {targets.attendanceTargets} Penerima Sesi Hari Ini</p>
               <p className="text-muted-foreground">Template: Prompt Kehadiran Realtime</p>
             </div>
+            <label className="inline-flex items-center gap-1.5 rounded-xl border border-border px-3 py-2 text-xs font-semibold hover:bg-muted cursor-pointer">
+              <Paperclip className="h-3.5 w-3.5" /> {reminderAttachment ? reminderAttachment.name : "Lampiran dokumen (opsional)"}
+              <input type="file" accept="application/pdf,image/*,.doc,.docx,.xls,.xlsx" className="sr-only" onChange={(event) => setReminderAttachment(event.target.files?.[0] || null)} />
+            </label>
             <Button variant="outline" isLoading={loadingType === "absen"} onClick={() => handleSendReminder("absen")} className="w-full font-bold gap-2 hover:bg-amber-50 hover:text-amber-900">
-              <Send className="h-4 w-4" /> Kirim Pengingat Presensi
+              <Send className="h-4 w-4" /> {reminderAttachment ? "Kirim Presensi + Dokumen" : "Kirim Pengingat Presensi"}
             </Button>
           </CardContent>
         </Card>
@@ -256,6 +332,7 @@ export default function AdminPengingatPage() {
                   <th className="py-3 px-4">Tipe Pengingat</th>
                   <th className="py-3 px-4">Target Penerima</th>
                   <th className="py-3 px-4">Keterangan / Pesan</th>
+                  <th className="py-3 px-4">Lampiran</th>
                   <th className="py-3 px-4">Waktu Kirim</th>
                   <th className="py-3 px-4">Status</th>
                 </tr>
@@ -273,12 +350,28 @@ export default function AdminPengingatPage() {
                       <p className="text-[11px] text-muted-foreground">{log.targetEmail}</p>
                     </td>
                     <td className="py-3 px-4 text-xs text-foreground max-w-xs">{log.keterangan}</td>
+                    <td className="py-3 px-4">
+                      {log.attachmentData ? (
+                        <a
+                          href={log.attachmentData}
+                          download={log.attachmentName || "lampiran"}
+                          className="inline-flex items-center gap-1 font-semibold text-primary hover:underline"
+                        >
+                          <Paperclip className="h-3.5 w-3.5" /> {log.attachmentName || "Dokumen"}
+                        </a>
+                      ) : (
+                        <span className="text-[11px] text-muted-foreground">-</span>
+                      )}
+                    </td>
                     <td className="py-3 px-4 text-xs font-mono text-muted-foreground">{new Date(log.sentAt).toLocaleString("id-ID")}</td>
                     <td className="py-3 px-4">
                       <div className="flex items-center gap-2">
                         <span className="text-xs font-bold text-emerald-700 flex items-center gap-1">
                           <CheckCircle2 className="h-3.5 w-3.5" /> {log.status.toUpperCase()}
                         </span>
+                        <Button size="sm" variant="ghost" onClick={() => openEditLog(log)} className="ml-1">
+                          <Pencil className="h-3.5 w-3.5" />
+                        </Button>
                         <Button size="sm" variant="destructive" onClick={() => handleDeleteLog(String(log.id))} className="ml-2">
                           Hapus
                         </Button>
@@ -291,6 +384,55 @@ export default function AdminPengingatPage() {
           </div>
         </CardContent>
       </Card>
+
+      {editingLog && (
+        <div className="fixed inset-0 z-50 grid place-items-center bg-black/40 p-4" onMouseDown={() => setEditingLog(null)}>
+          <form onSubmit={handleSaveLog} onMouseDown={(event) => event.stopPropagation()} className="w-full max-w-lg space-y-4 rounded-2xl bg-card p-6 shadow-xl">
+            <div className="flex items-center justify-between">
+              <h2 className="text-xl font-bold">Edit Pengingat / Pesan</h2>
+              <button type="button" onClick={() => setEditingLog(null)} className="text-muted-foreground hover:text-foreground">
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+            <p className="text-xs text-muted-foreground">
+              Tipe: <strong>{editingLog.tipe}</strong> • Target: <strong>{editingLog.targetNama}</strong> ({editingLog.targetEmail})
+            </p>
+            <label className="text-xs font-semibold text-foreground">Keterangan / Pesan</label>
+            <textarea
+              rows={3}
+              className="w-full rounded-xl border border-input bg-card p-3 text-sm"
+              value={editKeterangan}
+              onChange={(event) => setEditKeterangan(event.target.value)}
+            />
+            <div className="space-y-1.5">
+              <label className="text-xs font-semibold text-foreground">Lampiran (PDF / Gambar)</label>
+              <div className="flex items-center gap-2">
+                <label className="inline-flex items-center gap-2 rounded border px-3 py-2 cursor-pointer">
+                  Pilih file
+                  <input type="file" accept="application/pdf,image/*,.doc,.docx,.xls,.xlsx" className="sr-only" onChange={(event) => setEditAttachment(event.target.files?.[0] || null)} />
+                </label>
+                {editAttachment && <span className="text-sm text-muted-foreground">{editAttachment.name}</span>}
+              </div>
+              {editingLog.attachmentData && (
+                <div className="flex items-center gap-2 text-[11px] text-primary">
+                  <Paperclip className="h-3.5 w-3.5" /> {editingLog.attachmentName || "Lampiran saat ini"}
+                  <button type="button" onClick={handleRemoveAttachment} disabled={savingEdit} className="text-rose-600 hover:underline">
+                    Hapus
+                  </button>
+                </div>
+              )}
+            </div>
+            <div className="flex justify-end gap-2">
+              <Button type="button" variant="outline" onClick={() => setEditingLog(null)}>
+                Batal
+              </Button>
+              <Button type="submit" variant="accent" isLoading={savingEdit}>
+                Simpan
+              </Button>
+            </div>
+          </form>
+        </div>
+      )}
     </div>
   );
 }

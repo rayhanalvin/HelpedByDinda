@@ -13,6 +13,7 @@ export default function ForgotPasswordPage() {
   const [email, setEmail] = React.useState("");
   const [loading, setLoading] = React.useState(false);
   const [sent, setSent] = React.useState(false);
+  const [devCode, setDevCode] = React.useState("");
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -29,6 +30,7 @@ export default function ForgotPasswordPage() {
 
       if (response.ok && data.ok) {
         setSent(true);
+        if (data.devCode) setDevCode(data.devCode);
         toast("Tautan pemulihan kata sandi telah dikirim ke email.", "success");
       } else {
         toast(data.message || "Gagal mengirim permintaan reset sandi.", "error");
@@ -60,6 +62,12 @@ export default function ForgotPasswordPage() {
           <p className="text-xs text-emerald-700 leading-relaxed">
             Kode 6 digit sudah dikirimkan ke email <strong className="font-extrabold">{email}</strong>. Periksa kotak masuk atau folder spam, lalu lanjutkan untuk memasukkan kode dan mengganti kata sandi.
           </p>
+          {devCode && (
+            <div className="rounded-xl border border-emerald-200 bg-white p-4 text-center">
+              <p className="text-[11px] uppercase font-bold tracking-wider text-muted-foreground">Kode Verifikasi (Mode Demo)</p>
+              <p className="mt-1 text-2xl font-extrabold tracking-[0.4em] text-emerald-700">{devCode}</p>
+            </div>
+          )}
           <div className="grid grid-cols-1 gap-2">
             <Link href="/reset-password">
               <Button variant="default" className="w-full text-xs font-bold">

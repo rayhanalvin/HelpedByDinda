@@ -17,9 +17,9 @@ type MateriCard = {
   mataPelajaran: string;
   kelasLabel: string;
   pengajarNama: string;
-  tipe?: string;
-  thumbnailUrl?: string;
-  durasiMenit?: number | null;
+  thumbnailUrl?: string | null;
+  fileName?: string | null;
+  fileMimeType?: string | null;
 };
 
 export default function MuridMateriPage() {
@@ -53,6 +53,8 @@ export default function MuridMateriPage() {
     return matchSearch;
   });
 
+  const isVideoItem = (m: MateriCard) => (m.fileMimeType || "").startsWith("video/") || [".mp4", ".webm", ".mov"].some((ext) => (m.fileName || "").toLowerCase().endsWith(ext));
+
   return (
     <div className="space-y-8">
       <div>
@@ -73,9 +75,9 @@ export default function MuridMateriPage() {
             <div>
               {/* Thumbnail with overlay icon */}
               <div className="relative aspect-video w-full overflow-hidden bg-muted">
-                <img src={materi.thumbnailUrl} alt={materi.judul} className="h-full w-full object-cover group-hover:scale-105 transition-transform duration-300" />
+                <img src={materi.thumbnailUrl ?? ""} alt={materi.judul} className="h-full w-full object-cover group-hover:scale-105 transition-transform duration-300" />
                 <div className="absolute inset-0 bg-black/20 group-hover:bg-black/40 transition-colors flex items-center justify-center">
-                  {materi.tipe === "video" ? (
+                  {isVideoItem(materi) ? (
                     <PlayCircle className="h-12 w-12 text-white/90 drop-shadow-md group-hover:scale-110 transition-transform" />
                   ) : (
                     <FileText className="h-12 w-12 text-white/90 drop-shadow-md group-hover:scale-110 transition-transform" />
@@ -83,12 +85,12 @@ export default function MuridMateriPage() {
                 </div>
 
                 <div className="absolute top-3 left-3 flex gap-1.5">
-                  <Badge variant={materi.tipe === "video" ? "default" : "secondary"} className="text-[10px] font-bold">
-                    {materi.tipe === "video" ? "VIDEO STREAM" : "MODUL PDF"}
+                  <Badge variant={isVideoItem(materi) ? "default" : "secondary"} className="text-[10px] font-bold">
+                    {isVideoItem(materi) ? "VIDEO" : "BERKAS MODUL"}
                   </Badge>
                 </div>
 
-                {materi.durasiMenit && <span className="absolute bottom-2 right-2 rounded-md bg-black/75 px-2 py-0.5 text-[11px] font-bold text-white backdrop-blur-xs">{materi.durasiMenit} Menit</span>}
+                {materi.fileName && <span className="absolute bottom-2 right-2 rounded-md bg-black/75 px-2 py-0.5 text-[11px] font-bold text-white backdrop-blur-xs truncate max-w-[45%]">{materi.fileName}</span>}
               </div>
 
               <CardContent className="p-5 space-y-2.5">

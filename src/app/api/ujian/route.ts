@@ -8,15 +8,23 @@ export async function GET(req: Request) {
 
   const { searchParams } = new URL(req.url);
   const kelas = searchParams.get("kelas");
+  const mine = searchParams.get("mine") === "true";
 
   const where: Record<string, unknown> = {};
   if (kelas && ["SD", "SMP", "SMA", "UTBK"].includes(kelas)) {
     where.kelasSasaran = kelas;
   }
 
-  // Murid & pengajar only see published exams; admin sees everything.
-  if (session.role !== "ADMIN") {
+  // Murid only see published exams; admin sees everything; pengajar sees own drafts + published all
+  if (session.role === "MURID") {
     where.isPublished = true;
+  } else if (session.role === "PENGAJAR") {
+    const pengajar = await prisma.pengajar.findUnique({ where: { userId: session.userId }, select: { id: true } });
+    if (mine && pengajar) {
+      where.pengajarId = pengajar.id;
+    } else if (mine) {
+      where.id = "__none__";
+    }
   } else {
     const published = searchParams.get("published");
     if (published === "true") where.isPublished = true;
@@ -52,7 +60,7 @@ export async function GET(req: Request) {
 
 export async function POST(req: Request) {
   const session = await getSessionUser();
-  if (!session || session.role !== "ADMIN") return NextResponse.json({ ok: false, message: "Unauthorized" }, { status: 401 });
+  if (!session || !["ADMIN", "PENGAJAR"].includes(session.role)) return NextResponse.json({ ok: false, message: "Unauthorized" }, { status: 401 });
 
   const body = await req.json();
   const { namaUjian, mataPelajaran, kelasSasaran, tanggal, jam, deskripsi, lokasi, pengajarId, pengajarNama, isPublished } = body;
@@ -73,7 +81,15 @@ export async function POST(req: Request) {
 
   let finalPengajarId: string | null = null;
   let finalPengajarNama = String(pengajarNama || "").trim();
-  if (pengajarId) {
+  if (session.role === "PENGAJAR") {
+    const pengajar = await prisma.pengajar.findUnique({
+      where: { userId: session.userId },
+      select: { id: true, user: { select: { name: true } } },
+    });
+    if (!pengajar) return NextResponse.json({ ok: false, message: "Profil pengajar tidak ditemukan." }, { status: 404 });
+    finalPengajarId = pengajar.id;
+    finalPengajarNama = finalPengajarNama || pengajar.user.name;
+  } else if (pengajarId) {
     const pengajar = await prisma.pengajar.findUnique({
       where: { id: String(pengajarId) },
       select: { id: true, user: { select: { name: true } } },
@@ -87,6 +103,9 @@ export async function POST(req: Request) {
     return NextResponse.json({ ok: false, message: "PIC pengajar wajib diisi." }, { status: 400 });
   }
 
+  // Pengajar creates as draft by default (admin publishes via toggle)
+  const finalIsPublished = session.role === "ADMIN" ? Boolean(isPublished) : false;
+
   const ujian = await prisma.ujian.create({
     data: {
       namaUjian: String(namaUjian).trim(),
@@ -98,7 +117,7 @@ export async function POST(req: Request) {
       lokasi: String(lokasi || "").trim(),
       pengajarId: finalPengajarId,
       pengajarNama: finalPengajarNama,
-      isPublished: Boolean(isPublished),
+      isPublished: finalIsPublished,
     },
   });
 

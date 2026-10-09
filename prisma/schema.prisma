@@ -18,6 +18,7 @@ model User {
   updatedAt        DateTime      @updatedAt
   resetToken       String?
   resetTokenExpiry DateTime?
+  resetAttempts    Int       @default(0)
   absensi          Absensi[]
   admin            Admin?
   invoices         Invoice[]
@@ -236,11 +237,13 @@ model FeePayout {
   pengajarId       String
   periodType       PayoutPeriodType
   periodKey        String
+  periodLabel      String?
   periodStart      DateTime
   periodEnd        DateTime
   totalJam         Int
   nominalPerJam    Int
   totalFee         Int
+  manualTotalFee   Int?
   status           FeeStatus        @default(PENDING)
   paidAt           DateTime?
   payoutMethod     String?
@@ -361,6 +364,9 @@ model Materi {
   kelas         String
   kategori      String
   fileUrl       String?
+  fileData      String?
+  fileName      String?
+  fileMimeType  String?
   bunnyVideoId  String?
   thumbnailUrl  String?
   isPublished   Boolean  @default(false)
@@ -441,17 +447,20 @@ model ContactMessage {
 }
 
 model ReminderLog {
-  id           String   @id @default(cuid())
-  userId       String?
-  tipe         String
-  targetNama   String
-  targetEmail  String
-  targetRole   String
-  status       String   @default("sent")
-  errorMessage String?
-  sentAt       DateTime @default(now())
-  keterangan   String?
-  user         User?    @relation(fields: [userId], references: [id])
+  id                 String   @id @default(cuid())
+  userId             String?
+  tipe               String
+  targetNama         String
+  targetEmail        String
+  targetRole         String
+  status             String   @default("sent")
+  errorMessage       String?
+  sentAt             DateTime @default(now())
+  keterangan         String?
+  attachmentData     String?
+  attachmentName     String?
+  attachmentMimeType String?
+  user               User?    @relation(fields: [userId], references: [id])
 
   @@map("reminder_logs")
 }
@@ -547,6 +556,7 @@ enum FeeStatus {
 enum PayoutPeriodType {
   WEEKLY
   MONTHLY
+  CUSTOM
 }
 
 enum InvoiceTarget {

@@ -28,9 +28,13 @@ type FeeRow = {
   paymentProofData: string | null;
   paymentProofName: string | null;
   paymentProofMimeType: string | null;
-  periodType?: "WEEKLY" | "MONTHLY";
+  periodType?: "WEEKLY" | "MONTHLY" | "CUSTOM";
   periodKey?: string;
+  periodLabel?: string | null;
+  manualTotalFee?: number | null;
 };
+
+type FeePeriodType = "MONTHLY" | "WEEKLY" | "CUSTOM";
 
 export default function AdminFeePage() {
   const { toast } = useToast();
@@ -39,11 +43,24 @@ export default function AdminFeePage() {
   const [trackingDate, setTrackingDate] = React.useState(() => new Date().toISOString().slice(0, 10));
   const [previewProof, setPreviewProof] = React.useState<{ name: string; url: string; mimeType: string | null } | null>(null);
   const periode = trackingDate.slice(0, 7);
-  const [viewType, setViewType] = React.useState<"MONTHLY" | "WEEKLY">("MONTHLY");
+  const [viewType, setViewType] = React.useState<FeePeriodType>("MONTHLY");
+  const [customStart, setCustomStart] = React.useState(() => {
+    const d = new Date();
+    d.setDate(d.getDate() - 7);
+    return d.toISOString().slice(0, 10);
+  });
+  const [customEnd, setCustomEnd] = React.useState(() => new Date().toISOString().slice(0, 10));
+  const [manualNominal, setManualNominal] = React.useState("");
+  const [manualTotalFee, setManualTotalFee] = React.useState("");
   const total = items.reduce((sum, item) => sum + item.totalFee, 0);
   const loadFees = React.useCallback(async () => {
     try {
-      const url = viewType === "MONTHLY" ? `/api/admin/fee?periode=${encodeURIComponent(periode)}` : `/api/admin/fee/payouts?periodType=WEEKLY&date=${encodeURIComponent(trackingDate)}`;
+      const url =
+        viewType === "MONTHLY"
+          ? `/api/admin/fee?periode=${encodeURIComponent(periode)}`
+          : viewType === "WEEKLY"
+            ? `/api/admin/fee/payouts?periodType=WEEKLY&date=${encodeURIComponent(trackingDate)}`
+            : `/api/admin/fee/payouts?periodType=CUSTOM&start=${encodeURIComponent(customStart)}&end=${encodeURIComponent(customEnd)}${manualNominal ? `&nominalPerJam=${encodeURIComponent(manualNominal)}` : ""}${manualTotalFee ? `&manualTotalFee=${encodeURIComponent(manualTotalFee)}` : ""}`;
       const result = await apiFetch<{ ok: boolean; data: FeeRow[] }>(url, { cache: "no-store" });
       setItems(result.data || []);
     } catch (error) {
@@ -51,7 +68,7 @@ export default function AdminFeePage() {
     } finally {
       setLoading(false);
     }
-  }, [periode, toast, trackingDate, viewType]);
+  }, [periode, toast, trackingDate, viewType, customStart, customEnd, manualNominal, manualTotalFee]);
 
   React.useEffect(() => {
     void loadFees();
@@ -60,8 +77,13 @@ export default function AdminFeePage() {
 
   const markPaid = async (id: string) => {
     try {
-      const endpoint = viewType === "WEEKLY" ? "/api/admin/fee/payouts" : "/api/admin/fee";
-      await apiFetch(endpoint, { method: "PUT", body: JSON.stringify({ id, payoutMethod: "BANK_TRANSFER", paidAt: trackingDate }) });
+      const endpoint = viewType === "MONTHLY" ? "/api/admin/fee" : "/api/admin/fee/payouts";
+      const body: Record<string, string> = { id, payoutMethod: "BANK_TRANSFER", paidAt: trackingDate };
+      if (viewType !== "MONTHLY" && (manualNominal || manualTotalFee)) {
+        if (manualNominal) body.nominalPerJam = manualNominal;
+        if (manualTotalFee) body.manualTotalFee = manualTotalFee;
+      }
+      await apiFetch(endpoint, { method: "PUT", body: JSON.stringify(body) });
       await loadFees();
       toast("Fee pengajar berhasil dibayar dan tercatat di tracking finance.", "success");
     } catch (error) {
@@ -83,7 +105,7 @@ export default function AdminFeePage() {
 
   const generateFees = async () => {
     try {
-      if (viewType === "WEEKLY") {
+      if (viewType !== "MONTHLY") {
         await loadFees();
       } else {
         await apiFetch(`/api/admin/fee?periode=${encodeURIComponent(periode)}`, { method: "POST" });
@@ -102,7 +124,7 @@ export default function AdminFeePage() {
       toast(err instanceof Error ? err.message : "Gagal membuat invoice pengajar.", "error");
     }
   };
-  const periodeLabel = new Date(`${periode}-01T00:00:00`).toLocaleDateString("id-ID", { month: "long", year: "numeric" });
+  const periodeLabel = viewType === "CUSTOM" ? `Kustom ${customStart} - ${customEnd}` : viewType === "WEEKLY" ? `Minggu ${trackingDate}` : new Date(`${periode}-01T00:00:00`).toLocaleDateString("id-ID", { month: "long", year: "numeric" });
   return (
     <main id="admin-fee-report" className="space-y-6">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between print-report-header">
@@ -112,10 +134,27 @@ export default function AdminFeePage() {
           <p className="mt-2 text-muted-foreground">Rekap fee berdasarkan jam mengajar valid dan periode pembayaran yang dipilih.</p>
         </div>
         <div className="flex w-full flex-wrap gap-2 print-hidden sm:w-auto">
-          <Input aria-label="Pilih tanggal tracking pembayaran" type="date" value={trackingDate} onChange={(event) => setTrackingDate(event.target.value)} className="w-auto" />
-          <Button variant="ghost" onClick={() => setViewType(viewType === "MONTHLY" ? "WEEKLY" : "MONTHLY")}>
-            {viewType === "MONTHLY" ? "Tampilkan Mingguan" : "Tampilkan Bulanan"}
-          </Button>
+          {viewType === "CUSTOM" ? (
+            <>
+              <Input aria-label="Tanggal start periode kustom" type="date" value={customStart} onChange={(event) => setCustomStart(event.target.value)} className="w-auto" />
+              <span className="text-xs text-muted-foreground">tot</span>
+              <Input aria-label="Tanggal end periode kustom" type="date" value={customEnd} onChange={(event) => setCustomEnd(event.target.value)} className="w-auto" />
+              <Input aria-label="Nominal per jam manual" placeholder="Nominal/jam manual" value={manualNominal} onChange={(event) => setManualNominal(event.target.value)} className="w-auto" />
+              <Input aria-label="Total fee manual" placeholder="Total fee manual" value={manualTotalFee} onChange={(event) => setManualTotalFee(event.target.value)} className="w-auto" />
+            </>
+          ) : (
+            <Input aria-label="Pilih tanggal tracking pembayaran" type="date" value={trackingDate} onChange={(event) => setTrackingDate(event.target.value)} className="w-auto" />
+          )}
+          <select
+            aria-label="Tipe periode"
+            className="flex h-10 w-auto rounded-xl border border-input bg-card px-3 py-2 text-sm text-foreground"
+            value={viewType}
+            onChange={(event) => setViewType(event.target.value as FeePeriodType)}
+          >
+            <option value="MONTHLY">Bulanan</option>
+            <option value="WEEKLY">Mingguan</option>
+            <option value="CUSTOM">Kustom</option>
+          </select>
           <Button variant="outline" onClick={generateFees}>
             <RefreshCw size={16} /> Generate rekap
           </Button>
@@ -148,6 +187,9 @@ export default function AdminFeePage() {
                   {item.totalJam} jam × {formatRupiah(item.nominalPerJam)}/jam
                 </p>
                 <p className="mt-1 font-mono font-semibold">{formatRupiah(item.totalFee)}</p>
+                {item.manualTotalFee != null && (
+                  <p className="mt-1 text-[11px] text-muted-foreground">Total fee manual (admin): {formatRupiah(item.manualTotalFee)}</p>
+                )}
               </div>
               <div className="flex items-center gap-2">
                 <Badge variant={item.status === "PAID" ? "success" : "warning"}>{item.status === "PAID" ? "Sudah dibayar" : "Belum dibayar"}</Badge>
@@ -167,7 +209,7 @@ export default function AdminFeePage() {
             </CardContent>
             <CardContent className="border-t border-border pt-3 text-xs text-muted-foreground">
               <p>
-                Periode: {item.periodKey || item.periode} {item.paidAt ? `• Dibayar: ${new Date(item.paidAt).toLocaleDateString("id-ID")}` : "• Belum ada tanggal pembayaran"}
+                Periode: {item.periodLabel || item.periodKey || item.periode} {item.paidAt ? `• Dibayar: ${new Date(item.paidAt).toLocaleDateString("id-ID")}` : "• Belum ada tanggal pembayaran"}
               </p>
               <p>
                 Rekening: {item.teacherBankName || "Belum diatur"} {item.teacherAccountNumber || ""} a.n. {item.teacherAccountName || "-"}

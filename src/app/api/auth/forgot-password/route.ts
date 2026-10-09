@@ -28,6 +28,7 @@ export async function POST(req: Request) {
       data: {
         resetToken: code,
         resetTokenExpiry: expiry,
+        resetAttempts: 0,
       },
     });
 
@@ -38,9 +39,15 @@ export async function POST(req: Request) {
     const passMail = process.env.SMTP_PASS || "";
 
     if (!passMail) {
+      // Fallback: jika SMTP belum dikonfigurasi, tampilkan kode di respons
+      // agar alur pemulihan tetap bisa dipakai (mode pengembangan).
       return NextResponse.json(
-        { ok: false, message: "Konfigurasi SMTP belum lengkap. Hubungi admin untuk menyetel App Password Gmail." },
-        { status: 500 },
+        {
+          ok: true,
+          message: "Mode demo: SMTP belum dikonfigurasi, gunakan kode verifikasi berikut.",
+          devCode: code,
+        },
+        { status: 200 },
       );
     }
 

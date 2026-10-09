@@ -4,7 +4,7 @@ import * as React from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { LayoutDashboard, CalendarCheck2, BookOpenCheck, CreditCard, Calendar, BellRing, ClipboardCheck, UserCircle, Menu, X, Sparkles, ChevronRight, GraduationCap, ClipboardList, FileCheck2 } from "lucide-react";
+import { LayoutDashboard, CalendarCheck2, BookOpenCheck, CreditCard, Calendar, BellRing, ClipboardCheck, UserCircle, Menu, X, Sparkles, ChevronRight, GraduationCap, ClipboardList } from "lucide-react";
 import { LogoutButton } from "@/components/shared/LogoutButton";
 import { BrandLogo, useSiteSettings } from "@/components/shared/BrandLogo";
 import { Badge } from "@/components/ui/badge";
@@ -20,7 +20,6 @@ const MURID_MENU = [
   { name: "Absen Saya", href: "/murid/absen", icon: CalendarCheck2 },
   { name: "Materi Belajar", href: "/murid/materi", icon: BookOpenCheck },
   { name: "Pembayaran Saya", href: "/murid/pembayaran", icon: CreditCard },
-  { name: "Bukti Pembayaran", href: "/murid/bukti-pembayaran", icon: FileCheck2 },
   { name: "Jadwal Saya", href: "/murid/jadwal", icon: Calendar },
   { name: "Katalog Ujian", href: "/murid/katalog-ujian", icon: BellRing },
   { name: "Quiz & Latihan", href: "/murid/quiz", icon: ClipboardCheck },

@@ -4,7 +4,7 @@ import { getSessionUser } from "@/lib/auth-session";
 
 export async function PUT(req: Request, { params }: { params: Promise<{ id: string }> }) {
   const session = await getSessionUser();
-  if (!session || session.role !== "ADMIN") return NextResponse.json({ ok: false, message: "Unauthorized" }, { status: 401 });
+  if (!session || !["ADMIN", "PENGAJAR"].includes(session.role)) return NextResponse.json({ ok: false, message: "Unauthorized" }, { status: 401 });
 
   const { id } = await params;
   const body = await req.json();
@@ -12,6 +12,13 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
 
   const existing = await prisma.ujian.findUnique({ where: { id } });
   if (!existing) return NextResponse.json({ ok: false, message: "Ujian tidak ditemukan." }, { status: 404 });
+
+  if (session.role === "PENGAJAR") {
+    const pengajar = await prisma.pengajar.findUnique({ where: { userId: session.userId }, select: { id: true } });
+    if (!pengajar || pengajar.id !== existing.pengajarId) {
+      return NextResponse.json({ ok: false, message: "Forbidden" }, { status: 403 });
+    }
+  }
 
   if (!namaUjian || !mataPelajaran || !kelasSasaran || !tanggal || !jam) {
     return NextResponse.json({ ok: false, message: "Nama ujian, mata pelajaran, kelas sasaran, tanggal, dan jam wajib diisi." }, { status: 400 });
@@ -69,11 +76,18 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
 
 export async function DELETE(_req: Request, { params }: { params: Promise<{ id: string }> }) {
   const session = await getSessionUser();
-  if (!session || session.role !== "ADMIN") return NextResponse.json({ ok: false, message: "Unauthorized" }, { status: 401 });
+  if (!session || !["ADMIN", "PENGAJAR"].includes(session.role)) return NextResponse.json({ ok: false, message: "Unauthorized" }, { status: 401 });
 
   const { id } = await params;
   const existing = await prisma.ujian.findUnique({ where: { id } });
   if (!existing) return NextResponse.json({ ok: false, message: "Ujian tidak ditemukan." }, { status: 404 });
+
+  if (session.role === "PENGAJAR") {
+    const pengajar = await prisma.pengajar.findUnique({ where: { userId: session.userId }, select: { id: true } });
+    if (!pengajar || pengajar.id !== existing.pengajarId) {
+      return NextResponse.json({ ok: false, message: "Forbidden" }, { status: 403 });
+    }
+  }
 
   await prisma.ujian.delete({ where: { id } });
   return NextResponse.json({ ok: true, message: "Ujian berhasil dihapus." });

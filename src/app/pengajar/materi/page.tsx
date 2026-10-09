@@ -19,6 +19,7 @@ type MateriItem = {
   kelasLabel: string;
   pengajarNama: string;
   isPublished: boolean;
+  fileName?: string | null;
   thumbnailUrl?: string | null;
   durasiMenit?: number | null;
   bunnyVideoId?: string | null;
@@ -49,7 +50,7 @@ export default function PengajarMateriPage() {
     try {
       const item = materiList.find((m) => m.id === id);
       if (!item) return;
-      const res = await apiFetch(`/api/materi/${id}`, { method: "PATCH", body: JSON.stringify({ isPublished: !item.isPublished }), headers: { "Content-Type": "application/json" } });
+      const res = await apiFetch(`/api/materi`, { method: "PATCH", body: JSON.stringify({ id, isPublished: !item.isPublished }), headers: { "Content-Type": "application/json" } });
       const data = await res.json();
       if (!data.ok) throw new Error(data.message || "error");
       setMateriList((prev) => prev.map((m) => (m.id === id ? { ...m, isPublished: !m.isPublished } : m)));
@@ -122,11 +123,16 @@ export default function PengajarMateriPage() {
                 </button>
 
                 <div className="flex items-center gap-1">
-                  <Link href={`/murid/materi/${materi.id}`}>
+                  <Link href={`/pengajar/materi/${materi.id}`}>
                     <Button variant="ghost" size="sm" className="h-8 px-2 text-xs">
-                      <Eye className="h-3.5 w-3.5 mr-1" /> Pratinjau
+                      <Eye className="h-3.5 w-3.5 mr-1" /> Edit
                     </Button>
                   </Link>
+                  {materi.fileName && (
+                    <span className="hidden md:inline-flex items-center gap-1 rounded-md bg-muted px-2 py-1 text-[11px] font-medium text-muted-foreground">
+                      <FileText className="h-3 w-3" /> {materi.fileName}
+                    </span>
+                  )}
                   <Button variant="ghost" size="sm" onClick={() => handleDelete(materi.id)} className="h-8 px-2 text-xs text-rose-600 hover:bg-rose-50 hover:text-rose-700">
                     <Trash2 className="h-3.5 w-3.5" />
                   </Button>

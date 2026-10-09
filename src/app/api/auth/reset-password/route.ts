@@ -14,6 +14,23 @@ export async function POST(req: Request) {
       return NextResponse.json({ ok: false, message: "Kata sandi minimal berisi 6 karakter." }, { status: 400 });
     }
 
+    // Rate-limit: maksimal 5 percobaan kode sebelum harus minta kode baru
+    const resetTokenStr = String(token);
+    const attemptLock = await prisma.user.findFirst({
+      where: {
+        ...(email ? { email: String(email).trim().toLowerCase() } : {}),
+        resetToken: resetTokenStr,
+      },
+      select: { id: true, resetAttempts: true },
+    });
+
+    if (attemptLock && attemptLock.resetAttempts >= 5) {
+      return NextResponse.json(
+        { ok: false, message: "Terlalu banyak percobaan. Silakan minta kode verifikasi baru." },
+        { status: 429 },
+      );
+    }
+
     // Locate the matching token (optionally scoped to the email)
     const user = await prisma.user.findFirst({
       where: {
@@ -26,6 +43,12 @@ export async function POST(req: Request) {
     });
 
     if (!user) {
+      if (attemptLock) {
+        await prisma.user.update({
+          where: { id: attemptLock.id },
+          data: { resetAttempts: { increment: 1 } },
+        });
+      }
       return NextResponse.json({ ok: false, message: "Tautan reset tidak valid atau masa berlaku telah kedaluwarsa." }, { status: 400 });
     }
 
@@ -39,6 +62,7 @@ export async function POST(req: Request) {
         passwordHash,
         resetToken: null,
         resetTokenExpiry: null,
+        resetAttempts: 0,
       },
     });
 

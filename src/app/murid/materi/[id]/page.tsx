@@ -3,7 +3,7 @@
 import * as React from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
-import { ArrowLeft, Play, Pause, Volume2, Maximize, Download, FileText, Clock, User, CheckCircle2, Share2, Sparkles } from "lucide-react";
+import { ArrowLeft, Download, FileText, CheckCircle2, Share2, Clock, User } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
@@ -24,12 +24,14 @@ export default function MuridMateriDetailPage() {
     kelasLabel: string;
     pengajarNama: string;
     thumbnailUrl?: string | null;
-    durasiMenit?: number | null;
+    fileUrl?: string | null;
+    fileData?: string | null;
+    fileName?: string | null;
+    fileMimeType?: string | null;
     isPublished: boolean;
   } | null;
 
   const [materi, setMateri] = React.useState<Detail>(null);
-  const [isPlaying, setIsPlaying] = React.useState(false);
 
   React.useEffect(() => {
     let mounted = true;
@@ -54,8 +56,22 @@ export default function MuridMateriDetailPage() {
   }, [id, toast]);
   if (!materi) return <div className="py-12 text-center">Materi tidak ditemukan atau akses ditolak.</div>;
 
-  const handleDownloadPdf = () => {
-    toast(`Mengunduh modul: ${materi.judul}.pdf`, "success");
+  const fileSrc = materi.fileData || materi.fileUrl || null;
+  const isPdf = materi.fileMimeType === "application/pdf" || (materi.fileName || "").toLowerCase().endsWith(".pdf");
+  const isVideo = (materi.fileMimeType || "").startsWith("video/") || [".mp4", ".webm", ".mov"].some((ext) => (materi.fileName || "").toLowerCase().endsWith(ext));
+
+  const handleDownloadFile = () => {
+    if (!fileSrc) {
+      toast("Belum ada berkas untuk materi ini.", "error");
+      return;
+    }
+    const a = document.createElement("a");
+    a.href = fileSrc;
+    a.download = materi.fileName || `${materi.judul}.pdf`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    toast("Unduh berkas dimulai.", "success");
   };
 
   return (
@@ -88,51 +104,37 @@ export default function MuridMateriDetailPage() {
         </div>
       </div>
 
-      {/* Bunny Stream Video Player Area */}
-      <div className="rounded-3xl overflow-hidden border border-border bg-black shadow-2xl relative">
-        <div className="relative aspect-video w-full flex items-center justify-center bg-zinc-950">
-          <img src={materi.thumbnailUrl ?? ""} alt={materi.judul} className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-300 ${isPlaying ? "opacity-30" : "opacity-75"}`} />
-
-          {/* Overlay play button */}
-          <button
-            onClick={() => setIsPlaying(!isPlaying)}
-            className="relative z-10 flex h-20 w-20 items-center justify-center rounded-full bg-primary/90 text-white shadow-xl hover:scale-110 active:scale-95 transition-all cursor-pointer backdrop-blur-md"
-            aria-label={isPlaying ? "Jeda" : "Putar"}
-          >
-            {isPlaying ? <Pause className="h-8 w-8" /> : <Play className="h-8 w-8 ml-1" />}
-          </button>
-
-          {/* Bunny Stream CDN watermark / info */}
-          <div className="absolute top-4 left-4 z-10 flex items-center gap-2 rounded-xl bg-black/60 backdrop-blur-md px-3 py-1.5 text-xs text-white border border-white/10">
-            <span className="h-2 w-2 rounded-full bg-emerald-400 animate-pulse" />
-            <span>Bunny Stream CDN • HD 1080p</span>
-          </div>
-
-          {/* Player controls bottom bar */}
-          <div className="absolute bottom-0 inset-x-0 bg-linear-to-t from-black/90 via-black/50 to-transparent p-4 flex flex-col gap-2 z-10 text-white">
-            {/* Progress line */}
-            <div className="w-full bg-white/20 h-1.5 rounded-full overflow-hidden cursor-pointer">
-              <div className="bg-primary h-full transition-all duration-300" style={{ width: isPlaying ? "45%" : "0%" }} />
-            </div>
-
-            <div className="flex items-center justify-between text-xs">
-              <div className="flex items-center gap-3">
-                <button onClick={() => setIsPlaying(!isPlaying)} className="hover:text-primary transition-colors">
-                  {isPlaying ? <Pause className="h-4 w-4" /> : <Play className="h-4 w-4" />}
-                </button>
-                <div className="flex items-center gap-1.5">
-                  <Volume2 className="h-4 w-4" />
-                  <span className="text-[11px] text-white/80">08:12 / {materi.durasiMenit || 18}:00</span>
-                </div>
-              </div>
-
-              <div className="flex items-center gap-2">
-                <span className="px-2 py-0.5 rounded-md bg-white/15 text-[10px] font-bold">1.0x</span>
-                <Maximize className="h-4 w-4 cursor-pointer hover:text-primary transition-colors" />
-              </div>
+      {/* Berkas Pembelajaran Area */}
+      <div className="rounded-3xl overflow-hidden border border-border bg-zinc-950 shadow-2xl relative">
+        {fileSrc && isVideo ? (
+          <video
+            key={fileSrc}
+            controls
+            className="aspect-video w-full"
+            src={fileSrc}
+            poster={materi.thumbnailUrl || undefined}
+          />
+        ) : fileSrc && isPdf ? (
+          <iframe src={fileSrc} title={materi.judul} className="aspect-video w-full" />
+        ) : fileSrc ? (
+          <div className="relative aspect-video w-full flex items-center justify-center">
+            <img src={materi.thumbnailUrl ?? ""} alt={materi.judul} className="absolute inset-0 w-full h-full object-cover opacity-40" />
+            <div className="relative z-10 flex flex-col items-center gap-3 p-6">
+              <FileText className="h-12 w-12 text-white/90" />
+              <p className="text-sm font-bold text-white">Berkas: {materi.fileName || "Berkas Pembelajaran"}</p>
+              <Button variant="accent" size="sm" onClick={handleDownloadFile} className="gap-1.5 text-xs font-bold">
+                <Download className="h-4 w-4" /> Unduh Berkas
+              </Button>
             </div>
           </div>
-        </div>
+        ) : (
+          <div className="relative aspect-video w-full flex items-center justify-center bg-zinc-950">
+            <div className="relative z-10 flex flex-col items-center gap-3 p-6 text-center">
+              <FileText className="h-12 w-12 text-white/60 opacity-60" />
+              <p className="text-sm font-bold text-white/80">Belum ada berkas untuk materi ini</p>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Content tabs & details */}
@@ -174,13 +176,13 @@ export default function MuridMateriDetailPage() {
                   <FileText className="h-5 w-5" />
                 </div>
                 <div className="min-w-0 flex-1">
-                  <p className="text-xs font-bold text-foreground truncate">{materi.judul}.pdf</p>
-                  <p className="text-[11px] text-muted-foreground">Modul & Bank Soal (2.4 MB)</p>
+                  <p className="text-xs font-bold text-foreground truncate">{materi.fileName || `${materi.judul}.pdf`}</p>
+                  <p className="text-[11px] text-muted-foreground">Modul & Berkas Pembelajaran</p>
                 </div>
               </div>
 
-              <Button variant="accent" onClick={handleDownloadPdf} className="w-full text-xs font-bold gap-2">
-                <Download className="h-4 w-4" /> Unduh Modul PDF
+              <Button variant="accent" onClick={handleDownloadFile} disabled={!fileSrc} className="w-full text-xs font-bold gap-2">
+                <Download className="h-4 w-4" /> Unduh Berkas
               </Button>
             </CardContent>
           </Card>

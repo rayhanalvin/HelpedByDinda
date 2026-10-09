@@ -9,7 +9,7 @@ import { Modal } from "@/components/ui/modal";
 import { useToast } from "@/components/ui/toast";
 import { formatRupiah, formatDateIndo } from "@/lib/utils";
 import { apiFetch } from "@/lib/api";
-import { Download, FileCheck, Receipt as ReceiptIcon } from "lucide-react";
+import { Download, FileCheck, Receipt as ReceiptIcon, Upload } from "lucide-react";
 import { useVisiblePolling } from "@/lib/use-visible-polling";
 
 type PaymentRow = {
@@ -22,6 +22,8 @@ type PaymentRow = {
   recipientAccountNumber: string | null;
   recipientAccountName: string | null;
   paymentReference: string | null;
+  paymentProofData: string | null;
+  paymentProofName: string | null;
   paidAt: string | null;
   createdAt: string;
 };
@@ -47,6 +49,7 @@ export default function MuridPembayaranPage() {
   // Extra Invoices
   const [invoices, setInvoices] = React.useState<InvoiceRow[]>([]);
   const [downloadingId, setDownloadingId] = React.useState<string | null>(null);
+  const [uploadingId, setUploadingId] = React.useState<string | null>(null);
 
   const loadInvoices = React.useCallback(async () => {
     try {
@@ -116,6 +119,23 @@ export default function MuridPembayaranPage() {
       toast(error instanceof Error ? error.message : "Gagal membuat transaksi.", "error");
     } finally {
       setIsPaying(false);
+    }
+  };
+
+  const uploadProof = async (paymentId: string, file: File) => {
+    setUploadingId(paymentId);
+    try {
+      const body = new FormData();
+      body.append("proof", file);
+      const result = await apiFetch<{ ok: boolean; data: PaymentRow }>(`/api/payments/${paymentId}/proof`, { method: "POST", body, headers: {} });
+      setPayments((current) => current.map((payment) => (payment.id === paymentId ? { ...payment, ...result.data } : payment)));
+      setPaymentHistory((current) => current.map((payment) => (payment.id === paymentId ? { ...payment, ...result.data } : payment)));
+      toast("Bukti pembayaran berhasil dikirim ke admin untuk divalidasi.", "success");
+      await loadPayments();
+    } catch (error) {
+      toast(error instanceof Error ? error.message : "Gagal mengunggah bukti pembayaran.", "error");
+    } finally {
+      setUploadingId(null);
     }
   };
 
@@ -227,6 +247,32 @@ export default function MuridPembayaranPage() {
               <Building className="h-4 w-4 text-purple-600" /> Virtual Account Bank Otomatis
             </span>
           </div>
+
+          {/* Upload bukti terintegrasi */}
+          {payments[0] && payments[0].status !== "SUCCESS" && (
+            <div className="rounded-2xl border border-dashed border-primary/40 bg-primary/5 p-5">
+              <p className="text-sm font-bold text-foreground">Upload Bukti Pembayaran</p>
+              <p className="text-xs text-muted-foreground mt-1">Setelah transfer ke rekening admin, lampirkan bukti (JPG/PNG/WEBP/PDF, maks 5MB) agar admin dapat memvalidasi pembayaran Anda.</p>
+              {payments[0].paymentProofData && (
+                <p className="mt-2 text-xs font-semibold text-emerald-700">✓ Bukti sudah dilampirkan: {payments[0].paymentProofName}</p>
+              )}
+              <label className="mt-3 inline-flex cursor-pointer items-center gap-2 rounded-xl border border-border bg-card px-4 py-2.5 text-xs font-bold text-primary hover:bg-muted">
+                <Upload className="h-4 w-4" />
+                {uploadingId === payments[0].id ? "Mengunggah..." : payments[0].paymentProofData ? "Ganti Bukti" : "Pilih File Bukti"}
+                <input
+                  type="file"
+                  accept="image/jpeg,image/png,image/webp,application/pdf"
+                  className="sr-only"
+                  disabled={uploadingId !== null}
+                  onChange={(event) => {
+                    const file = event.target.files?.[0];
+                    event.target.value = "";
+                    if (file) void uploadProof(payments[0].id, file);
+                  }}
+                />
+              </label>
+            </div>
+          )}
         </CardContent>
       </Card>
 

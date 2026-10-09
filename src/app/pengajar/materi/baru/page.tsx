@@ -3,12 +3,13 @@
 import * as React from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { ArrowLeft, Upload, Video, FileText, Sparkles, CheckCircle2 } from "lucide-react";
+import { ArrowLeft, Upload } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { useToast } from "@/components/ui/toast";
+
+const MAX_FILE_SIZE = 25 * 1024 * 1024; // 25MB
 
 export default function PengajarMateriBaruPage() {
   const router = useRouter();
@@ -20,32 +21,39 @@ export default function PengajarMateriBaruPage() {
     deskripsi: "",
     mataPelajaran: "Matematika",
     kelasSasaran: "SMA",
-    tipe: "video",
-    durasiMenit: "20",
     isPublished: true,
   });
+  const [file, setFile] = React.useState<File | null>(null);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    if (!file) {
+      toast("Pilih berkas materi (PDF/MP4/gambar/dokumen) sebelum simpan.", "error");
+      return;
+    }
+    if (file.size > MAX_FILE_SIZE) {
+      toast("Ukuran berkas maksimal 25MB.", "error");
+      return;
+    }
     setLoading(true);
 
     (async () => {
       try {
+        const fd = new FormData();
+        fd.append("judul", formData.judul);
+        fd.append("deskripsi", formData.deskripsi);
+        fd.append("mataPelajaran", formData.mataPelajaran);
+        fd.append("kelasSasaran", formData.kelasSasaran);
+        fd.append("kategori", "Pembelajaran");
+        fd.append("isPublished", String(formData.isPublished));
+        fd.append("file", file);
         const res = await fetch("/api/materi", {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            judul: formData.judul,
-            deskripsi: formData.deskripsi,
-            mataPelajaran: formData.mataPelajaran,
-            kelasSasaran: formData.kelasSasaran,
-            kategori: "Pembelajaran",
-            isPublished: formData.isPublished,
-          }),
+          body: fd,
         });
         const data = await res.json();
         if (!data.ok) throw new Error(data.message || "Gagal menyimpan materi");
-        toast("Materi pembelajaran berhasil diunggah dan disimpan!", "success");
+        toast("Materi pembelajaran berhasil diunggah!", "success");
         router.push("/pengajar/materi");
       } catch (err) {
         toast(String((err as Error).message || "Gagal menyimpan materi"), "error");
@@ -126,37 +134,38 @@ export default function PengajarMateriBaruPage() {
         <Card className="border-border">
           <CardHeader>
             <CardTitle className="text-base">Media & Berkas Pembelajaran</CardTitle>
-            <CardDescription>File video akan otomatis di-encode ke Bunny Stream CDN</CardDescription>
+            <CardDescription>PDF, MP4, gambar, atau dokumen pembelajaran (maks 25MB) yang akan disimpan dan tersinkronisasi untuk murid.</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div className="space-y-1.5">
-                <label className="text-xs font-semibold text-foreground">Tipe Format Materi</label>
-                <select
-                  className="flex h-11 w-full rounded-xl border border-input bg-card px-3 py-2 text-sm text-foreground shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
-                  value={formData.tipe}
-                  onChange={(e) => setFormData({ ...formData, tipe: e.target.value })}
-                >
-                  <option value="video">Video Pembelajaran (Bunny Stream)</option>
-                  <option value="pdf">Modul Dokumen PDF (Bunny Storage)</option>
-                </select>
-              </div>
-
-              <div className="space-y-1.5">
-                <label className="text-xs font-semibold text-foreground">Estimasi Durasi Belajar (Menit)</label>
-                <Input type="number" placeholder="20" value={formData.durasiMenit} onChange={(e) => setFormData({ ...formData, durasiMenit: e.target.value })} />
-              </div>
-            </div>
-
-            {/* Upload Drag & Drop Simulator */}
-            <div className="border-2 border-dashed border-border rounded-2xl p-8 text-center hover:border-primary/50 transition-colors bg-muted/20 cursor-pointer">
+            <label className="border-2 border-dashed border-border rounded-2xl p-8 text-center hover:border-primary/50 transition-colors bg-muted/20 cursor-pointer block">
               <Upload className="h-10 w-10 text-muted-foreground mx-auto mb-2" />
-              <p className="text-sm font-bold text-foreground">Pilih Berkas Video MP4 atau PDF untuk Diunggah</p>
-              <p className="text-xs text-muted-foreground mt-1">Batas ukuran Video maks. 2GB (Bunny Stream) • PDF maks. 25MB</p>
-              <div className="mt-3 inline-block">
-                <span className="text-[11px] font-semibold text-emerald-700 bg-emerald-50 border border-emerald-200 px-3 py-1 rounded-full">Bunny Stream Integration Ready</span>
-              </div>
-            </div>
+              {file ? (
+                <>
+                  <p className="text-sm font-bold text-foreground">{file.name}</p>
+                  <p className="text-xs text-muted-foreground mt-1">{(file.size / 1024 / 1024).toFixed(2)} MB — siap untuk diunggah</p>
+                </>
+              ) : (
+                <>
+                  <p className="text-sm font-bold text-foreground">Pilih Berkas Video MP4, PDF, atau Dokumen untuk Diunggah</p>
+                  <p className="text-xs text-muted-foreground mt-1">Batas ukuran maks. 25MB • PDF • MP4 • WebM • Gambar • Word/PPT</p>
+                </>
+              )}
+              <input
+                type="file"
+                className="sr-only"
+                accept=".pdf,.mp4,.webm,.mov,.jpg,.jpeg,.png,.webp,.ppt,.pptx,.doc,.docx,.txt"
+                onChange={(e) => {
+                  const selected = e.target.files?.[0];
+                  e.target.value = "";
+                  if (!selected) return;
+                  if (selected.size > MAX_FILE_SIZE) {
+                    toast("Ukuran berkas maksimal 25MB.", "error");
+                    return;
+                  }
+                  setFile(selected);
+                }}
+              />
+            </label>
           </CardContent>
         </Card>
 
@@ -165,7 +174,7 @@ export default function PengajarMateriBaruPage() {
             <Button variant="outline">Batal</Button>
           </Link>
           <Button type="submit" variant="accent" size="lg" isLoading={loading} className="font-bold px-8">
-            Simpan & Terbitkan Materi
+            Simpan Materi
           </Button>
         </div>
       </form>

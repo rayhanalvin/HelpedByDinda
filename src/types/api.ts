@@ -29,6 +29,9 @@ export type ReminderLog = {
   targetRole: string;
   status: string;
   errorMessage?: string | null;
+  attachmentData?: string | null;
+  attachmentName?: string | null;
+  attachmentMimeType?: string | null;
   sentAt: string;
   keterangan?: string | null;
 };
