@@ -8,11 +8,11 @@ function getPeriodType(value: string | null): FeePeriodType {
   return value === "WEEKLY" ? "WEEKLY" : value === "CUSTOM" ? "CUSTOM" : "MONTHLY";
 }
 
-async function synchronizePayouts(type: FeePeriodType, referenceDate: Date, manualNominal?: number | null, manualTotalFee?: number | null, customRange?: ReturnType<typeof feePeriodRange>) {
+async function synchronizePayouts(type: FeePeriodType, referenceDate: Date, manualNominal?: number | null, manualTotalFee?: number | null, customRange?: ReturnType<typeof feePeriodRange>, selectedPengajarIds?: string[]) {
   const period = customRange || getFeePeriodWindow(type, referenceDate);
   const [teachers, hoursByTeacher] = await Promise.all([
     prisma.pengajar.findMany({
-      where: { isActive: true },
+      where: selectedPengajarIds && selectedPengajarIds.length > 0 ? { id: { in: selectedPengajarIds } } : { isActive: true },
       include: { user: { select: { name: true, email: true } } },
     }),
     getTeachingHoursByTeacherRange(period.start, period.end),
@@ -70,7 +70,9 @@ export async function GET(req: Request) {
   const manualTotalRaw = searchParams.get("manualTotalFee");
   const manualNominal = manualNominalRaw && !Number.isNaN(Number(manualNominalRaw)) ? Number(manualNominalRaw) : null;
   const manualTotalFee = manualTotalRaw && !Number.isNaN(Number(manualTotalRaw)) ? Number(manualTotalRaw) : null;
-  const { period } = await synchronizePayouts(type, referenceDate, manualNominal, manualTotalFee, customRange);
+  const selectedRaw = searchParams.get("selected");
+  const selectedPengajarIds = selectedRaw ? selectedRaw.split(",").filter(Boolean) : undefined;
+  const { period } = await synchronizePayouts(type, referenceDate, manualNominal, manualTotalFee, customRange, selectedPengajarIds);
   const payouts = await prisma.feePayout.findMany({
     where: { periodType: type, periodKey: period.key },
     orderBy: { createdAt: "asc" },
@@ -101,6 +103,10 @@ export async function GET(req: Request) {
         paidAt: payout.paidAt,
         payoutMethod: payout.payoutMethod,
         payoutReference: payout.payoutReference,
+        paymentProofData: payout.paymentProofData,
+        paymentProofName: payout.paymentProofName,
+        paymentProofMimeType: payout.paymentProofMimeType,
+        paymentProofUploadedAt: payout.paymentProofUploadedAt,
         bankName: payout.pengajar.bankName,
         accountName: payout.pengajar.bankAccountName,
         accountNumber: payout.pengajar.bankAccountNumber,
@@ -123,12 +129,25 @@ export async function PUT(req: Request) {
   const payout = await prisma.feePayout.findUnique({ where: { id } });
   if (!payout) return NextResponse.json({ ok: false, message: "Tracking fee tidak ditemukan." }, { status: 404 });
   const paidAt = body.paidAt ? new Date(String(body.paidAt)) : new Date();
+  const payoutReference = String(body.payoutReference || "").trim() || null;
   const updated = await prisma.$transaction(async (transaction) => {
-    const updateData: { status: "PAID"; paidAt: Date; payoutMethod: string; payoutReference: string | null; nominalPerJam?: number; totalFee?: number; manualTotalFee?: number | null } = {
+    const updateData: {
+      status: "PAID";
+      paidAt: Date;
+      payoutMethod: string;
+      payoutReference: string | null;
+      nominalPerJam?: number;
+      totalFee?: number;
+      manualTotalFee?: number | null;
+      paymentProofData?: string | null;
+      paymentProofMimeType?: string | null;
+      paymentProofName?: string | null;
+      paymentProofUploadedAt?: Date | null;
+    } = {
       status: "PAID",
       paidAt,
       payoutMethod,
-      payoutReference: String(body.payoutReference || "").trim() || null,
+      payoutReference,
     };
     const newNominal = body.nominalPerJam !== undefined && body.nominalPerJam !== "" ? Number(body.nominalPerJam) : null;
     const newManualTotal = body.manualTotalFee !== undefined && body.manualTotalFee !== "" ? Number(body.manualTotalFee) : null;
@@ -140,6 +159,12 @@ export async function PUT(req: Request) {
       updateData.totalFee = newManualTotal;
       updateData.manualTotalFee = newManualTotal > 0 ? newManualTotal : null;
     }
+    if (body.paymentProofData) {
+      updateData.paymentProofData = String(body.paymentProofData);
+      updateData.paymentProofMimeType = String(body.paymentProofMimeType || "");
+      updateData.paymentProofName = String(body.paymentProofName || "Bukti Pembayaran");
+      updateData.paymentProofUploadedAt = new Date();
+    }
     const result = await transaction.feePayout.update({
       where: { id },
       data: updateData,
@@ -148,11 +173,23 @@ export async function PUT(req: Request) {
     if (payout.periodType === "MONTHLY") {
       await transaction.fee.updateMany({
         where: { pengajarId: payout.pengajarId, periode: payout.periodKey },
-        data: { status: "PAID", paidAt, payoutMethod, payoutReference: String(body.payoutReference || "").trim() || null },
+        data: { status: "PAID", paidAt, payoutMethod, payoutReference },
+      });
+    }
+    if (payout.periodType !== "MONTHLY") {
+      await transaction.financeTransaction.create({
+        data: {
+          tanggal: paidAt,
+          tipe: "pengeluaran",
+          kategori: "fee_pengajar",
+          keterangan: `Fee Honor Mengajar - ${String(body.pengajarNama || payout.pengajarId)} Periode ${payout.periodLabel || payout.periodKey}${payoutReference ? `, Ref: ${payoutReference}` : ""}`,
+          jumlah: updateData.totalFee ?? payout.totalFee,
+          status: "dibayar",
+        },
       });
     }
     return result;
   });
 
-  return NextResponse.json({ ok: true, data: updated });
+  return NextResponse.json({ ok: true, data: updated, financeSynced: true });
 }

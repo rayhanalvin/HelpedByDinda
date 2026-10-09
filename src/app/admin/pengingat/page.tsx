@@ -19,6 +19,10 @@ export default function AdminPengingatPage() {
   const [loadingType, setLoadingType] = React.useState<string | null>(null);
   const [loadingLogs, setLoadingLogs] = React.useState(false);
   const [targets, setTargets] = React.useState({ activeTeachers: 0, pendingStudents: 0, attendanceTargets: 0 });
+  const [pengajarOptions, setPengajarOptions] = React.useState<Array<{ userId: string; name: string; email: string; role: "pengajar" }>>([]);
+  const [muridOptions, setMuridOptions] = React.useState<Array<{ userId: string; name: string; email: string; role: "murid" }>>([]);
+  const [selectedRecipients, setSelectedRecipients] = React.useState<Set<string>>(new Set());
+  const [recipientFilter, setRecipientFilter] = React.useState("");
 
   // State for message composer
   const [messageTitle, setMessageTitle] = React.useState("");
@@ -37,7 +41,12 @@ export default function AdminPengingatPage() {
     try {
       const res = await apiFetch<{ ok: boolean; data: ApiTypes.ReminderLog[]; meta?: typeof targets }>("/api/admin/reminder", { cache: "no-store" });
       setLogs(res.data || []);
-      if (res.meta) setTargets(res.meta);
+      if (res.meta) {
+        setTargets(res.meta);
+        const meta = res.meta as typeof targets & { pengajarOptions?: Array<{ userId: string; name: string; email: string; role: "pengajar" }>; muridOptions?: Array<{ userId: string; name: string; email: string; role: "murid" }> };
+        if (meta.pengajarOptions) setPengajarOptions(meta.pengajarOptions);
+        if (meta.muridOptions) setMuridOptions(meta.muridOptions);
+      }
     } catch (err) {
       toast(err instanceof Error ? err.message : "Gagal memuat log pengingat", "error");
     } finally {
@@ -93,15 +102,17 @@ export default function AdminPengingatPage() {
       if (reminderAttachment) {
         const fd = new FormData();
         fd.append("type", type);
-        fd.append("keterangan", `Pengingat ${type} dikirim oleh admin (dengan lampiran dokumen).`);
+        fd.append("keterangan", editingLog?.targetNama ? `Pengingat aangepast voor ${editingLog.targetNama} (met lampiran dokumen).` : `Pengingat ${type} dikirim oleh admin (dengan lampiran dokumen).${selectedRecipients.size ? ` Naar ${selectedRecipients.size} geselecteerde ontvanger(s).` : ""}`);
         fd.append("attachment", reminderAttachment);
+        if (selectedRecipients.size) fd.append("selectedIds", [...selectedRecipients].join(","));
         body = fd;
       } else {
-        body = JSON.stringify({ type });
+        body = JSON.stringify({ type, selectedIds: selectedRecipients.size ? [...selectedRecipients].join(",") : "" });
       }
       await apiFetch<{ ok: boolean; data: ApiTypes.ReminderLog[] }>("/api/admin/reminder", { method: "POST", body });
       setLoadingType(null);
       setReminderAttachment(null);
+      setSelectedRecipients(new Set());
       toast("Pengingat dikirim dan dicatat pada audit log.", "success");
       await loadLogs();
     } catch (err) {
@@ -168,12 +179,73 @@ export default function AdminPengingatPage() {
     }
   };
 
+  const toggleRecipient = (userId: string) => {
+    const next = new Set(selectedRecipients);
+    if (next.has(userId)) next.delete(userId);
+    else next.add(userId);
+    setSelectedRecipients(next);
+  };
+
+  const recipeFilter = recipientFilter.trim().toLowerCase();
+  const filteredPengajar = recipeFilter ? pengajarOptions.filter((opt) => (opt.name + " " + opt.email).toLowerCase().includes(recipeFilter)) : pengajarOptions;
+  const filteredMurid = recipeFilter ? muridOptions.filter((opt) => (opt.name + " " + opt.email).toLowerCase().includes(recipeFilter)) : muridOptions;
+
   return (
     <div className="space-y-8">
       <div>
         <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-foreground">Pusat Pengingat Email 1-Klik</h1>
         <p className="text-xs sm:text-sm text-muted-foreground mt-1">Kirim notifikasi email otomatis kepada pengajar dan murid menggunakan integrasi Resend.</p>
       </div>
+
+      {/* Recipient selector */}
+      <Card className="border-border shadow-xs">
+        <CardHeader>
+          <div className="flex items-center gap-2">
+            <MessageSquarePlus className="h-5 w-5 text-primary" />
+            <CardTitle className="text-lg">Kies Ontvanger (Pengajar / Murid)</CardTitle>
+          </div>
+          <CardDescription>Selecteer specifieke personen om een pengingat naar te sturen. Laat leeg om naar alle actieve leden te sturen.</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="mb-3 flex items-center gap-2">
+            <Input placeholder="Zoek op naam of email..." value={recipientFilter} onChange={(event) => setRecipientFilter(event.target.value)} className="w-full" />
+            <Badge variant="secondary">{selectedRecipients.size} geselecteerd</Badge>
+            {selectedRecipients.size > 0 && (
+              <Button size="sm" variant="ghost" onClick={() => setSelectedRecipients(new Set())}>
+                Ceer selectie
+              </Button>
+            )}
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <p className="mb-2 text-xs font-semibold text-muted-foreground">Pengajar ({filteredPengajar.length})</p>
+              <div className="max-h-48 overflow-auto divide-y divide-border rounded-xl border">
+                {filteredPengajar.map((opt) => (
+                  <label key={opt.userId} className="flex items-center gap-2 py-2 px-3 text-xs cursor-pointer hover:bg-muted">
+                    <input type="checkbox" className="size-3.5 accent-primary" checked={selectedRecipients.has(opt.userId)} onChange={() => toggleRecipient(opt.userId)} />
+                    <span className="font-semibold">{opt.name}</span>
+                    <span className="text-muted-foreground truncate">{opt.email}</span>
+                  </label>
+                ))}
+                {filteredPengajar.length === 0 && <p className="py-3 px-3 text-[11px] text-muted-foreground">Belum ada pengajar.</p>}
+              </div>
+            </div>
+            <div>
+              <p className="mb-2 text-xs font-semibold text-muted-foreground">Murid ({filteredMurid.length})</p>
+              <div className="max-h-48 overflow-auto divide-y divide-border rounded-xl border">
+                {filteredMurid.map((opt) => (
+                  <label key={opt.userId} className="flex items-center gap-2 py-2 px-3 text-xs cursor-pointer hover:bg-muted">
+                    <input type="checkbox" className="size-3.5 accent-primary" checked={selectedRecipients.has(opt.userId)} onChange={() => toggleRecipient(opt.userId)} />
+                    <span className="font-semibold">{opt.name}</span>
+                    <span className="text-muted-foreground truncate">{opt.email}</span>
+                  </label>
+                ))}
+                {filteredMurid.length === 0 && <p className="py-3 px-3 text-[11px] text-muted-foreground">Belum ada murid.</p>}
+              </div>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
 
       {/* 3 Action Panels */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">

@@ -52,6 +52,10 @@ export default function AdminFeePage() {
   const [customEnd, setCustomEnd] = React.useState(() => new Date().toISOString().slice(0, 10));
   const [manualNominal, setManualNominal] = React.useState("");
   const [manualTotalFee, setManualTotalFee] = React.useState("");
+  const [selectedPengajar, setSelectedPengajar] = React.useState<Set<string>>(new Set());
+  const [perRowNominal, setPerRowNominal] = React.useState<Record<string, string>>({});
+  const [perRowTotal, setPerRowTotal] = React.useState<Record<string, string>>({});
+  const [syncingSelection, setSyncingSelection] = React.useState(false);
   const total = items.reduce((sum, item) => sum + item.totalFee, 0);
   const loadFees = React.useCallback(async () => {
     try {
@@ -59,8 +63,8 @@ export default function AdminFeePage() {
         viewType === "MONTHLY"
           ? `/api/admin/fee?periode=${encodeURIComponent(periode)}`
           : viewType === "WEEKLY"
-            ? `/api/admin/fee/payouts?periodType=WEEKLY&date=${encodeURIComponent(trackingDate)}`
-            : `/api/admin/fee/payouts?periodType=CUSTOM&start=${encodeURIComponent(customStart)}&end=${encodeURIComponent(customEnd)}${manualNominal ? `&nominalPerJam=${encodeURIComponent(manualNominal)}` : ""}${manualTotalFee ? `&manualTotalFee=${encodeURIComponent(manualTotalFee)}` : ""}`;
+            ? `/api/admin/fee/payouts?periodType=WEEKLY&date=${encodeURIComponent(trackingDate)}${selectedPengajar.size ? `&selected=${encodeURIComponent([...selectedPengajar].join(","))}` : ""}`
+            : `/api/admin/fee/payouts?periodType=CUSTOM&start=${encodeURIComponent(customStart)}&end=${encodeURIComponent(customEnd)}${selectedPengajar.size ? `&selected=${encodeURIComponent([...selectedPengajar].join(","))}` : ""}${manualNominal ? `&nominalPerJam=${encodeURIComponent(manualNominal)}` : ""}${manualTotalFee ? `&manualTotalFee=${encodeURIComponent(manualTotalFee)}` : ""}`;
       const result = await apiFetch<{ ok: boolean; data: FeeRow[] }>(url, { cache: "no-store" });
       setItems(result.data || []);
     } catch (error) {
@@ -68,24 +72,26 @@ export default function AdminFeePage() {
     } finally {
       setLoading(false);
     }
-  }, [periode, toast, trackingDate, viewType, customStart, customEnd, manualNominal, manualTotalFee]);
+  }, [periode, toast, trackingDate, viewType, customStart, customEnd, manualNominal, manualTotalFee, selectedPengajar]);
 
   React.useEffect(() => {
     void loadFees();
   }, [loadFees]);
   useVisiblePolling(loadFees, 30000);
 
-  const markPaid = async (id: string) => {
+  const markPaid = async (id: string, overrideBody?: Record<string, string>) => {
     try {
       const endpoint = viewType === "MONTHLY" ? "/api/admin/fee" : "/api/admin/fee/payouts";
-      const body: Record<string, string> = { id, payoutMethod: "BANK_TRANSFER", paidAt: trackingDate };
-      if (viewType !== "MONTHLY" && (manualNominal || manualTotalFee)) {
+      if (overrideBody) {
+        await apiFetch(endpoint, { method: "PUT", body: JSON.stringify(overrideBody) });
+      } else {
+        const body: Record<string, string> = { id, payoutMethod: "BANK_TRANSFER", paidAt: trackingDate };
         if (manualNominal) body.nominalPerJam = manualNominal;
         if (manualTotalFee) body.manualTotalFee = manualTotalFee;
+        await apiFetch(endpoint, { method: "PUT", body: JSON.stringify(body) });
       }
-      await apiFetch(endpoint, { method: "PUT", body: JSON.stringify(body) });
       await loadFees();
-      toast("Fee pengajar berhasil dibayar dan tercatat di tracking finance.", "success");
+      toast("Fee pengajar berhasil dibayar en tercatat di tracking finance.", "success");
     } catch (error) {
       toast(error instanceof Error ? error.message : "Gagal membayar fee pengajar.", "error");
     }
@@ -93,11 +99,32 @@ export default function AdminFeePage() {
 
   const uploadProof = async (id: string, file: File) => {
     try {
-      const body = new FormData();
-      body.append("proof", file);
-      await apiFetch(`/api/admin/fee/${id}/proof`, { method: "POST", body, headers: {} });
+      if (viewType === "MONTHLY") {
+        const body = new FormData();
+        body.append("proof", file);
+        await apiFetch(`/api/admin/fee/${id}/proof`, { method: "POST", body, headers: {} });
+      } else {
+        const bytes = new Uint8Array(await file.arrayBuffer());
+        let binary = "";
+        const chunkSize = 0x8000;
+        for (let i = 0; i < bytes.length; i += chunkSize) {
+          binary += String.fromCharCode(...bytes.subarray(i, Math.min(i + chunkSize, bytes.length)));
+        }
+        const dataUrl = `data:${file.type || "application/octet-stream"};base64,${window.btoa(binary)}`;
+        await apiFetch(`/api/admin/fee/payouts`, {
+          method: "PUT",
+          body: JSON.stringify({
+            id,
+            payoutMethod: "BANK_TRANSFER",
+            paidAt: trackingDate,
+            paymentProofData: dataUrl,
+            paymentProofName: file.name,
+            paymentProofMimeType: file.type,
+          }),
+        });
+      }
       await loadFees();
-      toast("Bukti pembayaran fee berhasil diunggah.", "success");
+      toast("Bukti pembayaran fee berhasil diunggah en gesynchroniseerd naar finance.", "success");
     } catch (error) {
       toast(error instanceof Error ? error.message : "Gagal mengunggah bukti fee.", "error");
     }
@@ -123,6 +150,34 @@ export default function AdminFeePage() {
     } catch (err) {
       toast(err instanceof Error ? err.message : "Gagal membuat invoice pengajar.", "error");
     }
+  };
+  const syncSelected = async () => {
+    if (selectedPengajar.size === 0) {
+      toast("Kies minstens één pengajar die je wilt syncen.", "error");
+      return;
+    }
+    setSyncingSelection(true);
+    try {
+      const ids = [...selectedPengajar].join(",");
+      await apiFetch(
+        viewType === "WEEKLY"
+          ? `/api/admin/fee/payouts?periodType=WEEKLY&date=${encodeURIComponent(trackingDate)}&selected=${encodeURIComponent(ids)}`
+          : `/api/admin/fee/payouts?periodType=CUSTOM&start=${encodeURIComponent(customStart)}&end=${encodeURIComponent(customEnd)}&selected=${encodeURIComponent(ids)}${manualNominal ? `&nominalPerJam=${encodeURIComponent(manualNominal)}` : ""}${manualTotalFee ? `&manualTotalFee=${encodeURIComponent(manualTotalFee)}` : ""}`,
+        { method: "GET", cache: "no-store" }
+      );
+      await loadFees();
+      toast("Pengingat selektie gesynchroniseerd met tracking fee.", "success");
+    } catch (error) {
+      toast(error instanceof Error ? error.message : "Gagal synchroniseren selektie.", "error");
+    } finally {
+      setSyncingSelection(false);
+    }
+  };
+  const togglePengajar = (id: string) => {
+    const next = new Set(selectedPengajar);
+    if (next.has(id)) next.delete(id);
+    else next.add(id);
+    setSelectedPengajar(next);
   };
   const periodeLabel = viewType === "CUSTOM" ? `Kustom ${customStart} - ${customEnd}` : viewType === "WEEKLY" ? `Minggu ${trackingDate}` : new Date(`${periode}-01T00:00:00`).toLocaleDateString("id-ID", { month: "long", year: "numeric" });
   return (
@@ -158,6 +213,11 @@ export default function AdminFeePage() {
           <Button variant="outline" onClick={generateFees}>
             <RefreshCw size={16} /> Generate rekap
           </Button>
+          {viewType !== "MONTHLY" && (
+            <Button variant="secondary" isLoading={syncingSelection} onClick={syncSelected}>
+              <RefreshCw size={16} /> Sync {selectedPengajar.size || "selektie"}
+            </Button>
+          )}
           <Button variant="secondary" onClick={() => window.print()}>
             <Printer size={16} /> Cetak / Simpan PDF
           </Button>
@@ -182,7 +242,18 @@ export default function AdminFeePage() {
           <Card key={item.id}>
             <CardContent className="flex flex-col gap-4 p-5 sm:flex-row sm:items-center sm:justify-between">
               <div>
-                <p className="font-heading font-bold">{item.pengajarNama}</p>
+                <div className="flex items-center gap-2">
+                  {viewType !== "MONTHLY" && (
+                    <input
+                      type="checkbox"
+                      className="size-4 accent-primary"
+                      checked={selectedPengajar.has(item.id)}
+                      onChange={() => togglePengajar(item.id)}
+                      aria-label={`Selekteer ${item.pengajarNama} voor synchronisatie`}
+                    />
+                  )}
+                  <p className="font-heading font-bold">{item.pengajarNama}</p>
+                </div>
                 <p className="text-sm text-muted-foreground">
                   {item.totalJam} jam × {formatRupiah(item.nominalPerJam)}/jam
                 </p>
@@ -190,13 +261,42 @@ export default function AdminFeePage() {
                 {item.manualTotalFee != null && (
                   <p className="mt-1 text-[11px] text-muted-foreground">Total fee manual (admin): {formatRupiah(item.manualTotalFee)}</p>
                 )}
+                {viewType !== "MONTHLY" && (
+                  <div className="mt-2 flex flex-col gap-1 print-hidden">
+                    <label className="text-[11px] font-semibold text-muted-foreground">Nominal per jam (admin, opsional)</label>
+                    <Input
+                      type="number"
+                      min="0"
+                      placeholder={String(item.nominalPerJam)}
+                      value={perRowNominal[item.id] || ""}
+                      onChange={(event) => setPerRowNominal({ ...perRowNominal, [item.id]: event.target.value })}
+                      className="w-32 text-xs"
+                    />
+                    <label className="text-[11px] font-semibold text-muted-foreground">Total fee manual (admin, opsional)</label>
+                    <Input
+                      type="number"
+                      min="0"
+                      placeholder={String(item.totalFee)}
+                      value={perRowTotal[item.id] || ""}
+                      onChange={(event) => setPerRowTotal({ ...perRowTotal, [item.id]: event.target.value })}
+                      className="w-32 text-xs"
+                    />
+                  </div>
+                )}
               </div>
               <div className="flex items-center gap-2">
                 <Badge variant={item.status === "PAID" ? "success" : "warning"}>{item.status === "PAID" ? "Sudah dibayar" : "Belum dibayar"}</Badge>
                 <span className="print-hidden">
                   {item.status !== "PAID" && (
                     <div className="flex gap-2">
-                      <Button size="sm" variant="accent" onClick={() => markPaid(item.id)}>
+                      <Button size="sm" variant="accent" onClick={() => {
+                        const body: Record<string, string> = { id: item.id, payoutMethod: "BANK_TRANSFER", paidAt: trackingDate };
+                        if (viewType !== "MONTHLY") {
+                          if (perRowNominal[item.id]) body.nominalPerJam = perRowNominal[item.id];
+                          if (perRowTotal[item.id]) body.manualTotalFee = perRowTotal[item.id];
+                        }
+                        void markPaid(item.id, body);
+                      }}>
                         <CheckCircle2 size={15} /> Bayar Transfer
                       </Button>
                       <Button size="sm" variant="secondary" onClick={() => generateInvoiceFor(item.id)}>

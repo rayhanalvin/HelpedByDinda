@@ -20,7 +20,7 @@ export async function GET() {
     return NextResponse.json({ ok: false, message: "Unauthorized" }, { status: 401 });
   }
   const { start, end } = getJakartaDayRange();
-  const [logs, activeTeachers, pendingStudents, todaySchedules] = await Promise.all([
+  const [logs, activeTeachers, pendingStudents, todaySchedules, pengajarOptions, muridOptions] = await Promise.all([
     prisma.reminderLog.findMany({ orderBy: { sentAt: "desc" } }),
     prisma.pengajar.count({ where: { isActive: true } }),
     prisma.murid.count({ where: { isActive: true, statusBayarBulanIni: "PENDING" } }),
@@ -32,9 +32,25 @@ export async function GET() {
         },
       },
     }),
+    prisma.pengajar.findMany({ where: { isActive: true }, include: { user: { select: { id: true, name: true, email: true } } }, orderBy: { user: { name: "asc" } } }),
+    prisma.murid.findMany({ where: { isActive: true }, include: { user: { select: { id: true, name: true, email: true } } }, orderBy: { user: { name: "asc" } } }),
   ]);
 
-  return NextResponse.json({ ok: true, data: logs, meta: { activeTeachers, pendingStudents, todaySchedules, attendanceTargets: todaySchedules * 2 } }, { headers: { "Cache-Control": "no-store, max-age=0" } });
+  return NextResponse.json(
+    {
+      ok: true,
+      data: logs,
+      meta: {
+        activeTeachers,
+        pendingStudents,
+        todaySchedules,
+        attendanceTargets: todaySchedules * 2,
+        pengajarOptions: pengajarOptions.map((item) => ({ userId: item.userId, name: item.user.name, email: item.user.email, role: "pengajar" })),
+        muridOptions: muridOptions.map((item) => ({ userId: item.userId, name: item.user.name, email: item.user.email, role: "murid" })),
+      },
+    },
+    { headers: { "Cache-Control": "no-store, max-age=0" } }
+  );
 }
 
 export async function POST(req: Request) {
@@ -59,22 +75,29 @@ export async function POST(req: Request) {
     .toLowerCase();
   if (!["mengajar", "bayar", "absen", "invoice_murid", "invoice_pengajar"].includes(type)) return NextResponse.json({ ok: false, message: "Tipe pengingat tidak valid." }, { status: 400 });
 
+  const selectedIdsRaw = String(body.selectedIds || "").trim();
+  const selectedIds = selectedIdsRaw ? selectedIdsRaw.split(",").filter(Boolean) : [];
   const targets: Array<{ userId: string; name: string; email: string; role: string }> = [];
-  if (type === "mengajar") {
-    const teachers = await prisma.user.findMany({ where: { role: "PENGAJAR" }, select: { id: true, name: true, email: true } });
-    targets.push(...teachers.map((item) => ({ userId: item.id, name: item.name, email: item.email, role: "pengajar" })));
-  } else if (type === "bayar") {
-    const students = await prisma.user.findMany({ where: { role: "MURID" }, select: { id: true, name: true, email: true } });
-    targets.push(...students.map((item) => ({ userId: item.id, name: item.name, email: item.email, role: "murid" })));
+  if (selectedIds.length > 0) {
+    const selectedUsers = await prisma.user.findMany({ where: { id: { in: selectedIds } }, select: { id: true, name: true, email: true, role: true } });
+    targets.push(...selectedUsers.map((item) => ({ userId: item.id, name: item.name, email: item.email, role: item.role === "PENGAJAR" ? "pengajar" : "murid" })));
   } else {
-    const { start, end } = getJakartaDayRange();
-    const schedules = await prisma.jadwal.findMany({
-      where: { tanggal: { gte: start, lt: end } },
-      include: { pengajar: { include: { user: { select: { id: true, name: true, email: true } } } }, murid: { include: { user: { select: { id: true, name: true, email: true } } } } },
-    });
-    for (const item of schedules) {
-      targets.push({ userId: item.pengajar.user.id, name: item.pengajar.user.name, email: item.pengajar.user.email, role: "pengajar" });
-      targets.push({ userId: item.murid.user.id, name: item.murid.user.name, email: item.murid.user.email, role: "murid" });
+    if (type === "mengajar") {
+      const teachers = await prisma.user.findMany({ where: { role: "PENGAJAR" }, select: { id: true, name: true, email: true } });
+      targets.push(...teachers.map((item) => ({ userId: item.id, name: item.name, email: item.email, role: "pengajar" })));
+    } else if (type === "bayar") {
+      const students = await prisma.user.findMany({ where: { role: "MURID" }, select: { id: true, name: true, email: true } });
+      targets.push(...students.map((item) => ({ userId: item.id, name: item.name, email: item.email, role: "murid" })));
+    } else {
+      const { start, end } = getJakartaDayRange();
+      const schedules = await prisma.jadwal.findMany({
+        where: { tanggal: { gte: start, lt: end } },
+        include: { pengajar: { include: { user: { select: { id: true, name: true, email: true } } } }, murid: { include: { user: { select: { id: true, name: true, email: true } } } } },
+      });
+      for (const item of schedules) {
+        targets.push({ userId: item.pengajar.user.id, name: item.pengajar.user.name, email: item.pengajar.user.email, role: "pengajar" });
+        targets.push({ userId: item.murid.user.id, name: item.murid.user.name, email: item.murid.user.email, role: "murid" });
+      }
     }
   }
 
@@ -129,6 +152,8 @@ export async function POST(req: Request) {
           targetNama: target.name,
           targetEmail: target.email,
           targetRole: target.role,
+          isTemplate: selectedIds.length === 0,
+          sentViaEmail: true,
           status: "sent",
           keterangan: String(body.keterangan || (body.message && body.message.trim() ? body.message : `Pengingat ${type} dikirim oleh admin.`)).slice(0, 500),
           ...(attachmentPayload || {}),

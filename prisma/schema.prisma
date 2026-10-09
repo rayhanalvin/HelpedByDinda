@@ -248,6 +248,10 @@ model FeePayout {
   paidAt           DateTime?
   payoutMethod     String?
   payoutReference  String?
+  paymentProofData       String?
+  paymentProofMimeType   String?
+  paymentProofName       String?
+  paymentProofUploadedAt DateTime?
   createdAt        DateTime         @default(now())
   updatedAt        DateTime         @updatedAt
   pengajar         Pengajar         @relation(fields: [pengajarId], references: [id], onDelete: Cascade)
@@ -453,6 +457,8 @@ model ReminderLog {
   targetNama         String
   targetEmail        String
   targetRole         String
+  isTemplate         Boolean  @default(true)
+  sentViaEmail       Boolean  @default(true)
   status             String   @default("sent")
   errorMessage       String?
   sentAt             DateTime @default(now())

@@ -27,6 +27,8 @@ export type ReminderLog = {
   targetNama: string;
   targetEmail: string;
   targetRole: string;
+  isTemplate?: boolean;
+  sentViaEmail?: boolean;
   status: string;
   errorMessage?: string | null;
   attachmentData?: string | null;
