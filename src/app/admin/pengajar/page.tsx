@@ -428,7 +428,6 @@ export default function AdminPengajarPage() {
                         <Input
                           type="number"
                           min={0}
-                          step={5000}
                           value={value}
                           className="h-8 text-xs"
                           onChange={(e) => {
