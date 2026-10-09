@@ -19,6 +19,9 @@ type AttendanceRow = {
   status: string;
   startedAt: string | null;
   finishedAt: string | null;
+  kelasGroup: string | null;
+  mode: "ONLINE" | "OFFLINE";
+  rate: number;
 };
 
 type PayoutRow = {
@@ -42,7 +45,8 @@ export default function PengajarFeePage() {
   const [feeCurrent, setFeeCurrent] = React.useState<ApiTypes.FeeRow | null>(null);
   const [payouts, setPayouts] = React.useState<PayoutRow[]>([]);
   const [teachingSessions, setTeachingSessions] = React.useState<AttendanceRow[]>([]);
-  const [profile, setProfile] = React.useState({ nominalPerJam: 0 });
+  const [profile, setProfile] = React.useState({ nominalPerJam: 0, ratePerSession: 0, rateSessions: [] as { kelasGroup: string; mode: "ONLINE" | "OFFLINE"; rate: number }[] });
+  const [rateSessions, setRateSessions] = React.useState<{ kelasGroup: string; mode: "ONLINE" | "OFFLINE"; rate: number }[]>([]);
   const [previewProof, setPreviewProof] = React.useState<{ name: string; url: string; mimeType: string | null } | null>(null);
 
   // Invoice state
@@ -80,13 +84,18 @@ export default function PengajarFeePage() {
   const loadFeeData = React.useCallback(async () => {
     try {
       const [feeRes, profileRes] = await Promise.all([
-        apiFetch<{ ok: boolean; data: ApiTypes.FeeRow[]; attendance: AttendanceRow[]; payouts: PayoutRow[] }>(`/api/profile/fee?periode=${new Date().toISOString().slice(0, 7)}`),
+        apiFetch<{ ok: boolean; data: ApiTypes.FeeRow[]; attendance: AttendanceRow[]; payouts: PayoutRow[]; ratePerSession: number; rateSessions: { kelasGroup: string; mode: "ONLINE" | "OFFLINE"; rate: number }[] }>(`/api/profile/fee?periode=${new Date().toISOString().slice(0, 7)}`),
         apiFetch<{ ok: boolean; user: { pengajar: { nominalPerJam: number } | null } }>("/api/profile"),
       ]);
       setFeeCurrent(feeRes.data?.[0] || null);
       setPayouts(feeRes.payouts || []);
       setTeachingSessions(feeRes.attendance || []);
-      setProfile({ nominalPerJam: profileRes.user.pengajar?.nominalPerJam || feeRes.data?.[0]?.nominalPerJam || 0 });
+      setProfile({
+        nominalPerJam: profileRes.user.pengajar?.nominalPerJam || feeRes.data?.[0]?.nominalPerJam || 0,
+        ratePerSession: feeRes.ratePerSession || profileRes.user.pengajar?.nominalPerJam || 0,
+        rateSessions: feeRes.rateSessions || [],
+      });
+      setRateSessions(feeRes.rateSessions || []);
       await loadInvoices();
     } catch {
       // Keep the last successful fee snapshot if a feed is temporarily unavailable.
@@ -133,9 +142,9 @@ export default function PengajarFeePage() {
             </div>
 
             <div>
-              <p className="text-xs text-muted-foreground font-medium">Tarif Rate Per Jam</p>
-              <h3 className="text-3xl font-black text-primary tabular-nums mt-1">{formatRupiah(profile.nominalPerJam)}</h3>
-              <p className="text-[11px] text-muted-foreground mt-1">Rate Tutor Matematika SMA</p>
+              <p className="text-xs text-muted-foreground font-medium">Tarif Rate Per Sesi</p>
+              <h3 className="text-3xl font-black text-primary tabular-nums mt-1">{formatRupiah(profile.ratePerSession || profile.nominalPerJam)}</h3>
+              <p className="text-[11px] text-muted-foreground mt-1">Rate honor per sesi mengajar</p>
             </div>
 
             <div>
@@ -145,7 +154,19 @@ export default function PengajarFeePage() {
             </div>
           </div>
 
-          <p className="text-xs text-muted-foreground">* Perhitungan fee hanya menghitung sesi dengan status **Hadir** atau **Terlambat**. Sesi berstatus Izin, Sakit, atau Alpha tidak masuk ke dalam perhitungan jam mengajar.</p>
+          <p className="text-xs text-muted-foreground">* Fee dihitung berdasarkan **sesi mengajar** (status Hadir / Terlambat) met tarif per sesi yang diatur admin per jenjang kelas & mode.</p>
+          {rateSessions.length > 0 && (
+            <div className="rounded-2xl border border-border bg-muted/20 p-4">
+              <p className="text-xs font-bold text-foreground">Tarif Sesi per Jenjang & Mode (atur admin)</p>
+              <div className="mt-2 flex flex-wrap gap-1.5">
+                {rateSessions.map((rate) => (
+                  <span key={`${rate.kelasGroup}-${rate.mode}`} className="rounded-lg bg-card border border-border px-2 py-1 text-[10px] font-semibold text-foreground tabular-nums">
+                    {rate.kelasGroup.replace("_SMK", "/SMK")} • {rate.mode === "ONLINE" ? "Online" : "Offline"}: {formatRupiah(rate.rate)}
+                  </span>
+                ))}
+              </div>
+            </div>
+          )}
           {feeCurrent?.paymentProofData && (
             <button
               type="button"
@@ -172,7 +193,7 @@ export default function PengajarFeePage() {
                   <tr>
                     <th className="py-3 px-4">Periode</th>
                     <th className="py-3 px-4">Jam</th>
-                    <th className="py-3 px-4">Nominal/Jam</th>
+                    <th className="py-3 px-4">Nominal/Sesi</th>
                     <th className="py-3 px-4">Total Fee</th>
                     <th className="py-3 px-4">Status</th>
                     <th className="py-3 px-4">Dibayar</th>
@@ -229,7 +250,10 @@ export default function PengajarFeePage() {
                     <td className="py-3.5 px-4 font-semibold text-foreground">{formatDateIndo(session.tanggal)}</td>
                     <td className="py-3.5 px-4 font-medium text-foreground">{session.mataPelajaran}</td>
                     <td className="py-3.5 px-4 text-xs font-mono font-bold text-foreground">{session.startedAt && session.finishedAt ? "Selesai" : "Belum selesai"}</td>
-                    <td className="py-3.5 px-4 font-bold text-emerald-700 tabular-nums">{formatRupiah(profile.nominalPerJam)}</td>
+                    <td className="py-3.5 px-4">
+                      <span className="font-bold text-emerald-700 tabular-nums">{formatRupiah(session.rate || profile.ratePerSession || profile.nominalPerJam)}</span>
+                      {session.kelasGroup && <span className="block text-[10px] text-muted-foreground font-medium">{session.kelasGroup} • {session.mode === "ONLINE" ? "Online" : "Offline"}</span>}
+                    </td>
                     <td className="py-3.5 px-4">
                       <Badge variant="success">HADIR (VALID)</Badge>
                     </td>
@@ -250,7 +274,8 @@ export default function PengajarFeePage() {
                 <h4 className="font-bold text-sm text-foreground">{session.mataPelajaran}</h4>
                 <div className="flex items-center justify-between pt-1 border-t border-border text-xs">
                   <span className="text-muted-foreground">{session.startedAt && session.finishedAt ? "Selesai" : "Belum selesai"}</span>
-                  <span className="font-bold text-emerald-700 tabular-nums">{formatRupiah(profile.nominalPerJam)}</span>
+                  <span className="font-bold text-emerald-700 tabular-nums">{formatRupiah(session.rate || profile.ratePerSession || profile.nominalPerJam)}</span>
+                  {session.kelasGroup && <span className="block text-[10px] text-muted-foreground font-medium">{session.kelasGroup} • {session.mode === "ONLINE" ? "Online" : "Offline"}</span>}
                 </div>
               </div>
             ))}

@@ -20,7 +20,7 @@ export async function GET() {
       phone: true,
       avatarUrl: true,
       role: true,
-      pengajar: { select: { id: true, spesialisasi: true, bio: true, nominalPerJam: true, totalJamBulanIni: true, bankName: true, bankAccountNumber: true, bankAccountName: true } },
+      pengajar: { select: { id: true, spesialisasi: true, bio: true, nominalPerJam: true, ratePerSession: true, money: true, totalJamBulanIni: true, bankName: true, bankAccountNumber: true, bankAccountName: true, rateSessions: true } },
       murid: {
         select: { kelas: true, sekolah: true, namaWali: true, phoneWali: true, paketBulanan: true, programId: true, programNama: true, programKategori: true, statusBayarBulanIni: true, onboardingComplete: true, onboardingCategory: true },
       },
@@ -35,7 +35,17 @@ export async function GET() {
 
   if (user.pengajar) {
     const synchronizedHours = (await getTeachingHoursByTeacher(getCurrentPeriod())).get(user.pengajar.id) || 0;
-    return NextResponse.json({ ok: true, user: { ...user, pengajar: { ...user.pengajar, totalJamBulanIni: synchronizedHours } } });
+    return NextResponse.json({
+      ok: true,
+      user: {
+        ...user,
+        pengajar: {
+          ...user.pengajar,
+          totalJamBulanIni: synchronizedHours,
+          rateSessions: (user.pengajar.rateSessions || []).map((rate) => ({ kelasGroup: rate.kelasGroup, mode: rate.mode, rate: rate.ratePerSession })),
+        },
+      },
+    });
   }
 
   return NextResponse.json({ ok: true, user });

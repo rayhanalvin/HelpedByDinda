@@ -1,8 +1,9 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 import { prisma } from "@/lib/db";
+
+export const dynamic = "force-dynamic";
 
 export default async function BeritaDetailPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
@@ -57,13 +58,6 @@ export default async function BeritaDetailPage({ params }: { params: Promise<{ s
               </p>
             ))}
           </article>
-
-          <Link
-            href="/"
-            className="inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-xl border border-border bg-card px-5 py-2.5 text-sm font-semibold text-foreground transition-all duration-200 hover:bg-muted hover:border-primary/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
-          >
-            Kembali ke Beranda
-          </Link>
         </div>
       </div>
     </main>

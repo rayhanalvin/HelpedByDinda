@@ -1,7 +1,8 @@
 import Link from "next/link";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 import { prisma } from "@/lib/db";
+
+export const dynamic = "force-dynamic";
 
 export default async function BeritaPage() {
   let berita: Array<{ id: string; slug: string; judul: string; ringkasan: string | null; isi: string; thumbnailUrl: string | null; kategori: string; createdAt: Date }> = [];
@@ -23,9 +24,6 @@ export default async function BeritaPage() {
           <p className="text-sm font-semibold text-primary">Berita & Update</p>
           <h1 className="mt-1 text-3xl font-extrabold tracking-tight text-foreground">Semua Berita Publik</h1>
         </div>
-        <Link href="/">
-          <Button variant="outline">Kembali ke Beranda</Button>
-        </Link>
       </div>
 
       {berita.length === 0 ? (

@@ -17,6 +17,8 @@ type FeeRow = {
   pengajarNama: string;
   totalJam: number;
   nominalPerJam: number;
+  ratePerSession?: number;
+  rateSessions?: { kelasGroup: string; mode: "ONLINE" | "OFFLINE"; rate: number }[];
   totalFee: number;
   periode: string;
   status: "PENDING" | "PAID";
@@ -194,7 +196,7 @@ export default function AdminFeePage() {
               <Input aria-label="Tanggal start periode kustom" type="date" value={customStart} onChange={(event) => setCustomStart(event.target.value)} className="w-auto" />
               <span className="text-xs text-muted-foreground">tot</span>
               <Input aria-label="Tanggal end periode kustom" type="date" value={customEnd} onChange={(event) => setCustomEnd(event.target.value)} className="w-auto" />
-              <Input aria-label="Nominal per jam manual" placeholder="Nominal/jam manual" value={manualNominal} onChange={(event) => setManualNominal(event.target.value)} className="w-auto" />
+              <Input aria-label="Nominal per sesi manual" placeholder="Nominal/sesi" value={manualNominal} onChange={(event) => setManualNominal(event.target.value)} className="w-auto" />
               <Input aria-label="Total fee manual" placeholder="Total fee manual" value={manualTotalFee} onChange={(event) => setManualTotalFee(event.target.value)} className="w-auto" />
             </>
           ) : (
@@ -255,15 +257,24 @@ export default function AdminFeePage() {
                   <p className="font-heading font-bold">{item.pengajarNama}</p>
                 </div>
                 <p className="text-sm text-muted-foreground">
-                  {item.totalJam} jam × {formatRupiah(item.nominalPerJam)}/jam
+                  {item.totalJam} sesi × {formatRupiah(item.ratePerSession || item.nominalPerJam)}/sesi
                 </p>
+                {item.rateSessions && item.rateSessions.length > 0 && (
+                  <div className="mt-1 flex flex-wrap gap-1">
+                    {item.rateSessions.slice(0, 4).map((rate) => (
+                      <span key={`${rate.kelasGroup}-${rate.mode}`} className="rounded-md bg-muted px-1.5 py-0.5 text-[9.5px] font-medium text-muted-foreground tabular-nums">
+                        {rate.kelasGroup} {rate.mode === "ONLINE" ? "On" : "Off"} {formatRupiah(rate.rate)}
+                      </span>
+                    ))}
+                  </div>
+                )}
                 <p className="mt-1 font-mono font-semibold">{formatRupiah(item.totalFee)}</p>
                 {item.manualTotalFee != null && (
                   <p className="mt-1 text-[11px] text-muted-foreground">Total fee manual (admin): {formatRupiah(item.manualTotalFee)}</p>
                 )}
                 {viewType !== "MONTHLY" && (
                   <div className="mt-2 flex flex-col gap-1 print-hidden">
-                    <label className="text-[11px] font-semibold text-muted-foreground">Nominal per jam (admin, opsional)</label>
+                    <label className="text-[11px] font-semibold text-muted-foreground">Nominal per sesi (admin, opsional)</label>
                     <Input
                       type="number"
                       min="0"

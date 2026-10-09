@@ -35,6 +35,7 @@ export default function PengajarLayout({ children }: { children: React.ReactNode
     avatarUrl: DUMMY_PENGAJAR[0].avatarUrl,
     spesialisasi: DUMMY_PENGAJAR[0].spesialisasi,
     nominalPerJam: DUMMY_PENGAJAR[0].nominalPerJam,
+    ratePerSession: DUMMY_PENGAJAR[0].nominalPerJam,
     userId: undefined as string | undefined,
   });
 
@@ -43,7 +44,7 @@ export default function PengajarLayout({ children }: { children: React.ReactNode
 
     const loadProfile = async () => {
       try {
-        const result = await apiFetch<{ ok: boolean; user: { id: string; name: string; avatarUrl?: string | null; role?: string } }>("/api/profile");
+        const result = await apiFetch<{ ok: boolean; user: { id: string; name: string; avatarUrl?: string | null; role?: string; pengajar?: { nominalPerJam?: number; ratePerSession?: number } | null } }>("/api/profile");
         if (!active) return;
 
         setProfile({
@@ -51,6 +52,7 @@ export default function PengajarLayout({ children }: { children: React.ReactNode
           avatarUrl: result.user.avatarUrl || DUMMY_PENGAJAR[0].avatarUrl,
           spesialisasi: DUMMY_PENGAJAR[0].spesialisasi,
           nominalPerJam: DUMMY_PENGAJAR[0].nominalPerJam,
+          ratePerSession: result.user.pengajar?.ratePerSession || result.user.pengajar?.nominalPerJam || DUMMY_PENGAJAR[0].nominalPerJam,
           userId: result.user.id,
         });
       } catch {
@@ -86,7 +88,7 @@ export default function PengajarLayout({ children }: { children: React.ReactNode
           <div className="min-w-0 flex-1">
             <p className="text-xs font-bold text-foreground truncate">{activePengajarName}</p>
             <p className="text-[11px] text-muted-foreground truncate">{profile.spesialisasi}</p>
-            <p className="text-[10px] font-bold text-emerald-700 mt-0.5">{formatRupiah(profile.nominalPerJam)}/jam</p>
+            <p className="text-[10px] font-bold text-emerald-700 mt-0.5">{formatRupiah(profile.ratePerSession || profile.nominalPerJam)}/sesi</p>
           </div>
         </div>
 

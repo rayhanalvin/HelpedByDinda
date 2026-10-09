@@ -2,7 +2,8 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { getSessionUser } from "@/lib/auth-session";
 import { feePeriodRange, getFeePeriodWindow, getReferenceDate, type FeePeriodType } from "@/lib/fee-periods";
-import { getTeachingHoursByTeacherRange } from "@/lib/teaching-hours";
+import { getTeachingSessionsByTeacherRange } from "@/lib/teaching-hours";
+import { normalizeRateSessions, resolvePengajarRate } from "@/lib/pengajar-rates";
 
 function getPeriodType(value: string | null): FeePeriodType {
   return value === "WEEKLY" ? "WEEKLY" : value === "CUSTOM" ? "CUSTOM" : "MONTHLY";
@@ -13,16 +14,22 @@ async function synchronizePayouts(type: FeePeriodType, referenceDate: Date, manu
   const [teachers, hoursByTeacher] = await Promise.all([
     prisma.pengajar.findMany({
       where: selectedPengajarIds && selectedPengajarIds.length > 0 ? { id: { in: selectedPengajarIds } } : { isActive: true },
-      include: { user: { select: { name: true, email: true } } },
+      include: { user: { select: { name: true, email: true } }, rateSessions: true },
     }),
-    getTeachingHoursByTeacherRange(period.start, period.end),
+    getTeachingSessionsByTeacherRange(period.start, period.end, undefined),
   ]);
 
   for (const teacher of teachers) {
-    const totalJam = hoursByTeacher.get(teacher.id) || 0;
+    const sessions = hoursByTeacher.sessionsByTeacher.get(teacher.id) || [];
+    const totalJam = sessions.length;
     const monthlyFee = type === "MONTHLY" ? await prisma.fee.findFirst({ where: { pengajarId: teacher.id, periode: period.key } }) : null;
-    const nominalPerJam = manualNominal ?? monthlyFee?.nominalPerJam ?? teacher.nominalPerJam;
-    const totalFee = manualTotalFee ?? (manualNominal ? totalJam * manualNominal : totalJam * nominalPerJam);
+    const fallbackRate = teacher.ratePerSession ?? teacher.nominalPerJam;
+    const effectiveNominal = manualNominal ?? (type === "MONTHLY" && monthlyFee ? monthlyFee.nominalPerJam : fallbackRate);
+    const totalFee =
+      manualTotalFee ??
+      (sessions.length > 0 && !manualNominal
+        ? sessions.reduce((sum, session) => sum + resolvePengajarRate(normalizeRateSessions(teacher.rateSessions), fallbackRate, { kelasGroup: session.kelasGroup, mode: session.mode }), 0)
+        : totalJam * effectiveNominal);
 
     await prisma.feePayout.upsert({
       where: { pengajarId_periodType_periodKey: { pengajarId: teacher.id, periodType: type, periodKey: period.key } },
@@ -34,7 +41,7 @@ async function synchronizePayouts(type: FeePeriodType, referenceDate: Date, manu
         periodStart: period.start,
         periodEnd: period.end,
         totalJam,
-        nominalPerJam,
+        nominalPerJam: effectiveNominal,
         totalFee,
         manualTotalFee: manualTotalFee && manualTotalFee > 0 ? manualTotalFee : null,
         status: monthlyFee?.status || "PENDING",
@@ -46,7 +53,7 @@ async function synchronizePayouts(type: FeePeriodType, referenceDate: Date, manu
         periodStart: period.start,
         periodEnd: period.end,
         totalJam,
-        nominalPerJam,
+        nominalPerJam: effectiveNominal,
         totalFee: manualTotalFee && manualTotalFee > 0 ? manualTotalFee : totalFee,
         manualTotalFee: manualTotalFee && manualTotalFee > 0 ? manualTotalFee : null,
         ...(manualNominal !== null && manualNominal !== undefined ? { nominalPerJam: manualNominal } : {}),

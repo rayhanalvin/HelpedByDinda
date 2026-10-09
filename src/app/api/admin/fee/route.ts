@@ -1,7 +1,8 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { getSessionUser } from "@/lib/auth-session";
-import { getCurrentPeriod, getTeachingHoursByTeacher } from "@/lib/teaching-hours";
+import { getCurrentPeriod, getTeachingSessionsByTeacher } from "@/lib/teaching-hours";
+import { normalizeRateSessions, resolvePengajarRate } from "@/lib/pengajar-rates";
 
 export async function GET(req: Request) {
   const session = await getSessionUser();
@@ -13,38 +14,43 @@ export async function GET(req: Request) {
   const fees = await prisma.fee.findMany({
     where: periode ? { periode } : undefined,
     orderBy: { createdAt: "desc" },
-    include: { pengajar: { include: { user: { select: { name: true, email: true } } } } },
+    include: { pengajar: { include: { user: { select: { name: true, email: true } }, rateSessions: true } } },
   });
-  const hoursByTeacher = await getTeachingHoursByTeacher(periode || getCurrentPeriod());
+  const hoursByTeacher = await getTeachingSessionsByTeacher(periode || getCurrentPeriod());
 
   return NextResponse.json({
     ok: true,
-    data: fees.map((fee) => ({
-      id: fee.id,
-      pengajarId: fee.pengajarId,
-      pengajarNama: fee.pengajar.user.name,
-      email: fee.pengajar.user.email,
-      periode: fee.periode,
-      totalJam: hoursByTeacher.get(fee.pengajarId) || 0,
-      nominalPerJam: fee.nominalPerJam,
-      totalFee: fee.periode === (periode || getCurrentPeriod()) ? (hoursByTeacher.get(fee.pengajarId) || 0) * fee.nominalPerJam : fee.totalFee,
-      status: fee.status,
-      payoutMethod: fee.payoutMethod,
-      payoutBankName: fee.payoutBankName,
-      payoutAccountNumber: fee.payoutAccountNumber,
-      payoutAccountName: fee.payoutAccountName,
-      payoutReference: fee.payoutReference,
-      paymentProofData: fee.paymentProofData,
-      paymentProofName: fee.paymentProofName,
-      paymentProofMimeType: fee.paymentProofMimeType,
-      paymentProofUploadedAt: fee.paymentProofUploadedAt,
-      paidAt: fee.paidAt,
-      // Effective payout info: prefer fee snapshot (payout*) when present,
-      // otherwise fall back to current pengajar profile values.
-      teacherBankName: fee.payoutBankName ?? fee.pengajar?.bankName ?? null,
-      teacherAccountNumber: fee.payoutAccountNumber ?? fee.pengajar?.bankAccountNumber ?? null,
-      teacherAccountName: fee.payoutAccountName ?? fee.pengajar?.bankAccountName ?? null,
-    })),
+    data: fees.map((fee) => {
+      const sessions = hoursByTeacher.sessionsByTeacher.get(fee.pengajarId) || [];
+      const fallbackRate = fee.pengajar.ratePerSession ?? fee.pengajar.nominalPerJam;
+      const totalFeeCurrent = sessions.reduce((sum, session) => sum + resolvePengajarRate(normalizeRateSessions(fee.pengajar.rateSessions), fallbackRate, { kelasGroup: session.kelasGroup, mode: session.mode }), 0);
+      return {
+        id: fee.id,
+        pengajarId: fee.pengajarId,
+        pengajarNama: fee.pengajar.user.name,
+        email: fee.pengajar.user.email,
+        periode: fee.periode,
+        totalJam: sessions.length,
+        nominalPerJam: fee.nominalPerJam,
+        ratePerSession: fallbackRate,
+        rateSessions: (fee.pengajar.rateSessions || []).map((rate) => ({ kelasGroup: rate.kelasGroup, mode: rate.mode, rate: rate.ratePerSession })),
+        totalFee: fee.periode === (periode || getCurrentPeriod()) ? totalFeeCurrent : fee.totalFee,
+        status: fee.status,
+        payoutMethod: fee.payoutMethod,
+        payoutBankName: fee.payoutBankName,
+        payoutAccountNumber: fee.payoutAccountNumber,
+        payoutAccountName: fee.payoutAccountName,
+        payoutReference: fee.payoutReference,
+        paymentProofData: fee.paymentProofData,
+        paymentProofName: fee.paymentProofName,
+        paymentProofMimeType: fee.paymentProofMimeType,
+        paymentProofUploadedAt: fee.paymentProofUploadedAt,
+        paidAt: fee.paidAt,
+        teacherBankName: fee.payoutBankName ?? fee.pengajar?.bankName ?? null,
+        teacherAccountNumber: fee.payoutAccountNumber ?? fee.pengajar?.bankAccountNumber ?? null,
+        teacherAccountName: fee.payoutAccountName ?? fee.pengajar?.bankAccountName ?? null,
+      };
+    }),
   });
 }
 
@@ -54,20 +60,24 @@ export async function POST(req: Request) {
 
   const requestedPeriode = new URL(req.url).searchParams.get("periode");
   const periode = requestedPeriode && /^\d{4}-(0[1-9]|1[0-2])$/.test(requestedPeriode) ? requestedPeriode : new Date().toISOString().slice(0, 7);
-  const teachers = await prisma.pengajar.findMany({ where: { isActive: true } });
+  const teachers = await prisma.pengajar.findMany({ where: { isActive: true }, include: { rateSessions: true } });
 
   for (const teacher of teachers) {
     const existing = await prisma.fee.findFirst({ where: { pengajarId: teacher.id, periode } });
     if (existing) continue;
 
-    const totalJam = (await getTeachingHoursByTeacher(periode)).get(teacher.id) || 0;
+    const sessions = await getTeachingSessionsByTeacher(periode, [teacher.id]);
+    const teacherSessions = sessions.sessionsByTeacher.get(teacher.id) || [];
+    const totalJam = teacherSessions.length;
+    const fallbackRate = teacher.ratePerSession ?? teacher.nominalPerJam;
+    const totalFee = teacherSessions.reduce((sum, session) => sum + resolvePengajarRate(normalizeRateSessions(teacher.rateSessions), fallbackRate, { kelasGroup: session.kelasGroup, mode: session.mode }), 0);
     await prisma.fee.create({
       data: {
         pengajarId: teacher.id,
         periode,
         totalJam,
-        nominalPerJam: teacher.nominalPerJam,
-        totalFee: totalJam * teacher.nominalPerJam,
+        nominalPerJam: fallbackRate,
+        totalFee: totalFee > 0 ? totalFee : totalJam * fallbackRate,
         status: "PENDING",
       },
     });

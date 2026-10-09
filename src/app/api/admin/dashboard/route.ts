@@ -1,7 +1,8 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { getSessionUser } from "@/lib/auth-session";
-import { getCurrentPeriod, getPeriodRange, getTeachingHoursByTeacher } from "@/lib/teaching-hours";
+import { getCurrentPeriod, getPeriodRange, getTeachingSessionsByTeacher } from "@/lib/teaching-hours";
+import { normalizeRateSessions, resolvePengajarRate } from "@/lib/pengajar-rates";
 
 export async function GET() {
   const session = await getSessionUser();
@@ -29,8 +30,8 @@ export async function GET() {
       },
     }),
     // Only sum the fees for the current month (periode: YYYY-MM)
-    prisma.fee.findMany({ where: { periode: period } }),
-    getTeachingHoursByTeacher(period),
+    prisma.fee.findMany({ where: { periode: period }, include: { pengajar: { select: { id: true, nominalPerJam: true, ratePerSession: true, rateSessions: true } } } }),
+    getTeachingSessionsByTeacher(period),
     prisma.ujian.findMany({
       take: 4,
       where: { isPublished: true, tanggal: { gte: new Date() } },
@@ -43,8 +44,12 @@ export async function GET() {
     .reduce((sum, p) => sum + p.amount, 0);
   const jumlahTransaksiBulanIni = monthPayments.filter((p) => p.status === "SUCCESS").length;
   const jumlahTransaksiMenunggu = monthPayments.filter((p) => p.status === "PENDING" || p.status === "PROCESSING").length;
-  const totalJamMengajar = [...teachingHours.values()].reduce((sum, hours) => sum + hours, 0);
-  const totalFeeHarusDibayar = feesThisMonth.reduce((sum, f) => sum + (teachingHours.get(f.pengajarId) || 0) * f.nominalPerJam, 0);
+  const totalJamMengajar = [...teachingHours.hoursByTeacher.values()].reduce((sum, hours) => sum + hours, 0);
+  const totalFeeHarusDibayar = feesThisMonth.reduce((sum, fee) => {
+    const sessions = teachingHours.sessionsByTeacher.get(fee.pengajarId) || [];
+    const fallbackRate = fee.pengajar.ratePerSession ?? fee.pengajar.nominalPerJam;
+    return sum + sessions.reduce((total, session) => total + resolvePengajarRate(normalizeRateSessions(fee.pengajar.rateSessions), fallbackRate, { kelasGroup: session.kelasGroup, mode: session.mode }), 0);
+  }, 0);
 
   // Recent paid students of this month (for the realtime feed)
   const recentPembayaran = await prisma.payment.findMany({

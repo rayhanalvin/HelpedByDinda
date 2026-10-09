@@ -33,7 +33,7 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
   }, [bannerSlug]);
 
   const defaultBannerTitle = isRegister ? "Mulai Perjalanan Belajar yang Lebih Terarah" : "Selamat Datang di Ruang Belajar Modern";
-  const defaultBannerCreator = "Dinda Rizky Febriyanti, S.A.B.";
+  const defaultBannerCreator = "Dinda Rizky Febriyanti";
   const defaultBannerCreatorTitle = "Founder & Academic Director";
   const defaultBannerCreatorImage = "/helpedd.jpeg";
   const defaultSubTitle = isRegister ? "Bangun kebiasaan belajar bersama kami" : "Belajar lebih terarah, tumbuh lebih percaya diri";
@@ -58,7 +58,7 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
   // Prefer dynamic banner from API -> env override -> default public image
   const envImage = isRegister ? envRegisterBanner : envLoginBanner;
   const rawImage = banner?.imageUrl || envImage || defaultBannerCreatorImage;
-
+  const finalImage = "/founder.jpeg"; // Use founder.jpeg as the default banner image
   const normalizeImageSrc = (src: string | null | undefined) => {
     if (!src) return defaultBannerCreatorImage;
     const s = String(src).trim();
@@ -71,7 +71,7 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
     return "/" + s;
   };
 
-  const finalImage = normalizeImageSrc(rawImage);
+  // const finalImage = normalizeImageSrc(rawImage); // Commented out to use fixed image path
 
   const defaultPoints = ["Jadwal mengajar dan absensi digital 100% transparan", "Akses materi video Bunny Stream dan modul latihan PDF", "Pembayaran praktis langsung otomatis via Midtrans Snap"];
   const bulletPoints = banner?.isi

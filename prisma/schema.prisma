@@ -79,6 +79,8 @@ model Pengajar {
   spesialisasi      String
   bio               String?
   nominalPerJam     Int      @default(75000)
+  ratePerSession    Int      @default(75000)
+  money             String?
   isActive          Boolean  @default(true)
   totalJamBulanIni  Int      @default(0)
   createdAt         DateTime @default(now())
@@ -93,11 +95,26 @@ model Pengajar {
   rapot             Rapot[]
   asesmenKePengajar AsesmenPengajar[] @relation("AsesmenKePengajar")
   materi            Materi[]
+  rateSessions      PengajarRate[]
   user              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   quizzes           Quiz[]
   ujian             Ujian[]
 
   @@map("pengajar")
+}
+
+model PengajarRate {
+  id            String    @id @default(cuid())
+  pengajarId    String
+  kelasGroup    String
+  mode          JadwalMode
+  ratePerSession Int      @default(75000)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  pengajar      Pengajar  @relation(fields: [pengajarId], references: [id], onDelete: Cascade)
+
+  @@unique([pengajarId, kelasGroup, mode])
+  @@map("pengajar_rates")
 }
 
 model Murid {

@@ -9,11 +9,18 @@ type PengajarWithUser = {
   spesialisasi: string;
   bio: string | null;
   nominalPerJam: number;
+  ratePerSession: number;
+  money: string | null;
   isActive: boolean;
   totalJamBulanIni: number;
   bankName: string | null;
   bankAccountNumber: string | null;
   bankAccountName: string | null;
+  rateSessions?: {
+    kelasGroup: string;
+    mode: "ONLINE" | "OFFLINE";
+    ratePerSession: number;
+  }[];
   user: {
     id: string;
     name: string;
@@ -33,12 +40,15 @@ const serializePengajar = (item: PengajarWithUser) => ({
   avatarUrl: item.user.avatarUrl,
   spesialisasi: item.spesialisasi,
   nominalPerJam: item.nominalPerJam,
+  ratePerSession: item.ratePerSession,
+  money: item.money,
   bio: item.bio,
   isActive: item.isActive,
   totalJamBulanIni: item.totalJamBulanIni,
   bankName: item.bankName,
   bankAccountNumber: item.bankAccountNumber,
   bankAccountName: item.bankAccountName,
+  rateSessions: (item.rateSessions || []).map((rate) => ({ kelasGroup: rate.kelasGroup, mode: rate.mode, rate: rate.ratePerSession })),
 });
 
 export async function GET(_req: Request, { params }: { params: Promise<{ id: string }> }) {
@@ -50,7 +60,7 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
   const { id } = await params;
   const pengajar = await prisma.pengajar.findUnique({
     where: { id },
-    include: { user: true },
+    include: { user: true, rateSessions: true },
   });
 
   if (!pengajar) {
@@ -106,16 +116,43 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
         spesialisasi: String(body.spesialisasi || pengajar.spesialisasi),
         bio: body.bio === undefined ? pengajar.bio : String(body.bio ?? ""),
         nominalPerJam: Number(body.nominalPerJam ?? pengajar.nominalPerJam),
+        ratePerSession: Number(body.ratePerSession ?? body.nominalPerJam ?? pengajar.ratePerSession),
+        money: body.money === undefined ? pengajar.money : String(body.money || "").trim() || null,
         isActive: body.isActive ?? pengajar.isActive,
         totalJamBulanIni: Number(body.totalJamBulanIni ?? pengajar.totalJamBulanIni),
         bankName: body.bankName === undefined ? pengajar.bankName : String(body.bankName || "").trim() || null,
         bankAccountNumber: body.bankAccountNumber === undefined ? pengajar.bankAccountNumber : String(body.bankAccountNumber || "").trim() || null,
         bankAccountName: body.bankAccountName === undefined ? pengajar.bankAccountName : String(body.bankAccountName || "").trim() || null,
       },
-      include: { user: true },
+      include: { user: true, rateSessions: true },
     });
     return [user, teacher] as const;
   });
+
+  const rateSessions = body.rateSessions;
+  if (Array.isArray(rateSessions)) {
+    const existingRates = await prisma.pengajarRate.findMany({ where: { pengajarId: id } });
+    const seen = new Set<string>();
+    for (const rate of rateSessions) {
+      if (!rate || typeof rate !== "object") continue;
+      const entry = rate as Record<string, unknown>;
+      const kelasGroup = String(entry.kelasGroup || "").trim();
+      const mode = String(entry.mode || "ONLINE").toUpperCase() === "OFFLINE" ? "OFFLINE" : "ONLINE";
+      const rateValue = Math.max(0, Number(entry.rate ?? entry.ratePerSession ?? 0));
+      if (!kelasGroup || Number.isNaN(rateValue)) continue;
+      seen.add(`${kelasGroup}|${mode}`);
+      await prisma.pengajarRate.upsert({
+        where: { pengajarId_kelasGroup_mode: { pengajarId: id, kelasGroup, mode } },
+        create: { pengajarId: id, kelasGroup, mode, ratePerSession: rateValue },
+        update: { ratePerSession: rateValue },
+      });
+    }
+    for (const existing of existingRates) {
+      if (!seen.has(`${existing.kelasGroup}|${existing.mode}`)) {
+        await prisma.pengajarRate.delete({ where: { id: existing.id } });
+      }
+    }
+  }
 
   return NextResponse.json({
     ok: true,

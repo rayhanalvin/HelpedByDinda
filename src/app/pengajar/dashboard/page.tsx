@@ -31,6 +31,8 @@ export default function PengajarDashboardPage() {
     name: "Pengajar",
     spesialisasi: "Belum diatur",
     nominalPerJam: 0,
+    ratePerSession: 0,
+    rateSessions: [] as { kelasGroup: string; mode: "ONLINE" | "OFFLINE"; rate: number }[],
     totalJamBulanIni: 0,
     userId: undefined as string | undefined,
   });
@@ -40,11 +42,26 @@ export default function PengajarDashboardPage() {
   React.useEffect(() => {
     const loadMetadata = async () => {
       try {
-        const result = await apiFetch<{ ok: boolean; user: { id: string; name: string; pengajar: { spesialisasi: string; nominalPerJam: number; totalJamBulanIni: number } | null } }>("/api/profile");
+        const result = await apiFetch<{
+          ok: boolean;
+          user: {
+            id: string;
+            name: string;
+            pengajar: {
+              spesialisasi: string;
+              nominalPerJam: number;
+              ratePerSession: number;
+              rateSessions: { kelasGroup: string; mode: "ONLINE" | "OFFLINE"; rate: number }[];
+              totalJamBulanIni: number;
+            } | null;
+          };
+        }>("/api/profile");
         setProfile({
           name: result.user.name || "Pengajar",
           spesialisasi: result.user.pengajar?.spesialisasi || "Belum diatur",
           nominalPerJam: result.user.pengajar?.nominalPerJam || 0,
+          ratePerSession: result.user.pengajar?.ratePerSession || result.user.pengajar?.nominalPerJam || 0,
+          rateSessions: result.user.pengajar?.rateSessions || [],
           totalJamBulanIni: result.user.pengajar?.totalJamBulanIni || 0,
           userId: result.user.id,
         });
@@ -127,13 +144,13 @@ export default function PengajarDashboardPage() {
           </CardContent>
         </Card>
 
-        {/* Card 2: Tarif Rate Per Jam */}
+        {/* Card 2: Tarif Rate Per Sesi */}
         <Card className="border-border shadow-xs">
           <CardContent className="p-5 flex items-center justify-between">
             <div>
-              <p className="text-xs text-muted-foreground font-medium">Rate Mengajar</p>
-              <h3 className="text-xl font-bold text-foreground mt-0.5 tabular-nums">{formatRupiah(profile.nominalPerJam)}</h3>
-              <p className="text-[11px] text-muted-foreground mt-1">Standar Tarif Per Jam</p>
+              <p className="text-xs text-muted-foreground font-medium">Tarif Rate Per Sesi</p>
+              <h3 className="text-xl font-bold text-foreground mt-0.5 tabular-nums">{formatRupiah(profile.ratePerSession || profile.nominalPerJam)}</h3>
+              <p className="text-[11px] text-muted-foreground mt-1">{profile.rateSessions.length ? `${profile.rateSessions.length} rate kelola admin` : "Tarif Standar Per Sesi"}</p>
             </div>
             <div className="h-11 w-11 rounded-2xl bg-purple-100 text-primary flex items-center justify-center shrink-0">
               <Clock className="h-5 w-5" />
@@ -245,7 +262,7 @@ export default function PengajarDashboardPage() {
                 <div className="mt-2">
                   <p className="text-2xl font-extrabold text-foreground tabular-nums">{feeBulanIni ? formatRupiah(feeBulanIni.totalFee) : "Rp 0"}</p>
                   <p className="text-[11px] text-muted-foreground mt-1">
-                    {feeBulanIni?.totalJam || profile.totalJamBulanIni} Jam × {formatRupiah(profile.nominalPerJam)}
+                    {feeBulanIni?.totalJam || profile.totalJamBulanIni} Sesi × {formatRupiah(profile.ratePerSession || profile.nominalPerJam)}
                   </p>
                 </div>
               </div>

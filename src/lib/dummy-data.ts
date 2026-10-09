@@ -18,6 +18,8 @@ export interface Pengajar {
   phone: string;
   spesialisasi: string;
   nominalPerJam: number;
+  ratePerSession: number;
+  money?: string;
   bio: string;
   isActive: boolean;
   totalJamBulanIni: number;
@@ -244,6 +246,8 @@ export const DUMMY_PENGAJAR: Pengajar[] = [
     phone: "081211223344",
     spesialisasi: "Matematika SMA & UTBK",
     nominalPerJam: 75000,
+    ratePerSession: 75000,
+    money: "Rp 1.250.000 / bulan",
     bio: "Pengajar Matematika berpengalaman 7+ tahun membimbing ratusan siswa lolos PTN favorit (ITB, UI, UGM).",
     isActive: true,
     totalJamBulanIni: 42,
@@ -258,6 +262,8 @@ export const DUMMY_PENGAJAR: Pengajar[] = [
     phone: "081255667788",
     spesialisasi: "Bahasa Inggris SMP & SMA",
     nominalPerJam: 65000,
+    ratePerSession: 65000,
+    money: "Rp 1.000.000 / bulan",
     bio: "Alumni Pendidikan Bahasa Inggris UPI, spesialis TOEFL & pemahaman grammar praktis tanpa hafalan rumit.",
     isActive: true,
     totalJamBulanIni: 38,
@@ -272,6 +278,8 @@ export const DUMMY_PENGAJAR: Pengajar[] = [
     phone: "081399887766",
     spesialisasi: "Fisika SMA & Penalaran UTBK",
     nominalPerJam: 80000,
+    ratePerSession: 80000,
+    money: "Rp 1.400.000 / bulan",
     bio: "Lulusan Fisika ITB. Menganalisis fenomena fisika dengan konsep logika sederhana dan metode cepat.",
     isActive: true,
     totalJamBulanIni: 30,
@@ -286,6 +294,8 @@ export const DUMMY_PENGAJAR: Pengajar[] = [
     phone: "081312345678",
     spesialisasi: "Bahasa Indonesia SD & SMP",
     nominalPerJam: 55000,
+    ratePerSession: 55000,
+    money: "Rp 800.000 / bulan",
     bio: "Penyabar dan interaktif. Berfokus pada penguasaan literasi, membaca cepat, dan menulis kreatif anak sekolah dasar.",
     isActive: true,
     totalJamBulanIni: 25,

@@ -10,12 +10,19 @@ type PengajarWithUser = {
   spesialisasi: string;
   bio: string | null;
   nominalPerJam: number;
+  ratePerSession: number;
+  money: string | null;
   isActive: boolean;
   totalJamBulanIni: number;
   createdAt: Date;
   bankName: string | null;
   bankAccountNumber: string | null;
   bankAccountName: string | null;
+  rateSessions?: {
+    kelasGroup: string;
+    mode: "ONLINE" | "OFFLINE";
+    ratePerSession: number;
+  }[];
   user: {
     name: string;
     email: string;
@@ -33,6 +40,8 @@ const serializePengajar = (item: PengajarWithUser, synchronizedHours = item.tota
   avatarUrl: item.user.avatarUrl,
   spesialisasi: item.spesialisasi,
   nominalPerJam: item.nominalPerJam,
+  ratePerSession: item.ratePerSession,
+  money: item.money,
   bio: item.bio,
   isActive: item.isActive,
   totalJamBulanIni: synchronizedHours,
@@ -40,6 +49,7 @@ const serializePengajar = (item: PengajarWithUser, synchronizedHours = item.tota
   bankName: item.bankName,
   bankAccountNumber: item.bankAccountNumber,
   bankAccountName: item.bankAccountName,
+  rateSessions: (item.rateSessions || []).map((rate) => ({ kelasGroup: rate.kelasGroup, mode: rate.mode, rate: rate.ratePerSession })),
 });
 
 export async function GET() {
@@ -49,7 +59,7 @@ export async function GET() {
   }
 
   const pengajar = await prisma.pengajar.findMany({
-    include: { user: true },
+    include: { user: true, rateSessions: true },
     orderBy: { createdAt: "desc" },
   });
   const hoursByTeacher = await getTeachingHoursByTeacher(getCurrentPeriod());
@@ -106,6 +116,8 @@ export async function POST(req: Request) {
         spesialisasi: String(body.spesialisasi || "Umum"),
         bio: String(body.bio || ""),
         nominalPerJam: Number(body.nominalPerJam || 75000),
+        ratePerSession: Number(body.ratePerSession ?? body.nominalPerJam ?? 75000),
+        money: body.money === undefined ? null : String(body.money || "").trim() || null,
         isActive: true,
         totalJamBulanIni: Number(body.totalJamBulanIni || 0),
         bankName: String(body.bankName || "").trim() || null,
@@ -115,6 +127,24 @@ export async function POST(req: Request) {
       include: { user: true },
     });
   });
+
+  const rateSessions = body.rateSessions;
+
+  if (Array.isArray(rateSessions)) {
+    for (const rate of rateSessions) {
+      if (!rate || typeof rate !== "object") continue;
+      const entry = rate as Record<string, unknown>;
+      const kelasGroup = String(entry.kelasGroup || "").trim();
+      const mode = String(entry.mode || "ONLINE").toUpperCase() === "OFFLINE" ? "OFFLINE" : "ONLINE";
+      const rateValue = Math.max(0, Number(entry.rate ?? entry.ratePerSession ?? 0));
+      if (!kelasGroup || Number.isNaN(rateValue)) continue;
+      await prisma.pengajarRate.upsert({
+        where: { pengajarId_kelasGroup_mode: { pengajarId: pengajar.id, kelasGroup, mode } },
+        create: { pengajarId: pengajar.id, kelasGroup, mode, ratePerSession: rateValue },
+        update: { ratePerSession: rateValue },
+      });
+    }
+  }
 
   return NextResponse.json({ ok: true, data: serializePengajar(pengajar as PengajarWithUser) });
 }

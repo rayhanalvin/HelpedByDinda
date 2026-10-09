@@ -79,6 +79,7 @@ async function main() {
       spesialisasi: "Matematika SMA & UTBK",
       bio: "Pengajar Matematika berpengalaman 7+ tahun.",
       nominalPerJam: 75000,
+      ratePerSession: 75000,
       isActive: true,
       totalJamBulanIni: 42,
     },

@@ -266,7 +266,7 @@ export default async function HomePage() {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           {beritaTerbaru.length > 0 ? (
             beritaTerbaru.map((item) => (
-              <Link key={item.id} href={`/berita#${item.slug}`} className="group block rounded-2xl border border-border bg-card overflow-hidden hover:border-primary/40 hover:shadow-md transition-all">
+              <Link key={item.id} href={`/berita/${item.slug}`} className="group block rounded-2xl border border-border bg-card overflow-hidden hover:border-primary/40 hover:shadow-md transition-all">
                 <div className="h-44 w-full bg-linear-to-br from-primary/10 via-accent/10 to-secondary">
                   {item.thumbnailUrl ? (
                     <img src={item.thumbnailUrl} alt={item.judul} className="h-full w-full object-cover" />

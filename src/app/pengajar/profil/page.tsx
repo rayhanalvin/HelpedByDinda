@@ -24,6 +24,8 @@ export default function PengajarProfilPage() {
     bio: "",
     avatarUrl: "",
     nominalPerJam: 75000,
+    ratePerSession: 75000,
+    rateSessions: [] as { kelasGroup: string; mode: "ONLINE" | "OFFLINE"; rate: number }[],
     userId: "",
     bankName: "",
     bankAccountNumber: "",
@@ -55,7 +57,7 @@ export default function PengajarProfilPage() {
             email: string;
             phone?: string | null;
             avatarUrl?: string | null;
-            pengajar?: { spesialisasi?: string | null; bio?: string | null; nominalPerJam?: number | null; bankName?: string | null; bankAccountNumber?: string | null; bankAccountName?: string | null } | null;
+            pengajar?: { spesialisasi?: string | null; bio?: string | null; nominalPerJam?: number | null; ratePerSession?: number | null; rateSessions?: { kelasGroup: string; mode: "ONLINE" | "OFFLINE"; rate: number }[]; bankName?: string | null; bankAccountNumber?: string | null; bankAccountName?: string | null } | null;
           };
         }>("/api/profile");
         const user = result.user;
@@ -67,6 +69,8 @@ export default function PengajarProfilPage() {
           bio: user.pengajar?.bio || "",
           avatarUrl: user.avatarUrl || "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&auto=format&fit=crop&q=80",
           nominalPerJam: user.pengajar?.nominalPerJam || 0,
+          ratePerSession: user.pengajar?.ratePerSession || user.pengajar?.nominalPerJam || 0,
+          rateSessions: user.pengajar?.rateSessions || [],
           userId: user.id,
           bankName: user.pengajar?.bankName || "",
           bankAccountNumber: user.pengajar?.bankAccountNumber || "",
@@ -145,7 +149,16 @@ export default function PengajarProfilPage() {
                 <Badge variant="success">Tutor Terverifikasi</Badge>
               </div>
               <p className="text-xs text-muted-foreground">{formData.spesialisasi}</p>
-              <p className="text-xs font-bold text-emerald-700 mt-1">Rate Mengajar: {formatRupiah(initialData.nominalPerJam)} / jam</p>
+              <p className="text-xs font-bold text-emerald-700 mt-1">Rate Mengajar: {formatRupiah(initialData.ratePerSession || initialData.nominalPerJam)} / sesi</p>
+              {initialData.rateSessions.length > 0 && (
+                <div className="mt-1 flex flex-wrap gap-1">
+                  {initialData.rateSessions.slice(0, 4).map((rate) => (
+                    <span key={`${rate.kelasGroup}-${rate.mode}`} className="rounded-md bg-muted px-1.5 py-0.5 text-[9.5px] font-medium text-muted-foreground tabular-nums">
+                      {rate.kelasGroup} • {rate.mode === "ONLINE" ? "On" : "Off"}: {formatRupiah(rate.rate)}
+                    </span>
+                  ))}
+                </div>
+              )}
             </div>
           </CardContent>
         </Card>

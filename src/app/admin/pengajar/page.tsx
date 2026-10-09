@@ -23,14 +23,27 @@ type PengajarRow = {
   avatarUrl: string | null;
   spesialisasi: string;
   nominalPerJam: number;
+  ratePerSession: number;
+  money: string | null;
   bio: string | null;
   isActive: boolean;
   totalJamBulanIni: number;
   bankName: string | null;
   bankAccountNumber: string | null;
   bankAccountName: string | null;
+  rateSessions: { kelasGroup: string; mode: "ONLINE" | "OFFLINE"; rate: number }[];
   createdAt: string;
 };
+
+const RATE_GROUPS = [
+  { value: "SD", label: "SD Kelas 1–6" },
+  { value: "SMP", label: "SMP Kelas 7–9" },
+  { value: "SMA_SMK", label: "SMA/SMK Kelas 10–12" },
+  { value: "MAHASISWA", label: "Mahasiswa Semester 1–8" },
+  { value: "UTBK", label: "UTBK / Persiapan" },
+];
+
+const RATE_MODES = ["ONLINE", "OFFLINE"] as const;
 
 export default function AdminPengajarPage() {
   const { toast } = useToast();
@@ -69,11 +82,14 @@ export default function AdminPengajarPage() {
     phone: "",
     spesialisasi: "",
     nominalPerJam: 75000,
+    ratePerSession: 75000,
+    money: "",
     bio: "",
     password: "",
     bankName: "",
     bankAccountNumber: "",
     bankAccountName: "",
+    rateSessions: [] as { kelasGroup: string; mode: "ONLINE" | "OFFLINE"; rate: number }[],
   });
 
   const handleOpenAdd = () => {
@@ -84,11 +100,14 @@ export default function AdminPengajarPage() {
       phone: "",
       spesialisasi: "",
       nominalPerJam: 75000,
+      ratePerSession: 75000,
+      money: "",
       bio: "",
       password: "",
       bankName: "",
       bankAccountNumber: "",
       bankAccountName: "",
+      rateSessions: [],
     });
     setIsModalOpen(true);
   };
@@ -101,11 +120,14 @@ export default function AdminPengajarPage() {
       phone: p.phone || "",
       spesialisasi: p.spesialisasi,
       nominalPerJam: p.nominalPerJam,
+      ratePerSession: p.ratePerSession || p.nominalPerJam,
+      money: p.money || "",
       bio: p.bio || "",
       password: "",
       bankName: p.bankName || "",
       bankAccountNumber: p.bankAccountNumber || "",
       bankAccountName: p.bankAccountName || "",
+      rateSessions: p.rateSessions || [],
     });
     setIsModalOpen(true);
   };
@@ -135,11 +157,14 @@ export default function AdminPengajarPage() {
             phone: formData.phone,
             spesialisasi: formData.spesialisasi,
             nominalPerJam: formData.nominalPerJam,
+            ratePerSession: formData.ratePerSession,
+            money: formData.money,
             bio: formData.bio,
             password: formData.password || undefined,
             bankName: formData.bankName,
             bankAccountNumber: formData.bankAccountNumber,
             bankAccountName: formData.bankAccountName,
+            rateSessions: formData.rateSessions,
           }),
         });
 
@@ -154,12 +179,15 @@ export default function AdminPengajarPage() {
             phone: formData.phone,
             spesialisasi: formData.spesialisasi,
             nominalPerJam: formData.nominalPerJam,
+            ratePerSession: formData.ratePerSession,
+            money: formData.money,
             bio: formData.bio,
             password: formData.password || "teacher123",
             avatarUrl: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&auto=format&fit=crop&q=80",
             bankName: formData.bankName,
             bankAccountNumber: formData.bankAccountNumber,
             bankAccountName: formData.bankAccountName,
+            rateSessions: formData.rateSessions,
           }),
         });
 
@@ -242,7 +270,7 @@ export default function AdminPengajarPage() {
                   <th className="py-3.5 px-4">Pengajar</th>
                   <th className="py-3.5 px-4">Spesialisasi Mapel</th>
                   <th className="py-3.5 px-4">Kontak Telepon</th>
-                  <th className="py-3.5 px-4">Tarif Fee / Jam</th>
+                  <th className="py-3.5 px-4">Tarif Fee / Sesi</th>
                   <th className="py-3.5 px-4">Jam Mengajar Bulan Ini</th>
                   <th className="py-3.5 px-4">Status</th>
                   <th className="py-3.5 px-4">Terdaftar</th>
@@ -269,7 +297,19 @@ export default function AdminPengajarPage() {
                     </td>
                     <td className="py-3.5 px-4 font-medium text-foreground">{p.spesialisasi}</td>
                     <td className="py-3.5 px-4 text-xs text-muted-foreground">{p.phone}</td>
-                    <td className="py-3.5 px-4 font-bold text-emerald-700 tabular-nums">{formatRupiah(p.nominalPerJam)} / jam</td>
+                    <td className="py-3.5 px-4">
+                      <div className="font-bold text-emerald-700 tabular-nums">{formatRupiah(p.ratePerSession || p.nominalPerJam)} / sesi</div>
+                      {p.rateSessions && p.rateSessions.length > 0 && (
+                        <div className="mt-1 flex flex-wrap gap-1">
+                          {p.rateSessions.slice(0, 3).map((rate) => (
+                            <span key={`${rate.kelasGroup}-${rate.mode}`} className="rounded-md bg-muted px-1.5 py-0.5 text-[9.5px] font-medium text-muted-foreground">
+                              {rate.kelasGroup} • {formatRupiah(rate.rate)}
+                            </span>
+                          ))}
+                          {p.rateSessions.length > 3 && <span className="text-[9.5px] text-muted-foreground">+{p.rateSessions.length - 3}</span>}
+                        </div>
+                      )}
+                    </td>
                     <td className="py-3.5 px-4 text-xs font-semibold text-foreground">{p.totalJamBulanIni} Jam</td>
                     <td className="py-3.5 px-4">
                       <Badge variant={p.isActive ? "success" : "secondary"}>{p.isActive ? "AKTIF" : "NONAKTIF"}</Badge>
@@ -307,8 +347,17 @@ export default function AdminPengajarPage() {
 
                 <div className="text-xs text-muted-foreground border-t border-border pt-2 space-y-1">
                   <p>
-                    Rate: <strong className="text-emerald-700">{formatRupiah(p.nominalPerJam)}/jam</strong>
+                    Rate Sesi: <strong className="text-emerald-700">{formatRupiah(p.ratePerSession || p.nominalPerJam)}/sesi</strong>
                   </p>
+                  {p.rateSessions && p.rateSessions.length > 0 && (
+                    <p className="flex flex-wrap gap-1">
+                      {p.rateSessions.slice(0, 3).map((rate) => (
+                        <span key={`${rate.kelasGroup}-${rate.mode}`} className="rounded-md bg-muted px-1.5 py-0.5 text-[9.5px] font-medium text-muted-foreground">
+                          {rate.kelasGroup} {rate.mode === "OFFLINE" ? "Off" : "On"} {formatRupiah(rate.rate)}
+                        </span>
+                      ))}
+                    </p>
+                  )}
                   <p>
                     Total Jam Mengajar: <strong className="text-foreground">{p.totalJamBulanIni} Jam</strong>
                   </p>
@@ -356,9 +405,55 @@ export default function AdminPengajarPage() {
               <Input required placeholder="Contoh: Matematika SMA & UTBK" value={formData.spesialisasi} onChange={(e) => setFormData({ ...formData, spesialisasi: e.target.value })} />
             </div>
             <div className="space-y-1.5">
-              <label className="text-xs font-semibold text-foreground">Nominal Fee / Jam (Rp)</label>
-              <Input type="number" required value={formData.nominalPerJam} onChange={(e) => setFormData({ ...formData, nominalPerJam: Number(e.target.value) })} />
+              <label className="text-xs font-semibold text-foreground">Tarif Standar / Sesi (Rp)</label>
+              <Input type="number" required value={formData.ratePerSession} onChange={(e) => setFormData({ ...formData, ratePerSession: Number(e.target.value) })} />
             </div>
+          </div>
+
+          <div className="space-y-3 border border-border rounded-2xl bg-muted/20 p-4">
+            <div>
+              <p className="text-sm font-bold text-foreground">Tarif Mengajar per Kelas & Mode</p>
+              <p className="text-xs text-muted-foreground">Setel rate honor berbeda untuk setiap kombinasi jenjang kelas (SD, SMP, SMA, Mahasiswa, UTBK) dan mode (Online / Offline). Tarif ini digunakan untuk sinkronisasi fee pengajar.</p>
+            </div>
+            <div className="grid grid-cols-1 gap-2">
+              {RATE_GROUPS.map((group) => (
+                <div key={group.value} className="flex flex-wrap items-center gap-2 rounded-xl border border-border bg-card p-2.5">
+                  <span className="w-40 shrink-0 text-xs font-semibold text-foreground truncate">{group.label}</span>
+                  {RATE_MODES.map((mode) => {
+                    const current = formData.rateSessions.find((rate) => rate.kelasGroup === group.value && rate.mode === mode);
+                    const value = current?.rate ?? formData.ratePerSession;
+                    return (
+                      <div key={mode} className="flex items-center gap-1.5 flex-1">
+                        <span className="text-[10px] text-muted-foreground font-semibold uppercase w-14">{mode === "ONLINE" ? "Online" : "Offline"}</span>
+                        <Input
+                          type="number"
+                          min={0}
+                          step={5000}
+                          value={value}
+                          className="h-8 text-xs"
+                          onChange={(e) => {
+                            const next = [...formData.rateSessions];
+                            const index = next.findIndex((rate) => rate.kelasGroup === group.value && rate.mode === mode);
+                            const rateValue = Number(e.target.value);
+                            if (index >= 0) {
+                              next[index] = { ...next[index], rate: rateValue };
+                            } else {
+                              next.push({ kelasGroup: group.value, mode, rate: rateValue });
+                            }
+                            setFormData({ ...formData, rateSessions: next });
+                          }}
+                        />
+                      </div>
+                    );
+                  })}
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div className="space-y-1.5">
+            <label className="text-xs font-semibold text-foreground">Gelar / Honor (opsional)</label>
+            <Input placeholder="Contoh: Rp 1.250.000 / bulan" value={formData.money} onChange={(e) => setFormData({ ...formData, money: e.target.value })} />
           </div>
 
           <div className="space-y-1.5">

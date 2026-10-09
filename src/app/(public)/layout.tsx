@@ -39,7 +39,7 @@ export default function PublicLayout({ children }: { children: React.ReactNode }
           {/* Desktop Nav Links */}
           <nav className="hidden md:flex items-center gap-6">
             {NAV_LINKS.map((link) => {
-              const isActive = pathname === link.href;
+              const isActive = pathname === link.href || (link.href === "/berita" && pathname.startsWith("/berita/"));
               return (
                 <Link key={link.name} href={link.href} className={cn("text-sm font-medium transition-colors hover:text-primary relative py-1", isActive ? "text-primary font-semibold" : "text-muted-foreground")}>
                   {link.name}
@@ -98,7 +98,7 @@ export default function PublicLayout({ children }: { children: React.ReactNode }
 
               <div className="flex-1 px-1 py-4 space-y-1">
                 {NAV_LINKS.map((link) => {
-                  const isActive = pathname === link.href;
+                  const isActive = pathname === link.href || (link.href === "/berita" && pathname.startsWith("/berita/"));
                   return (
                     <Link
                       key={link.name}

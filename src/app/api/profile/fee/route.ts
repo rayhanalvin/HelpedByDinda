@@ -1,7 +1,9 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { getSessionUser } from "@/lib/auth-session";
-import { getCurrentPeriod, getTeachingHoursByTeacher } from "@/lib/teaching-hours";
+import { getCurrentPeriod, getTeachingSessionsByTeacher } from "@/lib/teaching-hours";
+import { getKelasGroup } from "@/lib/kelas";
+import { normalizeRateSessions, resolvePengajarRate } from "@/lib/pengajar-rates";
 
 export async function GET(req: Request) {
   const session = await getSessionUser();
@@ -9,7 +11,7 @@ export async function GET(req: Request) {
     return NextResponse.json({ ok: false, message: "Unauthorized" }, { status: 401 });
   }
 
-  const pengajar = await prisma.pengajar.findUnique({ where: { userId: session.userId } });
+  const pengajar = await prisma.pengajar.findUnique({ where: { userId: session.userId }, include: { rateSessions: true } });
 
   if (!pengajar) {
     return NextResponse.json({ ok: false, message: "Profil pengajar tidak ditemukan." }, { status: 404 });
@@ -25,9 +27,31 @@ export async function GET(req: Request) {
     where: { pengajarId: pengajar.id },
     orderBy: [{ periodStart: "desc" }],
   });
+  const fallbackRate = pengajar.ratePerSession ?? pengajar.nominalPerJam;
+  const rateValues = normalizeRateSessions(pengajar.rateSessions);
+  const sessions = await getTeachingSessionsByTeacher(getCurrentPeriod(), [pengajar.id]);
+  const pengajarSessions = sessions.sessionsByTeacher.get(pengajar.id) || [];
+  const attendance = await prisma.absensi.findMany({
+    where: {
+      jadwalId: { in: pengajarSessions.map((session) => session.id) },
+      userId: pengajar.userId,
+    },
+    select: {
+      id: true,
+      tanggal: true,
+      status: true,
+      startedAt: true,
+      finishedAt: true,
+      mataPelajaran: true,
+      jadwal: { select: { murid: { select: { kelas: true } }, mode: true } },
+    },
+    orderBy: [{ tanggal: "desc" }],
+  });
 
   return NextResponse.json({
     ok: true,
+    ratePerSession: fallbackRate,
+    rateSessions: (pengajar.rateSessions || []).map((rate) => ({ kelasGroup: rate.kelasGroup, mode: rate.mode, rate: rate.ratePerSession })),
     data: fees.map((fee) => ({
       id: fee.id,
       pengajarId: fee.pengajarId,
@@ -35,6 +59,7 @@ export async function GET(req: Request) {
       periode: fee.periode,
       totalJam: fee.totalJam,
       nominalPerJam: fee.nominalPerJam,
+      ratePerSession: fallbackRate,
       totalFee: fee.totalFee,
       status: fee.status,
       teacherBankName: fee.payoutBankName ?? pengajar.bankName,
@@ -63,6 +88,17 @@ export async function GET(req: Request) {
       paidAt: payout.paidAt,
       payoutMethod: payout.payoutMethod,
       payoutReference: payout.payoutReference,
+    })),
+    attendance: attendance.map((entry) => ({
+      id: entry.id,
+      tanggal: entry.tanggal.toISOString(),
+      mataPelajaran: entry.mataPelajaran,
+      status: entry.status,
+      startedAt: entry.startedAt?.toISOString() || null,
+      finishedAt: entry.finishedAt?.toISOString() || null,
+      kelasGroup: getKelasGroup(entry.jadwal?.murid?.kelas),
+      mode: entry.jadwal?.mode === "OFFLINE" ? "OFFLINE" : "ONLINE",
+      rate: resolvePengajarRate(rateValues, fallbackRate, { kelasGroup: getKelasGroup(entry.jadwal?.murid?.kelas), mode: entry.jadwal?.mode === "OFFLINE" ? "OFFLINE" : "ONLINE" }),
     })),
   });
 }
