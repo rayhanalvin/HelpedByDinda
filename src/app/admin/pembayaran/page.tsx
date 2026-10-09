@@ -100,11 +100,11 @@ export default function AdminPembayaranPage() {
 
   const createInvoice = async () => {
     if (!invoiceForm.targetUserId) {
-      toast("Kies murid die de invoice SPP zal ontvangen.", "error");
+      toast("Pilih murid yang akan menerima invoice SPP.", "error");
       return;
     }
     if (!invoiceForm.amount || Number(invoiceForm.amount) <= 0) {
-      toast("Vul nominale invoice SPP in.", "error");
+      toast("Isi nominal invoice SPP.", "error");
       return;
     }
     setSendingInvoice(true);
@@ -118,7 +118,7 @@ export default function AdminPembayaranPage() {
       if (invoiceFile) fd.append("invoice", invoiceFile);
       const res = await apiFetch<{ ok: boolean; data: { id: string } }>("/api/admin/invoice", { method: "POST", body: fd });
       if (res.ok) {
-        toast("Invoice SPP dibuat en gesynchroniseerd naar de daftar pembayaran van de murid.", "success");
+        toast("Invoice SPP dibuat dan tersinkronisasi ke daftar pembayaran murid.", "success");
         setShowInvoiceForm(false);
         setInvoiceForm({ targetUserId: "", title: "", periode: new Date().toISOString().slice(0, 7), amount: "" });
         setInvoiceFile(null);
@@ -137,7 +137,7 @@ export default function AdminPembayaranPage() {
         <div>
           <p className="text-sm font-semibold text-primary">Keuangan murid</p>
           <h1 className="mt-1 font-heading text-3xl font-extrabold">Tracking Pembayaran</h1>
-          <p className="mt-2 text-muted-foreground">Pantau transaksi transfer bank murid en konfirmasi pembayaran realtime, of buat invoice SPP per murid.</p>
+          <p className="mt-2 text-muted-foreground">Pantau transaksi transfer bank murid dan konfirmasi pembayaran realtime, atau buat invoice SPP per murid.</p>
         </div>
         <Button variant="accent" onClick={() => setShowInvoiceForm(true)}>
           <Plus size={16} /> Buat Invoice SPP
@@ -232,15 +232,15 @@ export default function AdminPembayaranPage() {
                 <X className="h-5 w-5" />
               </button>
             </div>
-            <p className="text-xs text-muted-foreground">Kies één murid, vul de nominal en periode in. De invoice verschijnt realtime in de daftar pembayaran van de murid.</p>
+            <p className="text-xs text-muted-foreground">Pilih satu murid, isi nominal dan periode. Invoice muncul realtime di daftar pembayaran murid.</p>
             <div className="space-y-1.5">
-              <label className="text-xs font-semibold text-foreground">Murid ontvanger</label>
+              <label className="text-xs font-semibold text-foreground">Murid penerima</label>
               <select
                 className="flex h-10 w-full rounded-xl border border-input bg-card px-3 py-2 text-sm text-foreground"
                 value={invoiceForm.targetUserId}
                 onChange={(event) => setInvoiceForm({ ...invoiceForm, targetUserId: event.target.value })}
               >
-                <option value="">— Kies murid —</option>
+                <option value="">— Pilih murid —</option>
                 {muridOptions.map((option) => (
                   <option key={option.userId} value={option.userId}>
                     {option.name} ({option.email}) — {formatRupiah(option.paketBulanan)}/bulan
@@ -251,10 +251,10 @@ export default function AdminPembayaranPage() {
             <div className="grid grid-cols-2 gap-2">
               <div className="space-y-1.5">
                 <label className="text-xs font-semibold text-foreground">Nominal SPP (Rp)</label>
-                <Input type="number" min="1" placeholder="bijv. 900000" value={invoiceForm.amount} onChange={(event) => setInvoiceForm({ ...invoiceForm, amount: event.target.value })} />
+                <Input type="number" min="1" placeholder="contoh: 900000" value={invoiceForm.amount} onChange={(event) => setInvoiceForm({ ...invoiceForm, amount: event.target.value })} />
               </div>
               <div className="space-y-1.5">
-                <label className="text-xs font-semibold text-foreground">Periode (maand)</label>
+                <label className="text-xs font-semibold text-foreground">Periode (bulan)</label>
                 <Input type="month" value={invoiceForm.periode} onChange={(event) => setInvoiceForm({ ...invoiceForm, periode: event.target.value })} />
               </div>
             </div>

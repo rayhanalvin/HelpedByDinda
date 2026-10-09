@@ -102,7 +102,7 @@ export default function AdminPengingatPage() {
       if (reminderAttachment) {
         const fd = new FormData();
         fd.append("type", type);
-        fd.append("keterangan", editingLog?.targetNama ? `Pengingat aangepast voor ${editingLog.targetNama} (met lampiran dokumen).` : `Pengingat ${type} dikirim oleh admin (dengan lampiran dokumen).${selectedRecipients.size ? ` Naar ${selectedRecipients.size} geselecteerde ontvanger(s).` : ""}`);
+        fd.append("keterangan", editingLog?.targetNama ? `Pengingat diperbarui untuk ${editingLog.targetNama} (dengan lampiran dokumen).` : `Pengingat ${type} dikirim oleh admin (dengan lampiran dokumen).${selectedRecipients.size ? ` Ke ${selectedRecipients.size} penerima terpilih.` : ""}`);
         fd.append("attachment", reminderAttachment);
         if (selectedRecipients.size) fd.append("selectedIds", [...selectedRecipients].join(","));
         body = fd;
@@ -202,17 +202,16 @@ export default function AdminPengingatPage() {
         <CardHeader>
           <div className="flex items-center gap-2">
             <MessageSquarePlus className="h-5 w-5 text-primary" />
-            <CardTitle className="text-lg">Kies Ontvanger (Pengajar / Murid)</CardTitle>
+            <CardTitle className="text-lg">Pilih Penerima (Pengajar / Murid)</CardTitle>
           </div>
-          <CardDescription>Selecteer specifieke personen om een pengingat naar te sturen. Laat leeg om naar alle actieve leden te sturen.</CardDescription>
+          <CardDescription>Pilih orang tertentu untuk dikirimi pengingat. Kosongkan untuk mengirim ke semua anggota aktif.</CardDescription>
         </CardHeader>
         <CardContent>
           <div className="mb-3 flex items-center gap-2">
-            <Input placeholder="Zoek op naam of email..." value={recipientFilter} onChange={(event) => setRecipientFilter(event.target.value)} className="w-full" />
-            <Badge variant="secondary">{selectedRecipients.size} geselecteerd</Badge>
+            <Input placeholder="Cari nama atau email..." value={recipientFilter} onChange={(event) => setRecipientFilter(event.target.value)} className="w-full" />
+            <Badge variant="secondary">{selectedRecipients.size} terpilih</Badge>
             {selectedRecipients.size > 0 && (
               <Button size="sm" variant="ghost" onClick={() => setSelectedRecipients(new Set())}>
-                Ceer selectie
               </Button>
             )}
           </div>

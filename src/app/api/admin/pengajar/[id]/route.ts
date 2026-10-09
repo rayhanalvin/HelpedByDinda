@@ -138,7 +138,7 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
       const entry = rate as Record<string, unknown>;
       const kelasGroup = String(entry.kelasGroup || "").trim();
       const mode = String(entry.mode || "ONLINE").toUpperCase() === "OFFLINE" ? "OFFLINE" : "ONLINE";
-      const rateValue = Math.max(0, Number(entry.rate ?? entry.ratePerSession ?? 0));
+      const rateValue = Number(entry.rate ?? entry.ratePerSession ?? 0);
       if (!kelasGroup || Number.isNaN(rateValue)) continue;
       seen.add(`${kelasGroup}|${mode}`);
       await prisma.pengajarRate.upsert({

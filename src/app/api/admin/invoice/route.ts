@@ -37,7 +37,7 @@ export async function POST(req: Request) {
     fileMimeType = file.type;
   }
 
-  if (!targetUserId && !dataUrl) return NextResponse.json({ ok: false, message: "Kies murid of upload file invoice." }, { status: 400 });
+  if (!targetUserId && !dataUrl) return NextResponse.json({ ok: false, message: "Pilih murid atau unggah file invoice." }, { status: 400 });
 
   const finalTargetRole = targetRole === "PENGAJAR" ? "PENGAJAR" : "MURID";
   const inv = await prisma.$transaction(async (transaction) => {

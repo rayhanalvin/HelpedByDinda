@@ -136,7 +136,7 @@ export async function POST(req: Request) {
       const entry = rate as Record<string, unknown>;
       const kelasGroup = String(entry.kelasGroup || "").trim();
       const mode = String(entry.mode || "ONLINE").toUpperCase() === "OFFLINE" ? "OFFLINE" : "ONLINE";
-      const rateValue = Math.max(0, Number(entry.rate ?? entry.ratePerSession ?? 0));
+      const rateValue = Number(entry.rate ?? entry.ratePerSession ?? 0);
       if (!kelasGroup || Number.isNaN(rateValue)) continue;
       await prisma.pengajarRate.upsert({
         where: { pengajarId_kelasGroup_mode: { pengajarId: pengajar.id, kelasGroup, mode } },

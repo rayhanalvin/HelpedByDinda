@@ -41,6 +41,14 @@ export async function POST(request: Request) {
   if (!(await requireAdmin())) return NextResponse.json({ ok: false, message: "Unauthorized" }, { status: 401 });
   const parsed = parseProgram((await request.json()) as Record<string, unknown>);
   if (parsed.error) return NextResponse.json({ ok: false, message: parsed.error }, { status: 400 });
-  const data = await prisma.program.create({ data: parsed.data! });
-  return NextResponse.json({ ok: true, data }, { status: 201 });
+  try {
+    const data = await prisma.program.create({ data: parsed.data! });
+    return NextResponse.json({ ok: true, data }, { status: 201 });
+  } catch (error) {
+    if (error && typeof error === "object" && "code" in error && (error as { code: string }).code === "P2002") {
+      return NextResponse.json({ ok: false, message: `Kode program "${parsed.data!.code}" sudah dipakai program lain. Gunakan kode unik atau biarkan kosong agar dibuat otomatis.` }, { status: 409 });
+    }
+    console.error("Gagal membuat program:", error);
+    return NextResponse.json({ ok: false, message: "Gagal menyimpan program. Silakan coba lagi." }, { status: 500 });
+  }
 }

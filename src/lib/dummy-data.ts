@@ -228,12 +228,12 @@ export interface ReminderLog {
 export const DUMMY_ADMIN: User = {
   id: 1,
   clerkId: "user_admin_dinda",
-  email: "dinda@helpedbydinda.id",
+  email: "cs.helpeddinda@gmail.com",
   nama: "Dinda Rizky Febriyanti",
   role: "admin",
   avatarUrl: "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=150&auto=format&fit=crop&q=80",
   phone: "081234567890",
-  password: "admin123",
+  password: "dindaadmin",
 };
 
 export const DUMMY_PENGAJAR: Pengajar[] = [

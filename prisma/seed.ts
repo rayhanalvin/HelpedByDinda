@@ -14,15 +14,15 @@ const prisma = new PrismaClient({ adapter });
 
 async function main() {
   const adminUser = await prisma.user.upsert({
-    where: { email: "dinda@helpedbydinda.id" },
+    where: { email: "cs.helpeddinda@gmail.com" },
     update: {
-      passwordHash: await bcrypt.hash("admin123", 10),
+      passwordHash: await bcrypt.hash("dindaadmin", 10),
       role: "ADMIN",
     },
     create: {
-      email: "dinda@helpedbydinda.id",
-      passwordHash: await bcrypt.hash("admin123", 10),
-      name: "Dinda Ayu Lestari",
+      email: "cs.helpeddinda@gmail.com",
+      passwordHash: await bcrypt.hash("dindaadmin", 10),
+      name: "Dinda Rizky Febriyanti",
       phone: "081234567890",
       avatarUrl: "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=150&auto=format&fit=crop&q=80",
       role: "ADMIN",
@@ -33,29 +33,6 @@ async function main() {
     where: { userId: adminUser.id },
     update: {},
     create: { userId: adminUser.id },
-  });
-
-  // Additional admin account requested by user
-  const produktifUser = await prisma.user.upsert({
-    where: { email: "produktifdinda@gmail.com" },
-    update: {
-      passwordHash: await bcrypt.hash("admin123", 10),
-      role: "ADMIN",
-    },
-    create: {
-      email: "produktifdinda@gmail.com",
-      passwordHash: await bcrypt.hash("admin123", 10),
-      name: "Produktif Dinda",
-      phone: "081234567890",
-      avatarUrl: "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=150&auto=format&fit=crop&q=80",
-      role: "ADMIN",
-    },
-  });
-
-  await prisma.admin.upsert({
-    where: { userId: produktifUser.id },
-    update: {},
-    create: { userId: produktifUser.id },
   });
 
   const teacherUser = await prisma.user.upsert({

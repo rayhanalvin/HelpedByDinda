@@ -91,6 +91,32 @@ export default function AdminPengajarPage() {
     bankAccountName: "",
     rateSessions: [] as { kelasGroup: string; mode: "ONLINE" | "OFFLINE"; rate: number }[],
   });
+  const [quickRate, setQuickRate] = React.useState<Record<string, string>>({});
+  const [savingRateId, setSavingRateId] = React.useState<string | null>(null);
+
+  const handleQuickRateSave = async (pengajarId: string) => {
+    const raw = (quickRate[pengajarId] || "").trim();
+    if (!raw) return;
+    const value = Number(raw);
+    if (Number.isNaN(value)) {
+      toast("Nominal tarif harus berupa angka.", "error");
+      return;
+    }
+    setSavingRateId(pengajarId);
+    try {
+      const result = await apiFetch<{ ok: boolean; data: { id: string; ratePerSession: number; rateSessions: { kelasGroup: string; mode: "ONLINE" | "OFFLINE"; rate: number }[] } }>(`/api/admin/pengajar/${pengajarId}/rate`, {
+        method: "PUT",
+        body: JSON.stringify({ ratePerSession: value }),
+      });
+      setPengajarList((prev) => prev.map((p) => (p.id === pengajarId ? { ...p, ratePerSession: result.data.ratePerSession, rateSessions: result.data.rateSessions } : p)));
+      setQuickRate((prev) => ({ ...prev, [pengajarId]: "" }));
+      toast("Tarif pengajar berhasil disinkronkan.", "success");
+    } catch (error) {
+      toast(error instanceof Error ? error.message : "Gagal menyimpan tarif.", "error");
+    } finally {
+      setSavingRateId(null);
+    }
+  };
 
   const handleOpenAdd = () => {
     setEditingId(null);
@@ -299,6 +325,25 @@ export default function AdminPengajarPage() {
                     <td className="py-3.5 px-4 text-xs text-muted-foreground">{p.phone}</td>
                     <td className="py-3.5 px-4">
                       <div className="font-bold text-emerald-700 tabular-nums">{formatRupiah(p.ratePerSession || p.nominalPerJam)} / sesi</div>
+                      <div className="mt-1.5 flex items-center gap-1">
+                        <Input
+                          type="number"
+                          aria-label={`Set tarif baru untuk ${p.name}`}
+                          placeholder="Set nominal tarif"
+                          value={quickRate[p.id] || ""}
+                          onChange={(e) => setQuickRate((prev) => ({ ...prev, [p.id]: e.target.value }))}
+                          onKeyDown={(e) => {
+                            if (e.key === "Enter") {
+                              e.preventDefault();
+                              void handleQuickRateSave(p.id);
+                            }
+                          }}
+                          className="h-7 w-28 text-[11px]"
+                        />
+                        <Button size="sm" variant="outline" className="h-7 px-2 text-[11px]" isLoading={savingRateId === p.id} onClick={() => handleQuickRateSave(p.id)}>
+                          Simpan
+                        </Button>
+                      </div>
                       {p.rateSessions && p.rateSessions.length > 0 && (
                         <div className="mt-1 flex flex-wrap gap-1">
                           {p.rateSessions.slice(0, 3).map((rate) => (
@@ -406,14 +451,14 @@ export default function AdminPengajarPage() {
             </div>
             <div className="space-y-1.5">
               <label className="text-xs font-semibold text-foreground">Tarif Standar / Sesi (Rp)</label>
-              <Input type="number" required value={formData.ratePerSession} onChange={(e) => setFormData({ ...formData, ratePerSession: Number(e.target.value) })} />
+              <Input type="number" required value={formData.ratePerSession} placeholder="Contoh: 75000" onChange={(e) => setFormData({ ...formData, ratePerSession: Number(e.target.value) })} />
             </div>
           </div>
 
           <div className="space-y-3 border border-border rounded-2xl bg-muted/20 p-4">
             <div>
               <p className="text-sm font-bold text-foreground">Tarif Mengajar per Kelas & Mode</p>
-              <p className="text-xs text-muted-foreground">Setel rate honor berbeda untuk setiap kombinasi jenjang kelas (SD, SMP, SMA, Mahasiswa, UTBK) dan mode (Online / Offline). Tarif ini digunakan untuk sinkronisasi fee pengajar.</p>
+              <p className="text-xs text-muted-foreground">Bebas memasukkan nominal apa pun. Tarif ini otomatis tersinkronisasi ke rekap fee dan halaman pengajar.</p>
             </div>
             <div className="grid grid-cols-1 gap-2">
               {RATE_GROUPS.map((group) => (
@@ -427,7 +472,6 @@ export default function AdminPengajarPage() {
                         <span className="text-[10px] text-muted-foreground font-semibold uppercase w-14">{mode === "ONLINE" ? "Online" : "Offline"}</span>
                         <Input
                           type="number"
-                          min={0}
                           value={value}
                           className="h-8 text-xs"
                           onChange={(e) => {

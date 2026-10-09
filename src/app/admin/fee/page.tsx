@@ -93,7 +93,7 @@ export default function AdminFeePage() {
         await apiFetch(endpoint, { method: "PUT", body: JSON.stringify(body) });
       }
       await loadFees();
-      toast("Fee pengajar berhasil dibayar en tercatat di tracking finance.", "success");
+      toast("Fee pengajar berhasil dibayar dan tercatat di tracking finance.", "success");
     } catch (error) {
       toast(error instanceof Error ? error.message : "Gagal membayar fee pengajar.", "error");
     }
@@ -126,7 +126,7 @@ export default function AdminFeePage() {
         });
       }
       await loadFees();
-      toast("Bukti pembayaran fee berhasil diunggah en gesynchroniseerd naar finance.", "success");
+      toast("Bukti pembayaran fee berhasil diunggah dan tersinkronisasi ke finance.", "success");
     } catch (error) {
       toast(error instanceof Error ? error.message : "Gagal mengunggah bukti fee.", "error");
     }
@@ -155,7 +155,7 @@ export default function AdminFeePage() {
   };
   const syncSelected = async () => {
     if (selectedPengajar.size === 0) {
-      toast("Kies minstens één pengajar die je wilt syncen.", "error");
+      toast("Pilih minimal satu pengajar untuk disinkronkan.", "error");
       return;
     }
     setSyncingSelection(true);
@@ -168,9 +168,9 @@ export default function AdminFeePage() {
         { method: "GET", cache: "no-store" }
       );
       await loadFees();
-      toast("Pengingat selektie gesynchroniseerd met tracking fee.", "success");
+      toast("Seleksi pengajar berhasil disinkronkan ke tracking fee.", "success");
     } catch (error) {
-      toast(error instanceof Error ? error.message : "Gagal synchroniseren selektie.", "error");
+      toast(error instanceof Error ? error.message : "Gagal menyinkronkan seleksi.", "error");
     } finally {
       setSyncingSelection(false);
     }
@@ -251,7 +251,7 @@ export default function AdminFeePage() {
                       className="size-4 accent-primary"
                       checked={selectedPengajar.has(item.id)}
                       onChange={() => togglePengajar(item.id)}
-                      aria-label={`Selekteer ${item.pengajarNama} voor synchronisatie`}
+                      aria-label={`Pilih ${item.pengajarNama} untuk sinkronisasi`}
                     />
                   )}
                   <p className="font-heading font-bold">{item.pengajarNama}</p>

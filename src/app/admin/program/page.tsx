@@ -26,6 +26,8 @@ type Program = {
 
 const emptyForm = { code: "", category: "SMA", title: "", target: "", price: 0, description: "", subjects: "", facilities: "", popular: false, isPublished: true };
 
+const PROGRAM_CATEGORIES = ["SD", "SMP", "SMA/SMK", "Mahasiswa", "UMUM", "UTBK", "Private"];
+
 export default function AdminProgramPage() {
   const { toast } = useToast();
   const [items, setItems] = React.useState<Program[]>([]);
@@ -60,6 +62,10 @@ export default function AdminProgramPage() {
 
   const save = async (event: React.FormEvent) => {
     event.preventDefault();
+    if (!form.category.trim()) {
+      toast("Kategori program wajib diisi.", "error");
+      return;
+    }
     const payload = { ...form, subjects: form.subjects.split("\n").map((item) => item.trim()).filter(Boolean), facilities: form.facilities.split("\n").map((item) => item.trim()).filter(Boolean) };
     try {
       const result = await apiFetch<{ ok: boolean; data: Program }>(editingId ? `/api/admin/program/${editingId}` : "/api/admin/program", { method: editingId ? "PUT" : "POST", body: JSON.stringify(payload) });
@@ -67,7 +73,8 @@ export default function AdminProgramPage() {
       setOpen(false);
       toast("Program belajar berhasil disimpan dan dipublikasikan.", "success");
     } catch (error) {
-      toast(error instanceof Error ? error.message : "Gagal menyimpan program.", "error");
+      const message = error instanceof Error ? error.message : "Gagal menyimpan program.";
+      toast(message, "error");
     }
   };
 
@@ -105,7 +112,23 @@ export default function AdminProgramPage() {
       </div>
       <Modal isOpen={open} onClose={() => setOpen(false)} title={editingId ? "Edit Program" : "Tambah Program"} description="Program akan tersedia di halaman publik setelah disimpan.">
         <form onSubmit={save} className="space-y-3">
-          <div className="grid grid-cols-2 gap-3"><Input required placeholder="Kode unik, contoh: sma" value={form.code} onChange={(e) => setForm({ ...form, code: e.target.value })} /><Input required placeholder="Kategori, contoh: SMA" value={form.category} onChange={(e) => setForm({ ...form, category: e.target.value })} /></div>
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-1.5">
+              <label className="text-xs font-semibold text-foreground">Kode unik (contoh: sma)</label>
+              <Input placeholder="Kosongkan untuk dibuat otomatis dari judul" value={form.code} onChange={(e) => setForm({ ...form, code: e.target.value })} />
+            </div>
+            <div className="space-y-1.5">
+              <label className="text-xs font-semibold text-foreground">Kategori</label>
+              <select className="flex h-11 w-full rounded-xl border border-input bg-card px-3 py-2 text-sm text-foreground" value={form.category} onChange={(e) => setForm({ ...form, category: e.target.value })}>
+                {!PROGRAM_CATEGORIES.includes(form.category) && <option value={form.category}>{form.category}</option>}
+                {PROGRAM_CATEGORIES.map((category) => (
+                  <option key={category} value={category}>
+                    {category}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
           <Input required placeholder="Judul program" value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} />
           <Input placeholder="Target peserta" value={form.target} onChange={(e) => setForm({ ...form, target: e.target.value })} />
           <Input required type="number" min="0" placeholder="Harga per bulan" value={form.price} onChange={(e) => setForm({ ...form, price: Number(e.target.value) })} />

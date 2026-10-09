@@ -35,7 +35,7 @@ export function normalizeRateSessions(value: unknown): PengajarRateValue[] {
     const entry = raw as Record<string, unknown>;
     const kelasGroup = String(entry.kelasGroup || "").trim();
     const mode = String(entry.mode || "ONLINE").toUpperCase() === "OFFLINE" ? "OFFLINE" : "ONLINE";
-    const rate = Math.max(0, Number(entry.rate ?? entry.ratePerSession ?? 0));
+    const rate = Number(entry.rate ?? entry.ratePerSession ?? 0);
     if (!kelasGroup || Number.isNaN(rate)) continue;
     const key = `${kelasGroup}|${mode}`;
     if (seen.has(key)) continue;

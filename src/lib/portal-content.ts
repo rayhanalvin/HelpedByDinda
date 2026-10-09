@@ -12,6 +12,63 @@ function hideEditorHint<T extends { isi: string }>(content: T): T {
   return fallback ? { ...content, isi: fallback } : content;
 }
 
+const FOUNDER_NAME = "Dinda Rizky Febriyanti";
+const FOUNDER_TITLE = "Founder & Academic Director";
+
+const bannerFallbacks = new Map<string, { judul: string; ringkasan: string; isi: string }>([
+  [
+    "login-banner",
+    {
+      judul: "Bimbingan Belajar Modern dan Terarah",
+      ringkasan: `${FOUNDER_NAME}||${FOUNDER_TITLE}||Bimbingan Belajar Modern dan Terarah`,
+      isi: [
+        "Jadwal mengajar dan absensi digital 100% transparan",
+        "Akses materi video Bunny Stream dan modul latihan PDF",
+        "Pembayaran praktis langsung otomatis via Midtrans Snap",
+      ].join("\n"),
+    },
+  ],
+  [
+    "register-banner",
+    {
+      judul: "Mulai Perjalanan Belajar yang Lebih Terarah",
+      ringkasan: `${FOUNDER_NAME}||${FOUNDER_TITLE}||Bangun kebiasaan belajar bersama kami`,
+      isi: [
+        "Jadwal mengajar dan absensi digital 100% transparan",
+        "Akses materi video Bunny Stream dan modul latihan PDF",
+        "Pembayaran praktis langsung otomatis via Midtrans Snap",
+      ].join("\n"),
+    },
+  ],
+]);
+
+function stripAcademicTitle(name: string) {
+  return name
+    .trim()
+    .replace(/\s*,\s*(S\.?\s?[A-Z][A-Za-z.&\s]*|S\.\s?[A-Z]\.?|A\.?[A-Za-z]\.?[A-Za-z]?\.?)\s*$/i, "")
+    .replace(/\s+(S\.?\s?[A-Z][A-Za-z.&\s]*)$/i, "")
+    .trim();
+}
+
+export function sanitizeBannerContent<T extends PortalContent>(content: T): T {
+  const fallback = bannerFallbacks.get(content.slug);
+  if (!fallback) return content;
+
+  const ringkasanSegments = (content.ringkasan || fallback.ringkasan).split("||");
+  const [rawName, rawTitle, rawSub] = ringkasanSegments;
+  const creatorName = stripAcademicTitle(rawName || fallback.ringkasan.split("||")[0]);
+  const creatorTitle = rawTitle?.trim() || FOUNDER_TITLE;
+  const subTitle = rawSub?.trim() || fallback.ringkasan.split("||")[2];
+
+  return {
+    ...content,
+    judul: content.judul?.trim() ? content.judul : fallback.judul,
+    ringkasan: [creatorName, creatorTitle, subTitle].filter(Boolean).join("||"),
+    isi: content.isi?.trim() ? content.isi : fallback.isi,
+    imageUrl: content.imageUrl || null,
+  };
+}
+
 export type PortalContent = {
   id: string;
   kategori: string;
@@ -29,7 +86,9 @@ export type PortalContent = {
 export async function getPortalContent(slug: string) {
   try {
     const content = await prisma.portalKonten.findFirst({ where: { slug, isPublished: true } });
-    return content ? hideEditorHint(content) : null;
+    if (!content) return null;
+    if (bannerFallbacks.has(slug)) return sanitizeBannerContent(hideEditorHint(content));
+    return hideEditorHint(content);
   } catch (error) {
     console.warn("Portal content unavailable:", error instanceof Error ? error.message : error);
     return null;

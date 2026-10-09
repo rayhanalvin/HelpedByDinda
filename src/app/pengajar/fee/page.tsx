@@ -154,7 +154,7 @@ export default function PengajarFeePage() {
             </div>
           </div>
 
-          <p className="text-xs text-muted-foreground">* Fee dihitung berdasarkan **sesi mengajar** (status Hadir / Terlambat) met tarif per sesi yang diatur admin per jenjang kelas & mode.</p>
+          <p className="text-xs text-muted-foreground">* Fee dihitung berdasarkan **sesi mengajar** (status Hadir / Terlambat) dengan tarif per sesi yang diatur admin per jenjang kelas & mode.</p>
           {rateSessions.length > 0 && (
             <div className="rounded-2xl border border-border bg-muted/20 p-4">
               <p className="text-xs font-bold text-foreground">Tarif Sesi per Jenjang & Mode (atur admin)</p>

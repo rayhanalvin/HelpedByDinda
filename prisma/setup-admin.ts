@@ -28,8 +28,7 @@ async function upsertAdmin(email: string, password: string, name: string) {
 }
 
 async function main() {
-  await upsertAdmin("dinda@helpedbydinda.id", "admin123", "Dinda Rizky Febriyanti");
-  await upsertAdmin("cs.helpeddinda@gmail.com", "dindaadmin", "Admin Root");
+  await upsertAdmin("cs.helpeddinda@gmail.com", "dindaadmin", "Dinda Rizky Febriyanti");
 }
 
 main()

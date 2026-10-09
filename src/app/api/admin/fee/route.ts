@@ -91,25 +91,47 @@ export async function PUT(req: Request) {
   if (!session || session.role !== "ADMIN") return NextResponse.json({ ok: false, message: "Unauthorized" }, { status: 401 });
 
   const body = await req.json();
-  const fee = await prisma.fee.findUnique({ where: { id: String(body.id || "") }, include: { pengajar: true } });
+  const fee = await prisma.fee.findUnique({ where: { id: String(body.id || "") }, include: { pengajar: { include: { user: { select: { name: true } } } } } });
   if (!fee) return NextResponse.json({ ok: false, message: "Fee tidak ditemukan." }, { status: 404 });
 
   const payoutMethod = String(body.payoutMethod || "BANK_TRANSFER").toUpperCase();
   if (payoutMethod !== "BANK_TRANSFER") return NextResponse.json({ ok: false, message: "Pembayaran fee hanya tersedia melalui transfer bank." }, { status: 400 });
 
-  const updated = await prisma.fee.update({
-    where: { id: fee.id },
-    data: {
-      status: "PAID",
-      paidAt: body.paidAt ? new Date(String(body.paidAt)) : new Date(),
-      payoutMethod,
-      // snapshot the pengajar payout info at the time of payment
-      payoutBankName: fee.pengajar.bankName,
-      payoutAccountNumber: fee.pengajar.bankAccountNumber,
-      payoutAccountName: fee.pengajar.bankAccountName,
-      payoutReference: String(body.payoutReference || "").trim() || null,
-    },
+  const paidAt = body.paidAt ? new Date(String(body.paidAt)) : new Date();
+  const payoutReference = String(body.payoutReference || "").trim() || null;
+
+  const updated = await prisma.$transaction(async (transaction) => {
+    const result = await transaction.fee.update({
+      where: { id: fee.id },
+      data: {
+        status: "PAID",
+        paidAt,
+        payoutMethod,
+        // snapshot the pengajar payout info at the time of payment
+        payoutBankName: fee.pengajar.bankName,
+        payoutAccountNumber: fee.pengajar.bankAccountNumber,
+        payoutAccountName: fee.pengajar.bankAccountName,
+        payoutReference,
+      },
+    });
+
+    const existingTransaction = await transaction.financeTransaction.findFirst({
+      where: { keterangan: { contains: fee.periode } },
+    });
+    if (!existingTransaction) {
+      await transaction.financeTransaction.create({
+        data: {
+          tanggal: paidAt,
+          tipe: "pengeluaran",
+          kategori: "fee_pengajar",
+          keterangan: `Fee Honor Mengajar - ${fee.pengajar.user?.name || fee.pengajarId} Periode ${fee.periode}${payoutReference ? `, Ref: ${payoutReference}` : ""}`,
+          jumlah: fee.totalFee,
+          status: "dibayar",
+        },
+      });
+    }
+    return result;
   });
 
-  return NextResponse.json({ ok: true, data: updated });
+  return NextResponse.json({ ok: true, data: updated, financeSynced: true });
 }

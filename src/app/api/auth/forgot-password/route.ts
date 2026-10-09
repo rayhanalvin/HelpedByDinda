@@ -52,8 +52,8 @@ export async function POST(req: Request) {
     const passMail = process.env.SMTP_PASS || "";
 
     if (!passMail) {
-      // Fallback: als SMTP nog niet geconfigureerd is, toon de code in respons
-      // zodat de recovery-flow bruikbaar blijft (development mode).
+      // Fallback: bila SMTP belum dikonfigurasi, tampilkan kode pada respons
+      // agar alur pemulihan tetap berfungsi (mode pengembangan).
       return NextResponse.json(
         {
           ok: true,
@@ -88,9 +88,9 @@ export async function POST(req: Request) {
             <div style="text-align: center; margin: 30px 0;">
               <span style="background-color: #6366f1; color: white; padding: 16px 24px; border-radius: 8px; font-weight: bold; font-size: 24px; letter-spacing: 4px; display: inline-block;">${code}</span>
             </div>
-            <p style="color: #64748b; font-size: 13px;">Kode ini alleen geldig voor <strong>1 uur</strong> vanaf nu. Als u deze opdracht niet hebt aangevraagd, negeer deze e-mail dan veilig.</p>
+            <p style="color: #64748b; font-size: 13px;">Kode ini hanya berlaku selama <strong>1 jam</strong> sejak sekarang. Jika Anda tidak meminta pengaturan ulang kata sandi, abaikan email ini dengan aman.</p>
             <hr style="border: 0; border-top: 1px solid #e2e8f0; margin: 20px 0;" />
-            <p style="color: #94a3b8; font-size: 11px; text-align: center;">© ${new Date().getFullYear()} Helped By Dinda. Alle rechten voorbehouden.</p>
+            <p style="color: #94a3b8; font-size: 11px; text-align: center;">© ${new Date().getFullYear()} Helped By Dinda. Seluruh hak cipta dilindungi.</p>
           </div>
         `,
       };
@@ -101,7 +101,7 @@ export async function POST(req: Request) {
       return NextResponse.json(
         {
           ok: true,
-          message: "Mode demo: e-mail kon niet worden verzonden, gebruik de verifikatiecode hieronder.",
+          message: "Mode demo: email tidak dapat dikirim, gunakan kode verifikasi di bawah ini.",
           devCode: code,
         },
         { status: 200 },
