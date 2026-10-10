@@ -45,12 +45,11 @@ export async function GET() {
     });
   }
 
-  const sessies = groeperJadwal(jadwal);
+  const jadwalTerkelompok = groeperJadwal(jadwal);
 
   return NextResponse.json(
     {
-      ok: true,
-      data: sessies.map((sessie) => ({
+      data: jadwalTerkelompok.map((sessie) => ({
         id: sessie.id,
         pengajarId: sessie.pengajarId,
         muridId: sessie.muridId,

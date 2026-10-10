@@ -1,11 +1,12 @@
 import Link from "next/link";
-import { Star, CheckCircle, GraduationCap, Award, ArrowRight } from "lucide-react";
+import { CheckCircle, GraduationCap, Award, ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { prisma } from "@/lib/db";
 import { getPortalContent } from "@/lib/portal-content";
 import { JadwalTersediaPicker } from "@/components/shared/JadwalTersediaPicker";
+import { RatingUlasanPengajar } from "@/components/shared/RatingUlasanPengajar";
 
 export const dynamic = "force-dynamic";
 
@@ -58,10 +59,6 @@ export default async function PengajarPublikPage() {
                     <Badge variant="success" className="gap-1">
                       <CheckCircle className="h-3 w-3" /> Tutor Terverifikasi
                     </Badge>
-                    <div className="flex items-center gap-1 text-amber-500 text-xs font-bold">
-                      <Star className="h-3.5 w-3.5 fill-amber-400" />
-                      <span>4.9 / 5.0 (90+ ulasan)</span>
-                    </div>
                   </div>
 
                   <div>
@@ -79,7 +76,10 @@ export default async function PengajarPublikPage() {
                   </div>
 
                   <div className="pt-3 border-t border-border/60">
+                    <RatingUlasanPengajar pengajarId={tutor.id} pengajarNama={tutor.name} />
+                    <div className="mt-4">
                     <JadwalTersediaPicker pengajarId={tutor.id} pengajarNama={tutor.name} />
+                    </div>
                   </div>
                 </div>
               </CardContent>

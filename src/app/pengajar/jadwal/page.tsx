@@ -169,7 +169,7 @@ export default function PengajarJadwalPage() {
 
   const handleRescheduleAction = async (request: RescheduleRequest, action: "APPROVED" | "REJECTED") => {
     if (processingId) return;
-    if (!confirm(`Disetujui atuh ditolak pengajuan reschedule dari ${request.muridNama}?\n\nLama: ${formatDateIndo(request.tanggalLama)} ${request.jamMulaiLama}-${request.jamSelesaiLama}\nBaru: ${formatDateIndo(request.tanggalBaru)} ${request.jamMulaiBaru}-${request.jamSelesaiBaru}`)) return;
+    if (!confirm(`Setujui atau tolak pengajuan reschedule dari ${request.muridNama}?\n\nLama: ${formatDateIndo(request.tanggalLama)} ${request.jamMulaiLama}-${request.jamSelesaiLama}\nBaru: ${formatDateIndo(request.tanggalBaru)} ${request.jamMulaiBaru}-${request.jamSelesaiBaru}`)) return;
     setProcessingId(request.id);
     try {
       await apiFetch(`/api/reschedule/${request.id}`, { method: "PUT", body: JSON.stringify({ action }) });
@@ -226,7 +226,7 @@ export default function PengajarJadwalPage() {
               Pengajuan Reschedule ({rescheduleList.filter((request) => request.status === "PENDING").length})
             </h2>
           </div>
-          <p className="text-[11px] text-amber-700 mb-3">Murid meminta perubahan tanggal/jam sesi. Anda dapat disetujui atuh ditolak — jadwal terperbarui otomatis.</p>
+          <p className="text-[11px] text-amber-700 mb-3">Murid meminta perubahan tanggal/jam sesi. Anda dapat menyetujui atau menolak — jadwal terbarui otomatis.</p>
           <div className="space-y-2.5">
             {rescheduleList
               .filter((request) => request.status === "PENDING")

@@ -200,7 +200,7 @@ export default function AdminJadwalPage() {
         if (bentrok) {
           setAvailabilityHint("⚠️ Pengajar sudah terisi pada jam ini — jadwal akan diblokkan.");
         } else if (!covered && json.data.ranges.length > 0) {
-          setAvailabilityHint("ℹ️ Jam ini derupan ketersediaan rutin pengajar. Slot lain mungkin lebih sesuai.");
+          setAvailabilityHint("ℹ️ Jam ini berada di luar ketersediaan rutin pengajar. Slot lain mungkin lebih sesuai.");
         } else {
           setAvailabilityHint("");
         }
@@ -232,7 +232,7 @@ export default function AdminJadwalPage() {
   const handleRescheduleAction = async (request: RescheduleRequest, action: "APPROVED" | "REJECTED") => {
     if (processingRequestId) return;
     const label = action === "APPROVED" ? "Disetujui" : "Ditolak";
-    if (!confirm(`Disetujui atuh ditolak pengajuan reschedule dari ${request.muridNama}?\n\nLama: ${formatDateIndo(request.tanggalLama)} ${request.jamMulaiLama}-${request.jamSelesaiLama}\nBaru: ${formatDateIndo(request.tanggalBaru)} ${request.jamMulaiBaru}-${request.jamSelesaiBaru}`)) return;
+    if (!confirm(`Setujui atau tolak pengajuan reschedule dari ${request.muridNama}?\n\nLama: ${formatDateIndo(request.tanggalLama)} ${request.jamMulaiLama}-${request.jamSelesaiLama}\nBaru: ${formatDateIndo(request.tanggalBaru)} ${request.jamMulaiBaru}-${request.jamSelesaiBaru}`)) return;
     setProcessingRequestId(request.id);
     try {
       await apiFetch(`/api/reschedule/${request.id}`, { method: "PUT", body: JSON.stringify({ action }) });
@@ -320,7 +320,7 @@ export default function AdminJadwalPage() {
             </h2>
           </div>
           <p className="text-[11px] text-amber-700 mb-3">
-            Murid meminta perubahan tanggal/jam sesi. Disetujui atuh ditolak — jadwal pengajar diperbarui otomatis.
+            Murid meminta perubahan tanggal/jam sesi. Setujui atau tolak — jadwal pengajar diperbarui otomatis.
           </p>
           <div className="space-y-2.5">
             {rescheduleList

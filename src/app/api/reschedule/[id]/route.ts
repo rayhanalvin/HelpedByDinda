@@ -15,7 +15,7 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
   const { id } = await params;
   const body = (await req.json()) as Record<string, unknown>;
   const action = String(body.action || "").toUpperCase();
-  if (action !== "APPROVED" && action !== "REJECTED") return NextResponse.json({ ok: false, message: "Action tidak valid." }, { status: 400 });
+  if (action !== "APPROVED" && action !== "REJECTED") return NextResponse.json({ ok: false, message: "Aksi tidak valid." }, { status: 400 });
 
   const request = await prisma.rescheduleRequest.findUnique({ where: { id }, include: { jadwal: { select: { id: true, kelompokId: true, pengajarId: true } } } });
   if (!request) return NextResponse.json({ ok: false, message: "Pengajuan reschedule tidak ditemukan." }, { status: 404 });

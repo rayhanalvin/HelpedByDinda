@@ -37,7 +37,7 @@ async function synchronizePayouts(type: FeePeriodType, referenceDate: Date, manu
         pengajarId: teacher.id,
         periodType: type,
         periodKey: period.key,
-        periodLabel: customRange ? `Kustom ${customRange.start.toISOString().slice(0, 10)} - ${customRange.end.toISOString().slice(0, 10)}` : null,
+        periodLabel: customRange ? `Periode Khusus ${customRange.start.toISOString().slice(0, 10)} - ${customRange.end.toISOString().slice(0, 10)}` : null,
         periodStart: period.start,
         periodEnd: period.end,
         totalJam,

@@ -25,13 +25,13 @@ type AvailabilityRule = {
 };
 
 const HARI_OPTIONS = [
-  { value: "MON", label: "Luni" },
-  { value: "TUE", label: "Mardi" },
-  { value: "WED", label: "Mirkuri" },
-  { value: "THU", label: "Juevi" },
-  { value: "FRI", label: "Vendredi" },
-  { value: "SAT", label: "Samedi" },
-  { value: "SUN", label: "Dimanche" },
+  { value: "MON", label: "Senin" },
+  { value: "TUE", label: "Selasa" },
+  { value: "WED", label: "Rabu" },
+  { value: "THU", label: "Kamis" },
+  { value: "FRI", label: "Jumat" },
+  { value: "SAT", label: "Sabtu" },
+  { value: "SUN", label: "Minggu" },
 ];
 
 function formatDateIndoShort(iso: string | null): string {
@@ -198,7 +198,7 @@ export default function PengajarAvailabilityPage() {
         <div className="rounded-2xl border border-dashed border-border p-8 text-center">
           <CalendarClock className="h-10 w-10 text-muted-foreground mx-auto mb-3" />
           <h3 className="text-sm font-bold text-foreground">Belum ada rule tersediaan</h3>
-          <p className="text-xs text-muted-foreground mt-1">Buat rule rutin (hari tertentu setiap minggu) atuh khusus (tanggal spesial) agar murid dapat melihat jadwal tersedia Anda.</p>
+          <p className="text-xs text-muted-foreground mt-1">Buat aturan rutin (hari tertentu setiap minggu) atau khusus (tanggal spesial) agar murid dapat melihat jadwal tersedia Anda.</p>
           <Button variant="accent" size="sm" onClick={openAdd} className="mt-4">
             <Plus className="h-4 w-4" /> Buat pertama Rule Jadwal
           </Button>
@@ -210,9 +210,9 @@ export default function PengajarAvailabilityPage() {
               <CardContent className="p-4">
                 <div className="flex items-center justify-between gap-2">
                   <div className="flex flex-wrap items-center gap-1.5">
-                    <Badge variant={rule.jenis === "RUTINE" ? "default" : "secondary"}>{rule.jenis}</Badge>
+                    <Badge variant={rule.jenis === "RUTINE" ? "default" : "secondary"}>{rule.jenis === "RUTINE" ? "Rutin" : "Khusus"}</Badge>
                     <Badge variant={rule.mode === "ONLINE" ? "outline" : "secondary"}>{rule.mode === "ONLINE" ? "Online" : "Offline"}</Badge>
-                    {!rule.isActive && <Badge variant="destructive">Tidakaktif</Badge>}
+                    {!rule.isActive && <Badge variant="destructive">Tidak Aktif</Badge>}
                   </div>
                   <div className="flex gap-1">
                     <Button
@@ -220,8 +220,8 @@ export default function PengajarAvailabilityPage() {
                       size="sm"
                       onClick={() => toggleActive(rule)}
                       className="p-1 h-7 w-7"
-                      aria-label={rule.isActive ? "Daktif" : "Aktif"}
-                      title={rule.isActive ? "Daktifkan (hapus dari jadwal publik)" : "Aktifkan (menampilkan di jadwal publik)"}
+                      aria-label={rule.isActive ? "Nonaktifkan" : "Aktifkan"}
+                      title={rule.isActive ? "Nonaktifkan (hapus dari jadwal publik)" : "Aktifkan (menampilkan di jadwal publik)"}
                     >
                       <span className={`h-3.5 w-3.5 rounded-full ${rule.isActive ? "bg-emerald-500" : "bg-muted border border-border"}`} />
                     </Button>
@@ -282,7 +282,7 @@ export default function PengajarAvailabilityPage() {
               onChange={(e) => setRuleForm({ ...ruleForm, jenis: e.target.value, hari: e.target.value === "SPECIFIK" ? "" : ruleForm.hari || "MON" })}
             >
               <option value="RUTINE">Rutin — setiap minggu pada hari yang sama</option>
-              <option value="SPECIFIK">Spesifik — tanggal khusus (one-off)</option>
+              <option value="SPECIFIK">Khusus — tanggal tertentu</option>
             </select>
           </div>
 

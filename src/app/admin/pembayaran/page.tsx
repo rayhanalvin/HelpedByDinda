@@ -193,7 +193,7 @@ export default function AdminPembayaranPage() {
   };
 
   const deleteInvoice = async (id: string) => {
-    if (!window.confirm("Hapus invoice deze? Payment gerelateerde zal ook worden verwijderd en murid-zicht wordt direct bijgewerkt.")) return;
+    if (!window.confirm("Hapus invoice ini? Pembayaran terkait juga akan dihapus dan tampilan murid diperbarui langsung.")) return;
     try {
       await apiFetch(`/api/admin/invoice/${id}`, { method: "DELETE" });
       setAdminInvoices((current) => current.filter((inv) => inv.id !== id));

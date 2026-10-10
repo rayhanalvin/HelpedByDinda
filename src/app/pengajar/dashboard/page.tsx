@@ -137,9 +137,9 @@ export default function PengajarDashboardPage() {
         <Card className="border-border shadow-xs">
           <CardContent className="p-5 flex items-center justify-between">
             <div>
-              <p className="text-xs text-muted-foreground font-medium">Estimasi Fee Bulan Ini</p>
+              <p className="text-xs text-muted-foreground font-medium">Estimasi Fee Bulan Ini (Skema Admin)</p>
               <h3 className="text-xl font-bold text-foreground mt-0.5 tabular-nums">{formatRupiah(liveFee.totalFee)}</h3>
-              <p className="text-[11px] text-emerald-600 font-semibold mt-1">{liveFee.totalJam} Jam Mengajar Valid (real-time)</p>
+              <p className="text-[11px] text-emerald-600 font-semibold mt-1">Berdasarkan jumlah siswa × fee/siswa/bulan (real-time)</p>
             </div>
             <div className="h-11 w-11 rounded-2xl bg-emerald-100 text-emerald-700 flex items-center justify-center shrink-0">
               <Coins className="h-5 w-5" />
@@ -151,9 +151,9 @@ export default function PengajarDashboardPage() {
         <Card className="border-border shadow-xs">
           <CardContent className="p-5 flex items-center justify-between">
             <div>
-              <p className="text-xs text-muted-foreground font-medium">Tarif Rate Per Sesi</p>
+              <p className="text-xs text-muted-foreground font-medium">Tarif Contoh Per Sesi</p>
               <h3 className="text-xl font-bold text-foreground mt-0.5 tabular-nums">{formatRupiah(profile.ratePerSession || profile.nominalPerJam)}</h3>
-              <p className="text-[11px] text-muted-foreground mt-1">{profile.rateSessions.length ? `${profile.rateSessions.length} rate kelola admin` : "Tarif Standar Per Sesi"}</p>
+              <p className="text-[11px] text-muted-foreground mt-1">Referensi tarif yang dikelola admin</p>
             </div>
             <div className="h-11 w-11 rounded-2xl bg-purple-100 text-primary flex items-center justify-center shrink-0">
               <Clock className="h-5 w-5" />

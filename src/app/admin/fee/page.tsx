@@ -183,21 +183,21 @@ export default function AdminFeePage() {
     else next.add(id);
     setSelectedPengajar(next);
   };
-  const periodeLabel = viewType === "CUSTOM" ? `Kustom ${customStart} - ${customEnd}` : viewType === "WEEKLY" ? `Minggu ${trackingDate}` : new Date(`${periode}-01T00:00:00`).toLocaleDateString("id-ID", { month: "long", year: "numeric" });
+  const periodeLabel = viewType === "CUSTOM" ? `Periode Khusus ${customStart} - ${customEnd}` : viewType === "WEEKLY" ? `Mingguan ${trackingDate}` : new Date(`${periode}-01T00:00:00`).toLocaleDateString("id-ID", { month: "long", year: "numeric" });
   return (
     <main id="admin-fee-report" className="space-y-6">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between print-report-header">
         <div>
           <p className="text-sm font-semibold text-primary">Rekap pengajar</p>
           <h1 className="mt-1 font-heading text-3xl font-extrabold">Fee & Gaji Pengajar</h1>
-          <p className="mt-2 text-muted-foreground">Rekap fee berdasarkan jam mengajar valid dan periode pembayaran yang dipilih.</p>
+            <p className="mt-2 text-muted-foreground">Rekap fee berdasarkan skema fee yang ditetapkan (jumlah siswa × fee per siswa per bulan) dan periode pembayaran yang dipilih.</p>
         </div>
         <div className="flex w-full flex-wrap gap-2 print-hidden sm:w-auto">
           {viewType === "CUSTOM" ? (
             <>
-              <Input aria-label="Tanggal start periode kustom" type="date" value={customStart} onChange={(event) => setCustomStart(event.target.value)} className="w-auto" />
+              <Input aria-label="Tanggal mulai periode khusus" type="date" value={customStart} onChange={(event) => setCustomStart(event.target.value)} className="w-auto" />
               <span className="text-xs text-muted-foreground">tot</span>
-              <Input aria-label="Tanggal end periode kustom" type="date" value={customEnd} onChange={(event) => setCustomEnd(event.target.value)} className="w-auto" />
+              <Input aria-label="Tanggal akhir periode khusus" type="date" value={customEnd} onChange={(event) => setCustomEnd(event.target.value)} className="w-auto" />
               <Input aria-label="Nominal per sesi manual" placeholder="Nominal/sesi" value={manualNominal} onChange={(event) => setManualNominal(event.target.value)} className="w-auto" />
               <Input aria-label="Total fee manual" placeholder="Total fee manual" value={manualTotalFee} onChange={(event) => setManualTotalFee(event.target.value)} className="w-auto" />
             </>
@@ -212,14 +212,14 @@ export default function AdminFeePage() {
           >
             <option value="MONTHLY">Bulanan</option>
             <option value="WEEKLY">Mingguan</option>
-            <option value="CUSTOM">Kustom</option>
+            <option value="CUSTOM">Periode Khusus</option>
           </select>
           <Button variant="outline" onClick={generateFees}>
             <RefreshCw size={16} /> Generate rekap
           </Button>
           {viewType !== "MONTHLY" && (
             <Button variant="secondary" isLoading={syncingSelection} onClick={syncSelected}>
-              <RefreshCw size={16} /> Sync {selectedPengajar.size || "selektie"}
+              <RefreshCw size={16} /> Sinkronkan {selectedPengajar.size || "seleksi"}
             </Button>
           )}
           <Button variant="secondary" onClick={() => window.print()}>

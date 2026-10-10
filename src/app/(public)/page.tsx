@@ -12,6 +12,7 @@ export const dynamic = "force-dynamic";
 export default async function HomePage() {
   let beritaTerbaru: Array<{ id: string; slug: string; judul: string; ringkasan: string | null; isi: string; thumbnailUrl: string | null; kategori: string; createdAt: Date }> = [];
   let pengajar: Array<{ id: string; name: string; avatarUrl: string | null; spesialisasi: string; bio: string | null }> = [];
+  const ratingByPengajar = new Map<string, { average: number; total: number }>();
   const programs: Array<{ id: string; category: string; title: string; target: string; price: number; description: string; popular: boolean }> = [];
   const portalContent = await getPortalContent("beranda");
 
@@ -42,6 +43,25 @@ export default async function HomePage() {
     }));
   } catch (error) {
     console.warn("Homepage teachers unavailable:", error instanceof Error ? error.message : error);
+  }
+
+  try {
+    const assessments = await prisma.asesmenPengajar.findMany({
+      where: { status: { in: ["TERKIRIM", "TERBIT"] } },
+      select: { pengajarId: true, rating: true },
+    });
+    const grouped = new Map<string, number[]>();
+    for (const item of assessments) {
+      const list = grouped.get(item.pengajarId) || [];
+      list.push(item.rating);
+      grouped.set(item.pengajarId, list);
+    }
+    for (const [pengajarId, ratings] of grouped) {
+      const average = ratings.reduce((sum, rating) => sum + rating, 0) / ratings.length;
+      ratingByPengajar.set(pengajarId, { average: Math.round(average * 10) / 10, total: ratings.length });
+    }
+  } catch (error) {
+    console.warn("Homepage ratings unavailable:", error instanceof Error ? error.message : error);
   }
 
   try {
@@ -245,7 +265,9 @@ export default async function HomePage() {
               <p className="text-xs text-muted-foreground mt-3 line-clamp-3 leading-relaxed">{tutor.bio || "Pengajar berpengalaman Helped By Dinda."}</p>
               <div className="mt-4 pt-3 border-t border-border w-full flex items-center justify-center gap-1 text-amber-500 text-xs font-bold">
                 <Star className="h-4 w-4 fill-amber-400" />
-                <span>4.9 / 5.0 rating</span>
+                <span>
+                  {ratingByPengajar.has(tutor.id) ? `${ratingByPengajar.get(tutor.id)!.average.toFixed(1)} / 5.0 (${ratingByPengajar.get(tutor.id)!.total} ulasan)` : "Belum ada ulasan"}
+                </span>
               </div>
             </div>
           ))}

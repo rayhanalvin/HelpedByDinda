@@ -96,7 +96,7 @@ export async function POST(req: Request) {
   const active = await prisma.rescheduleRequest.findFirst({
     where: { jadwalId, muridId: jadwal.muridId, status: "PENDING" },
   });
-  if (active) return NextResponse.json({ ok: false, message: "Pengajuan reschedule untuk sesi ini sedang pending. Tersabur atuh admin." }, { status: 409 });
+  if (active) return NextResponse.json({ ok: false, message: "Pengajuan reschedule untuk sesi ini sedang diproses. Silakan tunggu keputusan admin." }, { status: 409 });
 
   const conflict = await hasTeacherConflict(jadwal.pengajarId, tanggalBaru, jamMulaiBaru, jamSelesaiBaru, [jadwal.id]);
   if (conflict) return NextResponse.json({ ok: false, message: "Pengajar sudah terisi pada jam pengganti tersebut. Pilih slot lain." }, { status: 409 });

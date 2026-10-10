@@ -58,14 +58,20 @@ export async function GET(req: Request) {
     orderBy: { createdAt: "asc" },
   });
   const feeKelasBulanan = kelasList.reduce((sum, kelas) => sum + (kelas.jumlahSiswa || 0) * (kelas.feePerSiswa || 0), 0);
+  const jumlahSiswaKelas = kelasList.reduce((sum, kelas) => sum + (kelas.jumlahSiswa || 0), 0);
+  const activeFee = fees.find((fee) => fee.periode === currentPeriod) || null;
+  const fallbackFeeTotal = activeFee ? activeFee.totalFee : totalFeeLive;
+  // Skema admin: fee bulanan dihitung dari jumlah siswa × fee per siswa per kelas
+  const totalFeePerStudent = feeKelasBulanan > 0 ? feeKelasBulanan : fallbackFeeTotal;
 
   return NextResponse.json({
     ok: true,
     currentPeriod,
     periode: currentPeriod,
     totalJam: totalJamLive,
-    totalFee: totalFeeLive,
+    totalFee: totalFeePerStudent,
     feeKelasBulanan,
+    jumlahSiswaKelas,
     kelasBulanan: kelasList.map((kelas) => ({
       id: kelas.id,
       namaKelas: kelas.namaKelas,
@@ -87,7 +93,7 @@ export async function GET(req: Request) {
       totalJam: fee.periode === currentPeriod ? totalJamLive : fee.totalJam,
       nominalPerJam: fee.nominalPerJam,
       ratePerSession: fallbackRate,
-      totalFee: fee.periode === currentPeriod ? totalFeeLive : fee.totalFee,
+      totalFee: fee.periode === currentPeriod ? totalFeePerStudent : fee.totalFee,
       status: fee.status,
       teacherBankName: fee.payoutBankName ?? pengajar.bankName,
       teacherAccountNumber: fee.payoutAccountNumber ?? pengajar.bankAccountNumber,
@@ -100,6 +106,13 @@ export async function GET(req: Request) {
       paymentProofUploadedAt: fee.paymentProofUploadedAt,
       paidAt: fee.paidAt,
     })),
+    monthlyStatus: activeFee?.status || "PENDING",
+    monthlyPaidAt: activeFee?.paidAt ? activeFee.paidAt.toISOString() : null,
+    monthlyPayoutReference: activeFee?.payoutReference || null,
+    monthlyPayoutMethod: activeFee?.payoutMethod || null,
+    paymentProofData: activeFee?.paymentProofData || null,
+    paymentProofName: activeFee?.paymentProofName || null,
+    paymentProofMimeType: activeFee?.paymentProofMimeType || null,
     payouts: payouts.map((payout) => ({
       id: payout.id,
       periodType: payout.periodType,

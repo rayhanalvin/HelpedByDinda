@@ -575,7 +575,7 @@ export default function AdminMuridPage() {
                 </div>
                 <div className="space-y-1">
                   <label className="text-[10px] font-semibold text-muted-foreground">Sekolah / Kampus</label>
-                  <Input placeholder="Nama sekolah atuh kampus" value={formData.sekolah} onChange={(e) => setFormData({ ...formData, sekolah: e.target.value })} />
+                  <Input placeholder="Nama sekolah atau kampus" value={formData.sekolah} onChange={(e) => setFormData({ ...formData, sekolah: e.target.value })} />
                 </div>
               </div>
               <div className="space-y-1">

@@ -18,12 +18,12 @@ export async function GET() {
     orderBy: { tanggal: "asc" },
   });
 
-  const sessies = groeperJadwal(jadwal);
+  const jadwalTerkelompok = groeperJadwal(jadwal);
 
   return NextResponse.json(
     {
       ok: true,
-      data: sessies.map((item) => ({
+      data: jadwalTerkelompok.map((item) => ({
         id: item.id,
         pengajarId: item.pengajarId,
         muridId: item.muridId,

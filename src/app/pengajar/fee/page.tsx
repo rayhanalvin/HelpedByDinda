@@ -11,6 +11,7 @@ import * as ApiTypes from "@/types/api";
 import { formatRupiah, formatDateIndo } from "@/lib/utils";
 import { useVisiblePolling } from "@/lib/use-visible-polling";
 import { Download, FileCheck, Receipt } from "lucide-react";
+import { Users } from "lucide-react";
 
 type AttendanceRow = {
   id: string;
@@ -63,6 +64,9 @@ export default function PengajarFeePage() {
   const [liveSummary, setLiveSummary] = React.useState({ periode: "", totalJam: 0, totalFee: 0 });
   const [kelasBulanan, setKelasBulanan] = React.useState<KelasFeeRow[]>([]);
   const [feeKelasBulanan, setFeeKelasBulanan] = React.useState(0);
+  const [jumlahSiswaKelas, setJumlahSiswaKelas] = React.useState(0);
+  const [monthlyStatus, setMonthlyStatus] = React.useState("PENDING");
+  const [paymentProof, setPaymentProof] = React.useState<{ data: string | null; name: string | null; mimeType: string | null }>({ data: null, name: null, mimeType: null });
 
   // Invoice state
   type InvoiceRow = { id: string; title?: string | null; periode?: string | null; fileName?: string | null; createdAt?: string | null };
@@ -111,6 +115,12 @@ export default function PengajarFeePage() {
           totalFee: number;
           feeKelasBulanan?: number;
           kelasBulanan?: KelasFeeRow[];
+          jumlahSiswaKelas?: number;
+          monthlyStatus?: string;
+          monthlyPaidAt?: string | null;
+          paymentProofData?: string | null;
+          paymentProofName?: string | null;
+          paymentProofMimeType?: string | null;
         }>(`/api/profile/fee?periode=${new Date().toISOString().slice(0, 7)}`),
         apiFetch<{ ok: boolean; user: { pengajar: { nominalPerJam: number } | null } }>("/api/profile"),
       ]);
@@ -124,6 +134,13 @@ export default function PengajarFeePage() {
       });
       setKelasBulanan(feeRes.kelasBulanan || []);
       setFeeKelasBulanan(feeRes.feeKelasBulanan || 0);
+      setJumlahSiswaKelas(feeRes.jumlahSiswaKelas || 0);
+      setMonthlyStatus(feeRes.monthlyStatus || "PENDING");
+      setPaymentProof({
+        data: feeRes.paymentProofData || feeRes.data?.[0]?.paymentProofData || null,
+        name: feeRes.paymentProofName || feeRes.data?.[0]?.paymentProofName || null,
+        mimeType: feeRes.paymentProofMimeType || feeRes.data?.[0]?.paymentProofMimeType || null,
+      });
       setProfile({
         nominalPerJam: profileRes.user.pengajar?.nominalPerJam || feeRes.data?.[0]?.nominalPerJam || 0,
         ratePerSession: feeRes.ratePerSession || profileRes.user.pengajar?.nominalPerJam || 0,
@@ -159,8 +176,8 @@ export default function PengajarFeePage() {
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div className="flex items-center gap-2">
               <Badge variant="default" className="bg-primary text-white">Periode: {liveSummary.periode || feeCurrent?.periode}</Badge>
-              <Badge variant={feeCurrent?.status === "PAID" || feeCurrent?.status === "dibayar" ? "success" : "warning"}>
-                {feeCurrent?.status === "PAID" || feeCurrent?.status === "dibayar" ? "SUDAH DITRANSFER" : "MENUNGGU PEMBAYARAN ADMIN"}
+              <Badge variant={monthlyStatus === "PAID" ? "success" : "warning"}>
+                {monthlyStatus === "PAID" ? "SUDAH DITRANSFER" : "MENUNGGU PEMBAYARAN ADMIN"}
               </Badge>
             </div>
             <span className="text-xs text-muted-foreground">Diperbarui real-time dari absensi • Cut-off: akhir bulan</span>
@@ -168,25 +185,25 @@ export default function PengajarFeePage() {
 
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 p-6 rounded-2xl bg-card border border-border">
             <div>
-              <p className="text-xs text-muted-foreground font-medium">Total Jam Mengajar</p>
-              <h3 className="text-3xl font-black text-foreground tabular-nums mt-1">{liveSummary.totalJam} Jam</h3>
-              <p className="text-[11px] text-emerald-600 mt-1">Presensi hadir terverifikasi (live)</p>
+              <p className="text-xs text-muted-foreground font-medium">Jumlah Siswa Aktif</p>
+              <h3 className="text-3xl font-black text-foreground tabular-nums mt-1">{jumlahSiswaKelas} Siswa</h3>
+              <p className="text-[11px] text-emerald-600 mt-1">Berdasarkan data kelas yang diampu (admin)</p>
             </div>
 
             <div>
-              <p className="text-xs text-muted-foreground font-medium">Tarif Rate Per Sesi</p>
-              <h3 className="text-3xl font-black text-primary tabular-nums mt-1">{formatRupiah(profile.ratePerSession || profile.nominalPerJam)}</h3>
-              <p className="text-[11px] text-muted-foreground mt-1">Rate honor per sesi mengajar</p>
+              <p className="text-xs text-muted-foreground font-medium">Fee Rata-rata / Siswa / Bulan</p>
+              <h3 className="text-3xl font-black text-primary tabular-nums mt-1">{formatRupiah(jumlahSiswaKelas > 0 ? Math.round(feeKelasBulanan / jumlahSiswaKelas) : 0)}</h3>
+              <p className="text-[11px] text-muted-foreground mt-1">Sesuai skema fee yang ditetapkan admin</p>
             </div>
 
             <div>
-              <p className="text-xs text-muted-foreground font-medium">Total Fee Terhitung</p>
+              <p className="text-xs text-muted-foreground font-medium">Total Fee Bulanan (Skema Admin)</p>
               <h3 className="text-3xl font-black text-emerald-700 tabular-nums mt-1">{formatRupiah(liveSummary.totalFee)}</h3>
-              <p className="text-[11px] text-muted-foreground mt-1">{feeCurrent?.status === "dibayar" ? "Sudah disalurkan" : "Akan dibayarkan tgl 5 bulan depan"}</p>
+              <p className="text-[11px] text-muted-foreground mt-1">{monthlyStatus === "PAID" ? "Sudah disalurkan" : "Akan dibayarkan tgl 5 bulan depan"}</p>
             </div>
           </div>
 
-          <p className="text-xs text-muted-foreground">* Fee dihitung real-time berdasarkan sesi mengajar (status Hadir / Terlambat) dengan tarif per sesi yang diatur admin per jenjang kelas & mode.</p>
+          <p className="text-xs text-muted-foreground">* Fee bulanan dihitung berdasarkan jumlah siswa aktif × fee per siswa per bulan yang ditetapkan admin. Status pembayaran tersinkronasi dengan rekap admin secara real-time.</p>
           {rateSessions.length > 0 && (
             <div className="rounded-2xl border border-border bg-muted/20 p-4">
               <p className="text-xs font-bold text-foreground">Tarif Sesi per Jenjang & Mode (atur admin)</p>
@@ -199,13 +216,13 @@ export default function PengajarFeePage() {
               </div>
             </div>
           )}
-          {feeCurrent?.paymentProofData && (
+          {paymentProof.data && (
             <button
               type="button"
-              onClick={() => setPreviewProof({ name: feeCurrent.paymentProofName || "Bukti Pembayaran", url: feeCurrent.paymentProofData!, mimeType: feeCurrent.paymentProofMimeType || null })}
+              onClick={() => setPreviewProof({ name: paymentProof.name || "Bukti Pembayaran", url: paymentProof.data!, mimeType: paymentProof.mimeType })}
               className="inline-flex items-center gap-1 text-sm font-semibold text-primary hover:underline"
             >
-              <ExternalLink className="h-4 w-4" /> Pratinjau Bukti Pembayaran Fee{feeCurrent.paymentProofName ? ` (${feeCurrent.paymentProofName})` : ""}
+              <ExternalLink className="h-4 w-4" /> Pratinjau Bukti Pembayaran Fee{paymentProof.name ? ` (${paymentProof.name})` : ""}
             </button>
           )}
         </CardContent>
@@ -219,12 +236,12 @@ export default function PengajarFeePage() {
               <FileText className="h-4 w-4 text-primary" /> Rincian Fee Bulanan per Kelas
               <Badge variant="default" className="text-[10px]">Sync Admin</Badge>
             </CardTitle>
-            <CardDescription>Fee bulanan terbasis op aantal actieve studenten per klas × nominal fee per student per maand (instelling door admin).</CardDescription>
+            <CardDescription>Fee bulanan dihitung dari jumlah siswa aktif per kelas × nominal fee per siswa per bulan (ditetapkan oleh admin).</CardDescription>
           </CardHeader>
           <CardContent>
             <div className="rounded-2xl border border-border bg-muted/20 p-4 mb-4 grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
-                <p className="text-[11px] text-muted-foreground">Aantal Klasse Diampu</p>
+                <p className="text-[11px] text-muted-foreground">Jumlah Kelas Diampu</p>
                 <p className="text-xl font-black text-foreground tabular-nums">{kelasBulanan.length}</p>
               </div>
               <div>
@@ -287,8 +304,8 @@ export default function PengajarFeePage() {
       {payouts.length > 0 && (
         <Card className="border-border shadow-xs">
           <CardHeader>
-            <CardTitle className="text-lg">Histori Tracking Fee (Mingguan / Kustom)</CardTitle>
-            <CardDescription>Rekap fee yang disinkronisasi dari admin untuk periode mingguan dan kustom</CardDescription>
+            <CardTitle className="text-lg">Histori Pelacakan Fee (Mingguan / Periode Khusus)</CardTitle>
+            <CardDescription>Rekap fee yang disinkronkan dari admin untuk periode mingguan dan periode khusus</CardDescription>
           </CardHeader>
           <CardContent>
             <div className="overflow-x-auto">
@@ -307,7 +324,7 @@ export default function PengajarFeePage() {
                   {payouts.map((payout) => (
                     <tr key={payout.id} className="hover:bg-muted/30 transition-colors">
                       <td className="py-3.5 px-4 font-semibold text-foreground text-xs">
-                        {payout.periodLabel || `${payout.periodType} ${payout.periodKey}`}
+                        {payout.periodLabel || `${payout.periodType === "WEEKLY" ? "Mingguan" : "Periode Khusus"} ${payout.periodKey}`}
                       </td>
                       <td className="py-3.5 px-4 text-xs font-bold tabular-nums">{payout.totalJam}</td>
                       <td className="py-3.5 px-4 text-xs tabular-nums">{formatRupiah(payout.nominalPerJam)}</td>
@@ -316,7 +333,7 @@ export default function PengajarFeePage() {
                       </td>
                       <td className="py-3.5 px-4">
                         <Badge variant={payout.status === "PAID" ? "success" : "warning"}>
-                          {payout.status === "PAID" ? "DIBYAR" : "PENDING"}
+                          {payout.status === "PAID" ? "SUDAH DIBAYAR" : "MENUNGGU"}
                         </Badge>
                       </td>
                       <td className="py-3.5 px-4 text-xs text-muted-foreground">{payout.paidAt ? formatDateIndo(payout.paidAt) : "-"}</td>

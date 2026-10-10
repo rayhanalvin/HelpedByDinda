@@ -132,6 +132,11 @@ export async function PUT(req: Request) {
         },
       });
     }
+    // Sinkronkan status ke tracking FeePayout bulanan agar tampilan pengajar konsisten
+    await transaction.feePayout.updateMany({
+      where: { pengajarId: fee.pengajarId, periodType: "MONTHLY", periodKey: fee.periode },
+      data: { status: "PAID", paidAt: result.paidAt ?? paidAt, payoutMethod: result.payoutMethod, payoutReference: result.payoutReference, totalFee: result.totalFee },
+    });
     return result;
   });
 

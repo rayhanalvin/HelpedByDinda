@@ -1,6 +1,26 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { getSessionUser } from "@/lib/auth-session";
+import { hasTeacherConflict, toDateKey } from "@/lib/jadwal-availability";
+
+const HARI_ALIAS: Record<string, string> = {
+  SENIN: "MON",
+  SELASA: "TUE",
+  RABU: "WED",
+  KAMIS: "THU",
+  JUMAT: "FRI",
+  JUM_AT: "FRI",
+  SABTU: "SAT",
+  MINGGU: "SUN",
+  AHAD: "SUN",
+};
+
+function normalizeHari(value: string | null | undefined): string | null {
+  const raw = String(value || "").trim().toUpperCase();
+  if (!raw) return null;
+  if (/^(MON|TUE|WED|THU|FRI|SAT|SUN)$/.test(raw)) return raw;
+  return HARI_ALIAS[raw] || raw || null;
+}
 
 function serializeRule(rule: {
   id: string;
@@ -52,7 +72,16 @@ export async function POST(req: Request) {
     return NextResponse.json({ ok: false, message: "Jam mulai dan selesai tidak valid." }, { status: 400 });
   }
   const tanggal = body.tanggal && /^\d{4}-\d{2}-\d{2}$/.test(String(body.tanggal)) ? new Date(`${String(body.tanggal)}T00:00:00Z`) : null;
-  const hari = jenis === "SPECIFIK" ? null : String(body.hari || "").trim() || null;
+  const hari = jenis === "SPECIFIK" ? null : normalizeHari(String(body.hari || ""));
+  const jamMulaiNormalized = String(body.jamMulai || "").trim();
+  const jamSelesaiNormalized = String(body.jamSelesai || "").trim();
+  let bentrok = false;
+  if (tanggal) {
+    bentrok = await hasTeacherConflict(pengajar.id, toDateKey(tanggal), jamMulaiNormalized, jamSelesaiNormalized);
+  }
+  if (bentrok) {
+    return NextResponse.json({ ok: false, message: "Slot tersebut sudah terisi jadwal mengajar. Gunakan ketersediaan pada jam lain." }, { status: 409 });
+  }
   if (jenis === "SPECIFIK" && !tanggal) return NextResponse.json({ ok: false, message: "Tanggal wajib untuk jadwal khusus." }, { status: 400 });
   if (jenis === "RUTINE" && !hari) return NextResponse.json({ ok: false, message: "Hari wajib untuk jadwal rutin." }, { status: 400 });
   const rule = await prisma.pengajarAvailability.create({

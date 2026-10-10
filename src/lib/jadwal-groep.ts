@@ -1,5 +1,5 @@
-// Helper om jadwal-rijen per groep te groeperen: één sessie per kelompokId,
-// met alle groepsleden in `leden`. Private sessies blijven één op één.
+// Helper untuk mengelompokkan baris jadwal per kelompok: satu sesi per kelompokId,
+// dengan semua anggota kelompok di `leden`. Sesi privat tetap satu lawan satu.
 
 export type JadwalGroepLid = {
   muridId: string;

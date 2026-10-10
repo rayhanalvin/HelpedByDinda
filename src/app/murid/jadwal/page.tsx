@@ -139,7 +139,7 @@ export default function MuridJadwalPage() {
         method: "POST",
         body: JSON.stringify({ jadwalId: rescheduleTarget.id, ...rsForm }),
       });
-      toast("Pengajuan reschedule disubmit. Admin/Pengajar akan disetujui atuh ditolak.", "success");
+      toast("Pengajuan reschedule terkirim. Admin/Pengajar akan menyetujui atau menolak.", "success");
       setRescheduleTarget(null);
       apiFetch<{ ok: boolean; data: { id: string; jadwalId: string; mataPelajaran: string; tanggalLama: string; jamMulaiLama: string; jamSelesaiLama: string; tanggalBaru: string; jamMulaiBaru: string; jamSelesaiBaru: string; status: string; catatan: string | null }[] }>("/api/reschedule")
         .then((res) => res.ok && setRequests(res.data))
@@ -320,7 +320,7 @@ export default function MuridJadwalPage() {
                     {slot.start} – {slot.end}
                   </button>
                 ))}
-                {!rsSlots.length && !loadingSlots && <p className="text-xs text-muted-foreground">Pilih tanggal pengganti atuh jadwal tersedia akan tampil.</p>}
+                {!rsSlots.length && !loadingSlots && <p className="text-xs text-muted-foreground">Pilih tanggal pengganti dan jadwal tersedia akan tampil.</p>}
               </div>
             )}
           </div>
@@ -337,7 +337,7 @@ export default function MuridJadwalPage() {
           </div>
 
           <p className="text-[11px] text-muted-foreground flex items-center gap-1">
-            <CheckCircle2 className="h-3 w-3 text-primary" /> Pengajuan akan direvisi biro admin atuh pengajar. Jadwal awal tetap berlaku hingga disetujui.
+            <CheckCircle2 className="h-3 w-3 text-primary" /> Pengajuan akan direvisi oleh admin atau pengajar. Jadwal awal tetap berlaku hingga disetujui.
           </p>
 
           <div className="flex justify-end gap-2 pt-2">
