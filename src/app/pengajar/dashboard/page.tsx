@@ -11,6 +11,7 @@ import { apiFetch } from "@/lib/api";
 import * as ApiTypes from "@/types/api";
 import { formatRupiah, formatDateIndo } from "@/lib/utils";
 import { useVisiblePolling } from "@/lib/use-visible-polling";
+import { renderRuanganLink } from "@/lib/ruangan-link";
 
 type Schedule = {
   id: string;
@@ -217,7 +218,7 @@ export default function PengajarDashboardPage() {
                     </div>
                     <h4 className="font-bold text-base text-foreground">{item.mataPelajaran}</h4>
                     <p className="text-xs text-muted-foreground">
-                      Murid: <span className="font-semibold text-foreground">{item.muridNama}</span> • Ruang: {item.ruangan}
+                      Murid: <span className="font-semibold text-foreground">{item.muridNama}</span> • Ruang: {renderRuanganLink(item.ruangan)}
                     </p>
                   </div>
 

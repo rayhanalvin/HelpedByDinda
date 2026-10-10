@@ -31,6 +31,12 @@ export async function GET(req: Request) {
   });
 
   const filtered = role ? absensi.filter((a) => (role === "PENGAJAR" ? a.userId === a.jadwal.pengajar.userId : a.userId !== a.jadwal.pengajar.userId)) : absensi;
+  const kelompokIds = Array.from(new Set(filtered.map((item) => item.jadwal.kelompokId).filter((id): id is string => Boolean(id))));
+  const groupCounts = new Map<string, number>();
+  if (kelompokIds.length) {
+    const groups = await prisma.jadwal.groupBy({ by: ["kelompokId"], where: { kelompokId: { in: kelompokIds } }, _count: { _all: true } });
+    for (const group of groups) groupCounts.set(group.kelompokId as string, group._count._all);
+  }
 
   return NextResponse.json(
     {
@@ -59,6 +65,9 @@ export async function GET(req: Request) {
         jamMulai: item.jadwal.jamMulai,
         jamSelesai: item.jadwal.jamSelesai,
         mode: item.jadwal.mode,
+        kelompokId: item.jadwal.kelompokId,
+        kelompokNama: item.jadwal.kelompokNama,
+        jumlahLeden: item.jadwal.kelompokId ? groupCounts.get(item.jadwal.kelompokId) || 1 : 1,
       })),
     },
     { headers: { "Cache-Control": "no-store, no-cache, must-revalidate" } },

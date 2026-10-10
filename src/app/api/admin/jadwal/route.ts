@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { getSessionUser } from "@/lib/auth-session";
 import { hasTeacherConflict, utcDayRange, toDateKey } from "@/lib/jadwal-availability";
+import { groeperJadwal } from "@/lib/jadwal-groep";
 
 export async function GET() {
   const session = await getSessionUser();
@@ -17,15 +18,20 @@ export async function GET() {
     orderBy: { tanggal: "asc" },
   });
 
+  const sessies = groeperJadwal(jadwal);
+
   return NextResponse.json(
     {
       ok: true,
-      data: jadwal.map((item) => ({
+      data: sessies.map((item) => ({
         id: item.id,
         pengajarId: item.pengajarId,
         muridId: item.muridId,
         kelompokId: item.kelompokId,
         kelompokNama: item.kelompokNama,
+        kelompokMurid: item.kelompokMurid,
+        isGroep: item.isGroep,
+        leden: item.leden,
         startedAt: item.startedAt || null,
         mataPelajaran: item.mataPelajaran,
         tanggal: item.tanggal,
@@ -35,8 +41,8 @@ export async function GET() {
         ruangan: item.ruangan,
         catatan: item.catatan,
         status: item.status,
-        pengajar: item.pengajar.user.name,
-        murid: item.murid.user.name,
+        pengajar: item.pengajar,
+        murid: item.murid,
       })),
     },
     { headers: { "Cache-Control": "no-store" } },

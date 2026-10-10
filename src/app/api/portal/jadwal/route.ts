@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { getSessionUser } from "@/lib/auth-session";
 import { requireMuridPaid, requireMuridOnboarded } from "@/lib/murid-guards";
+import { groeperJadwal } from "@/lib/jadwal-groep";
 
 export async function GET() {
   const session = await getSessionUser();
@@ -44,37 +45,31 @@ export async function GET() {
     });
   }
 
-  const groupIds = Array.from(new Set(jadwal.map((schedule) => schedule.kelompokId).filter((id): id is string => Boolean(id))));
-  const groupedSchedules = groupIds.length ? await prisma.jadwal.findMany({ where: { kelompokId: { in: groupIds } }, include: { murid: { include: { user: { select: { name: true } } } } } }) : [];
-  const participantsByGroup = new Map<string, string[]>();
-  for (const schedule of groupedSchedules) {
-    if (!schedule.kelompokId) continue;
-    const names = participantsByGroup.get(schedule.kelompokId) || [];
-    if (!names.includes(schedule.murid.user.name)) names.push(schedule.murid.user.name);
-    participantsByGroup.set(schedule.kelompokId, names);
-  }
+  const sessies = groeperJadwal(jadwal);
 
   return NextResponse.json(
     {
       ok: true,
-      data: jadwal.map((item) => ({
-        id: item.id,
-        pengajarId: item.pengajarId,
-        muridId: item.muridId,
-        kelompokId: item.kelompokId,
-        kelompokNama: item.kelompokNama,
-        kelompokMurid: item.kelompokId ? participantsByGroup.get(item.kelompokId) || [item.murid.user.name] : [],
-        mataPelajaran: item.mataPelajaran,
-        startedAt: item.startedAt || null,
-        tanggal: item.tanggal,
-        jamMulai: item.jamMulai,
-        jamSelesai: item.jamSelesai,
-        mode: item.mode.toLowerCase() as "online" | "offline",
-        ruangan: item.ruangan,
-        catatan: item.catatan,
-        status: item.status,
-        pengajarNama: item.pengajar.user.name,
-        muridNama: item.murid.user.name,
+      data: sessies.map((sessie) => ({
+        id: sessie.id,
+        pengajarId: sessie.pengajarId,
+        muridId: sessie.muridId,
+        kelompokId: sessie.kelompokId,
+        kelompokNama: sessie.kelompokNama,
+        kelompokMurid: sessie.kelompokMurid,
+        isGroep: sessie.isGroep,
+        leden: sessie.leden,
+        mataPelajaran: sessie.mataPelajaran,
+        startedAt: sessie.startedAt || null,
+        tanggal: sessie.tanggal,
+        jamMulai: sessie.jamMulai,
+        jamSelesai: sessie.jamSelesai,
+        mode: sessie.mode.toLowerCase() as "online" | "offline",
+        ruangan: sessie.ruangan,
+        catatan: sessie.catatan,
+        status: sessie.status,
+        pengajarNama: sessie.pengajar,
+        muridNama: sessie.murid,
       })),
     },
     { headers: { "Cache-Control": "no-store" } },

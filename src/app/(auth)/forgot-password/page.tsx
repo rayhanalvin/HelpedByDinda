@@ -14,11 +14,28 @@ export default function ForgotPasswordPage() {
   const [loading, setLoading] = React.useState(false);
   const [sent, setSent] = React.useState(false);
   const [devCode, setDevCode] = React.useState("");
+  const [resendCooldown, setResendCooldown] = React.useState(0);
 
   React.useEffect(() => {
     const fromUrl = new URLSearchParams(window.location.search).get("email");
     if (fromUrl) setEmail(fromUrl);
   }, []);
+
+  React.useEffect(() => {
+    if (resendCooldown <= 0) return;
+    const timer = window.setInterval(() => setResendCooldown((v) => Math.max(0, v - 1)), 1000);
+    return () => window.clearInterval(timer);
+  }, [resendCooldown]);
+
+  const requestCode = async () => {
+    if (!email) return;
+    const response = await fetch("/api/auth/forgot-password", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email }),
+    });
+    return response.json();
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -26,22 +43,39 @@ export default function ForgotPasswordPage() {
 
     setLoading(true);
     try {
-      const response = await fetch("/api/auth/forgot-password", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email }),
-      });
-      const data = await response.json();
+      const data = await requestCode();
+      setResendCooldown(0);
 
-      if (response.ok && data.ok) {
+      if (data?.ok) {
         setSent(true);
         if (data.devCode) setDevCode(data.devCode);
         toast("Tautan pemulihan kata sandi telah dikirim ke email.", "success");
+        setResendCooldown(30);
       } else {
         toast(data.message || "Gagal mengirim permintaan reset sandi.", "error");
       }
     } catch {
       toast("Gagal mengirim tautan pengaturan ulang. Silakan coba lagi.", "error");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleResend = async () => {
+    if (resendCooldown > 0 || loading) return;
+    setLoading(true);
+    setDevCode("");
+    try {
+      const data = await requestCode();
+      if (data?.ok) {
+        if (data.devCode) setDevCode(data.devCode);
+        toast("Kode verifikasi baru dikirim ke email. Periksa kotak masuk.", "success");
+        setResendCooldown(30);
+      } else {
+        toast(data.message || "Gagal mengirim ulang. Silakan coba lagi.", "error");
+      }
+    } catch {
+      toast("Gagal mengirim ulang. Silakan coba lagi.", "error");
     } finally {
       setLoading(false);
     }
@@ -79,8 +113,8 @@ export default function ForgotPasswordPage() {
                 Masukkan Kode & Ganti Sandi
               </Button>
             </Link>
-            <Button variant="outline" className="w-full text-xs" onClick={() => setSent(false)}>
-              Kirim Ulang Kode
+            <Button variant="outline" className="w-full text-xs" disabled={resendCooldown > 0 || loading} onClick={handleResend}>
+              {resendCooldown > 0 ? `Kirim Ulang Kode (${resendCooldown}s)` : "Kirim Ulang Kode"}
             </Button>
           </div>
         </div>

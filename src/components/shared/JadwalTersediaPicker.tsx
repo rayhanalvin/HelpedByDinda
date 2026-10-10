@@ -29,6 +29,7 @@ export function JadwalTersediaPicker({ pengajarId, pengajarNama }: { pengajarId:
   const [ranges, setRanges] = React.useState<{ start: string; end: string; mode: string; ruangan: string | null; ruleId: string }[]>([]);
   const [booked, setBooked] = React.useState<{ jamMulai: string; jamSelesai: string; mataPelajaran: string }[]>([]);
   const [slots, setSlots] = React.useState<FreeSlot[]>([]);
+  const [selectedSlot, setSelectedSlot] = React.useState<FreeSlot | null>(null);
 
   const loadWeek = React.useCallback(
     async (dateKey?: string) => {
@@ -44,6 +45,7 @@ export function JadwalTersediaPicker({ pengajarId, pengajarNama }: { pengajarId:
         setAvailableDates(json.data.availableDates);
         setRanges(json.data.ranges);
         setBooked(json.data.booked);
+        setSelectedSlot(null);
         if (!selectedDate && json.data.dates.length) {
           const firstAvailable = json.data.dates.find((d) => json.data.availableDates.includes(d.key)) || json.data.dates[0];
           setSelectedDate(firstAvailable.key);
@@ -72,6 +74,7 @@ export function JadwalTersediaPicker({ pengajarId, pengajarNama }: { pengajarId:
         const json = (await response.json()) as AvailabilityResponse;
         const freeRanges = json.ok ? json.data.ranges : [];
         setRanges(freeRanges);
+        setSelectedSlot(null);
         const generated: FreeSlot[] = [];
         for (const range of freeRanges) {
           const [startHour, startMin] = range.start.split(":").map(Number);
@@ -165,20 +168,52 @@ export function JadwalTersediaPicker({ pengajarId, pengajarNama }: { pengajarId:
           <div className="space-y-1.5">
             {slots.length ? (
               <div className="flex flex-wrap gap-1.5">
-                {slots.map((slot) => (
-                  <span key={`${slot.start}-${slot.end}`} className="inline-flex items-center gap-1 rounded-lg border border-primary/20 bg-secondary/30 px-2.5 py-1.5 text-xs font-semibold text-foreground">
-                    <Clock className="h-3.5 w-3.5 text-primary" />
-                    {slot.start} – {slot.end}
-                    <Badge variant={slot.mode === "ONLINE" ? "default" : "secondary"} className="text-[9px] px-1.5">
-                      {slot.mode}
-                    </Badge>
-                  </span>
-                ))}
+                {slots.map((slot) => {
+                  const isTaken = booked.some((b) => b.jamMulai === slot.start && b.jamSelesai === slot.end);
+                  const isSelected = selectedSlot?.start === slot.start && selectedSlot?.end === slot.end;
+                  return (
+                    <button
+                      key={`${slot.start}-${slot.end}`}
+                      type="button"
+                      aria-pressed={isSelected}
+                      disabled={isTaken}
+                      onClick={() => setSelectedSlot(isSelected ? null : slot)}
+                      className={`inline-flex items-center gap-1.5 rounded-lg border px-3 py-2 text-xs font-semibold transition-all shadow-sm ${
+                        isSelected
+                          ? "border-primary bg-primary text-white ring-2 ring-primary/30"
+                          : isTaken
+                            ? "border-muted bg-muted/40 text-muted-foreground cursor-not-allowed opacity-60"
+                            : "border-primary/20 bg-secondary/30 text-foreground hover:bg-primary/10 hover:border-primary/40"
+                      }`}
+                    >
+                      <Clock className="h-3.5 w-3.5 shrink-0" />
+                      {slot.start} – {slot.end}
+                      {isTaken ? (
+                        <Badge variant="secondary" className="text-[9px] px-1.5">
+                          Terisi
+                        </Badge>
+                      ) : (
+                        <Badge variant={slot.mode === "ONLINE" ? "default" : "secondary"} className="text-[9px] px-1.5">
+                          {slot.mode}
+                        </Badge>
+                      )}
+                    </button>
+                  );
+                })}
               </div>
             ) : (
               <p className="text-xs text-muted-foreground flex items-center gap-1.5">
-                <XCircle className="h-4 w-4 text-rose-500" /> Tidak ada slot tersedia pada tanggal ini.
+                <XCircle className="h-4 w-4 text-rose-500" /> {booked.length ? "Alle slot op deze dag zijn al bezet (Terisi)." : "Tidak ada slot tersedia op deze dag."}
               </p>
+            )}
+            {selectedSlot && (
+              <div className="mt-2 rounded-xl border border-primary/25 bg-primary/5 p-2.5 flex items-center gap-2 text-[11px] text-foreground">
+                <CheckCircle2 className="h-4 w-4 shrink-0 text-emerald-500" />
+                <span>
+                  Slot terbalkt: <strong className="font-bold tabular-nums">{selectedSlot.start} – {selectedSlot.end}</strong> ({selectedSlot.mode === "ONLINE" ? "Online" : "Offline"})
+                  {selectedSlot.ruangan ? ` · ${selectedSlot.ruangan}` : ""}
+                </span>
+              </div>
             )}
             {booked.length > 0 && (
               <div className="mt-2 flex flex-col gap-1 text-[11px] text-muted-foreground">

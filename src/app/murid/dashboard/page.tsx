@@ -12,6 +12,7 @@ import { DUMMY_MATERI } from "@/lib/dummy-data";
 import { formatRupiah, formatDateIndo, formatTimeIndo } from "@/lib/utils";
 import * as ApiTypes from "@/types/api";
 import { useVisiblePolling } from "@/lib/use-visible-polling";
+import { renderRuanganLink } from "@/lib/ruangan-link";
 
 type UjianItem = {
   id: string;
@@ -272,7 +273,7 @@ export default function MuridDashboardPage() {
                     </div>
                     <h4 className="font-bold text-base text-foreground">{item.mataPelajaran}</h4>
                     <p className="text-xs text-muted-foreground">
-                      Tutor: <span className="font-semibold text-foreground">{item.pengajarNama}</span> • {item.ruangan}
+                      Tutor: <span className="font-semibold text-foreground">{item.pengajarNama}</span> • {renderRuanganLink(item.ruangan)}
                     </p>
                   </div>
 

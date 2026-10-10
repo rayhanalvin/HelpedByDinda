@@ -12,6 +12,7 @@ import Link from "next/link";
 import { formatDateIndo } from "@/lib/utils";
 import { apiFetch } from "@/lib/api";
 import { useVisiblePolling } from "@/lib/use-visible-polling";
+import { renderRuanganLink } from "@/lib/ruangan-link";
 
 type APIJadwal = {
   id: string;
@@ -20,6 +21,8 @@ type APIJadwal = {
   kelompokId?: string | null;
   kelompokNama?: string | null;
   kelompokMurid?: string[];
+  isGroep?: boolean;
+  leden?: { muridId: string; murid: string }[];
   mataPelajaran: string;
   tanggal: string;
   jamMulai: string;
@@ -222,7 +225,7 @@ export default function MuridJadwalPage() {
                     <div className="flex items-center gap-2">
                       {item.mode === "online" ? <Video className="h-4 w-4 text-purple-600 shrink-0" /> : <MapPin className="h-4 w-4 text-rose-600 shrink-0" />}
                       <span>
-                        Ruang/Akses: <strong className="text-foreground">{item.ruangan || "—"}</strong>
+                        Ruang/Akses: {renderRuanganLink(item.ruangan)}
                       </span>
                     </div>
                     {item.catatan && <div className="text-[11px] text-muted-foreground italic sm:col-span-2">Catatan: {item.catatan}</div>}

@@ -53,6 +53,11 @@ export async function GET(req: Request) {
     },
     orderBy: [{ tanggal: "desc" }],
   });
+  const kelasList = await prisma.pengajarKelas.findMany({
+    where: { pengajarId: pengajar.id, isActive: true },
+    orderBy: { createdAt: "asc" },
+  });
+  const feeKelasBulanan = kelasList.reduce((sum, kelas) => sum + (kelas.jumlahSiswa || 0) * (kelas.feePerSiswa || 0), 0);
 
   return NextResponse.json({
     ok: true,
@@ -60,6 +65,18 @@ export async function GET(req: Request) {
     periode: currentPeriod,
     totalJam: totalJamLive,
     totalFee: totalFeeLive,
+    feeKelasBulanan,
+    kelasBulanan: kelasList.map((kelas) => ({
+      id: kelas.id,
+      namaKelas: kelas.namaKelas,
+      program: kelas.program,
+      jenjang: kelas.jenjang,
+      metode: kelas.metode,
+      jenisKelas: kelas.jenisKelas,
+      jumlahSiswa: kelas.jumlahSiswa,
+      feePerSiswa: kelas.feePerSiswa,
+      totalFee: (kelas.jumlahSiswa || 0) * (kelas.feePerSiswa || 0),
+    })),
     ratePerSession: fallbackRate,
     rateSessions: (pengajar.rateSessions || []).map((rate) => ({ kelasGroup: rate.kelasGroup, mode: rate.mode, rate: rate.ratePerSession })),
     data: fees.map((fee) => ({

@@ -10,11 +10,16 @@ import { apiFetch } from "@/lib/api";
 import { formatDateIndo } from "@/lib/utils";
 import { AttendanceExcuseForm } from "@/components/shared/AttendanceExcuseForm";
 import { useVisiblePolling } from "@/lib/use-visible-polling";
+import { renderRuanganLink } from "@/lib/ruangan-link";
 
 type ScheduleAttendance = {
   id: string;
   jadwalId: string;
   userId: string;
+  kelompokId?: string | null;
+  kelompokNama?: string | null;
+  kelompokMurid?: string | null;
+  leden?: { muridId: string; murid: string }[];
   mataPelajaran: string;
   tanggal: string;
   jamMulai: string;
@@ -44,6 +49,12 @@ type ScheduleAttendance = {
   participantAttendance: { status: string; catatan: string | null; buktiData: string | null; buktiNama: string | null } | null;
 };
 
+type GroepLidStatus = {
+  muridId: string;
+  muridNama: string;
+  status: string | null;
+};
+
 function getCurrentLocation() {
   return new Promise<{ latitude: number; longitude: number; accuracy?: number }>((resolve, reject) => {
     if (!navigator.geolocation) {
@@ -66,6 +77,21 @@ export default function PengajarAbsenPage() {
   const [history, setHistory] = React.useState<ScheduleAttendance[]>([]);
   const [historyFrom, setHistoryFrom] = React.useState("");
   const [historyTo, setHistoryTo] = React.useState("");
+  const [groepStatus, setGroepStatus] = React.useState<Record<string, Record<string, string>>>({});
+  const [savingGroep, setSavingGroep] = React.useState(false);
+
+  const applyGroepAbsensi = React.useCallback((rows: ScheduleAttendance[], absensi: Record<string, GroepLidStatus[]>) => {
+    const next: Record<string, Record<string, string>> = {};
+    for (const row of rows) {
+      if (!row.kelompokId) continue;
+      const members = absensi[row.kelompokId] || [];
+      for (const member of members) {
+        next[row.kelompokId] = next[row.kelompokId] || {};
+        next[row.kelompokId][member.muridId] = member.status || "HADIR";
+      }
+    }
+    if (JSON.stringify(next) !== JSON.stringify(groepStatus)) setGroepStatus(next);
+  }, [groepStatus]);
 
   const filteredHistory = React.useMemo(
     () =>
@@ -78,15 +104,16 @@ export default function PengajarAbsenPage() {
 
   const loadAttendance = React.useCallback(async () => {
     try {
-      const result = await apiFetch<{ ok: boolean; data: ScheduleAttendance[]; active: ScheduleAttendance | null }>("/api/absensi", { cache: "no-store" });
+      const result = await apiFetch<{ ok: boolean; data: ScheduleAttendance[]; active: ScheduleAttendance | null; groepAbsensi?: Record<string, GroepLidStatus[]> }>("/api/absensi", { cache: "no-store" });
       const next = result.active ?? result.data[0] ?? null;
       setSchedule(next);
       setHistory(result.data || []);
+      if (result.groepAbsensi) void applyGroepAbsensi(result.data || [], result.groepAbsensi);
     } catch {
       setSchedule(null);
       setHistory([]);
     }
-  }, []);
+  }, [applyGroepAbsensi]);
 
   React.useEffect(() => {
     void loadAttendance();
@@ -150,6 +177,29 @@ export default function PengajarAbsenPage() {
     }
   };
 
+  const handleSaveGroepAbsensi = async () => {
+    if (!schedule || !schedule.kelompokId) return;
+    const entries = (groepStatus[schedule.kelompokId] || []);
+    const payload = Object.entries(entries).map(([muridId, status]) => ({ muridId, status }));
+    if (!payload.length) {
+      toast("Belum ada lid van de groep om absensi in te vullen.", "error");
+      return;
+    }
+    setSavingGroep(true);
+    try {
+      await apiFetch<{ ok: boolean }>("/api/absensi", {
+        method: "POST",
+        body: JSON.stringify({ action: "group-attendance", jadwalId: schedule.jadwalId, entries: payload }),
+      });
+      toast("Absensi groep succesvol opgeslagen en gesynchroniseerd naar admin.", "success");
+      await loadAttendance();
+    } catch (error) {
+      toast(error instanceof Error ? error.message : "Gagal opslaan absensi groep.", "error");
+    } finally {
+      setSavingGroep(false);
+    }
+  };
+
   const canStart = schedule && (schedule.status === "AKTIF" || schedule.status === "BERJALAN") && !["IZIN", "SAKIT"].includes(schedule.participantAttendance?.status || "");
 
   return (
@@ -170,7 +220,13 @@ export default function PengajarAbsenPage() {
 
           <CardTitle className="text-xl sm:text-2xl mt-2 text-foreground">{schedule ? schedule.mataPelajaran : "Tidak ada jadwal aktif"}</CardTitle>
           <CardDescription>
-            Murid: <span className="font-bold text-foreground">{schedule?.murid || "—"}</span> • Mode: <span className="font-bold text-primary uppercase">{schedule?.mode || "—"}</span>
+            {schedule?.kelompokNama ? (
+              <>
+                Kelompok: <span className="font-bold text-foreground">{schedule.kelompokNama}</span>
+              </>
+            ) : (
+              <>Murid: <span className="font-bold text-foreground">{schedule?.murid || "—"}</span></>
+            )}{" "}• Mode: <span className="font-bold text-primary uppercase">{schedule?.mode || "—"}</span>
           </CardDescription>
           {schedule?.participantAttendance && ["IZIN", "SAKIT"].includes(schedule.participantAttendance.status) && (
             <div className="mt-3 rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">
@@ -202,7 +258,7 @@ export default function PengajarAbsenPage() {
               </div>
               <div>
                 <p className="text-[11px] text-muted-foreground">Ruangan / Tautan</p>
-                <p className="text-xs sm:text-sm font-bold text-foreground">{schedule?.ruangan || "Jadwal terhubung ke kelas"}</p>
+                <p className="text-xs sm:text-sm font-bold">{schedule?.ruangan ? renderRuanganLink(schedule.ruangan) : "Jadwal terhubung ke kelas"}</p>
               </div>
             </div>
 
@@ -238,6 +294,38 @@ export default function PengajarAbsenPage() {
               disabled={Boolean(schedule.attendance?.startedAt || schedule.attendance?.finishedAt || (schedule.attendance && ["HADIR", "TERLAMBAT"].includes(schedule.attendance.status)))}
               onSubmitted={loadAttendance}
             />
+          )}
+          {schedule?.kelompokId && Object.keys(groepStatus[schedule.kelompokId] || {}).length > 0 && (
+            <div className="rounded-2xl border border-border bg-muted/20 p-4 space-y-3">
+              <p className="text-xs font-bold text-foreground">Absensi Leden Groep — {schedule.kelompokNama || "Sesi Groep"}</p>
+              <p className="text-[11px] text-muted-foreground">Stel per lid de status in (Hadir, Izin, Sakit, Alpa). Eén keer &quot;Simpan Absensi&quot; slaat de hele groep op.</p>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                {Object.entries(groepStatus[schedule.kelompokId] || {}).map(([muridId, status]) => {
+                  const leden = schedule.leden?.filter((lid) => lid.muridId === muridId);
+                  const lidNama = leden?.length ? leden[0].murid : schedule.kelompokMurid || muridId;
+                  return (
+                    <div key={muridId} className="rounded-xl border border-border bg-card p-2.5">
+                      <p className="text-xs font-semibold text-foreground">{lidNama || muridId}</p>
+                      <select
+                        className="mt-1 h-9 w-full rounded-lg border border-input bg-card px-2 text-xs"
+                        value={status}
+                        onChange={(event) => setGroepStatus((current) => ({ ...current, [schedule.kelompokId as string]: { ...current[schedule.kelompokId as string], [muridId]: event.target.value } }))}
+                      >
+                        <option value="HADIR">Hadir</option>
+                        <option value="IZIN">Izin</option>
+                        <option value="SAKIT">Sakit</option>
+                        <option value="ALPHA">Alpa</option>
+                      </select>
+                    </div>
+                  );
+                })}
+              </div>
+              <div className="flex justify-end">
+                <Button variant="accent" size="sm" isLoading={savingGroep} onClick={() => void handleSaveGroepAbsensi()} className="text-xs font-bold gap-1">
+                  <CheckCircle2 className="h-3.5 w-3.5" /> Simpan Absensi
+                </Button>
+              </div>
+            </div>
           )}
         </CardContent>
       </Card>

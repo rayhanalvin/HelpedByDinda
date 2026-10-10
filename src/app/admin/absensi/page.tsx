@@ -32,6 +32,9 @@ type AdminAbsensiItem = {
   jamMulai: string;
   jamSelesai: string;
   mode: string;
+  kelompokId?: string | null;
+  kelompokNama?: string | null;
+  jumlahLeden?: number;
 };
 
 function mapsUrl(location: { latitude: number; longitude: number } | null) {
@@ -51,6 +54,7 @@ function SessionCard({ session }: { session: AdminAbsensiItem }) {
               <h2 className="font-heading font-bold">{session.nama}</h2>
               <p className="text-sm text-muted-foreground">
                 {session.mataPelajaran} · {session.pengajar} · {session.mode}
+                {session.kelompokNama ? ` · Groep: ${session.kelompokNama} (${session.jumlahLeden || 1} leden)` : ""}
               </p>
             </div>
           </div>

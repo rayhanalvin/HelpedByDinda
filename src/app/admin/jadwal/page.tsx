@@ -12,6 +12,7 @@ import { formatDateIndo } from "@/lib/utils";
 import { apiFetch } from "@/lib/api";
 import { getKelasLabel } from "@/lib/kelas";
 import { useVisiblePolling } from "@/lib/use-visible-polling";
+import { renderRuanganLink } from "@/lib/ruangan-link";
 
 type APIJadwal = {
   id: string;
@@ -19,6 +20,9 @@ type APIJadwal = {
   muridId: string;
   kelompokId?: string | null;
   kelompokNama?: string | null;
+  kelompokMurid?: string[];
+  isGroep?: boolean;
+  leden?: { muridId: string; murid: string }[];
   mataPelajaran: string;
   tanggal: string;
   jamMulai: string;
@@ -153,7 +157,11 @@ export default function AdminJadwalPage() {
     setPengajarQuery("");
     setMuridQuery("");
     setAvailabilityHint("");
-    const groupMuridIds = j.kelompokId ? jadwalList.filter((item) => item.kelompokId === j.kelompokId).map((item) => item.muridId) : [j.muridId];
+    const groupMuridIds = j.leden?.length
+      ? j.leden.map((lid) => lid.muridId)
+      : j.kelompokId
+        ? jadwalList.filter((item) => item.kelompokId === j.kelompokId && item.muridId !== undefined).map((item) => item.muridId)
+        : [j.muridId];
     const startedAtValue = (j as unknown as { startedAt?: string | null }).startedAt;
     setFormData({
       pengajarId: j.pengajarId,
@@ -265,6 +273,14 @@ export default function AdminJadwalPage() {
     const inPeriod = calendarView === "harian" ? j.tanggal.slice(0, 10) === selectedDate : weekDates.includes(j.tanggal.slice(0, 10));
     return inPeriod && (filterMode === "ALL" ? true : j.mode === filterMode);
   });
+  const grouped = jadwalList.filter((j) => j.kelompokId).map((j) => j.kelompokId).filter((groupId): groupId is string => Boolean(groupId));
+  const seen = new Set<string>();
+  const visible = filtered.filter((j) => {
+    if (!j.kelompokId) return true;
+    if (seen.has(j.kelompokId)) return false;
+    seen.add(j.kelompokId);
+    return true;
+  });
 
   return (
     <div className="space-y-8">
@@ -370,7 +386,7 @@ export default function AdminJadwalPage() {
         </div>
       ) : (
         <div className="space-y-4">
-          {filtered.map((j) => (
+          {visible.map((j) => (
             <Card key={j.id} className="border-border hover:border-primary/40 transition-all shadow-xs">
               <CardContent className="p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                 <div className="space-y-1.5 flex-1">
@@ -391,19 +407,22 @@ export default function AdminJadwalPage() {
                     <div>
                       Tutor: <strong className="text-foreground">{j.pengajar}</strong>
                     </div>
+                    {j.isGroep ? (
+                      <div>
+                        Leden ({j.kelompokMurid?.length || j.leden?.length || 0}):
+                        <strong className="text-foreground">{j.kelompokMurid?.join(", ") || j.leden?.map((lid) => lid.murid).join(", ") || j.murid}</strong>
+                      </div>
+                    ) : (
+                      <div>
+                        Murid: <strong className="text-foreground">{j.murid}</strong>
+                      </div>
+                    )}
                     <div>
-                      Murid: <strong className="text-foreground">{j.murid}</strong>
-                    </div>
-                    <div>
-                      Ruang: <strong className="text-foreground">{j.ruangan || "—"}</strong>
+                      Ruang: {renderRuanganLink(j.ruangan)}
                     </div>
                     {j.kelompokNama && (
                       <div className="text-primary font-semibold sm:col-span-3">
-                        Kelompok: {j.kelompokNama} ·{" "}
-                        {jadwalList
-                          .filter((item) => item.kelompokId === j.kelompokId)
-                          .map((item) => item.murid)
-                          .join(", ")}
+                        Kelompok: {j.kelompokNama} · {j.kelompokMurid?.join(", ") || j.leden?.map((lid) => lid.murid).join(", ") || ""}
                       </div>
                     )}
                   </div>

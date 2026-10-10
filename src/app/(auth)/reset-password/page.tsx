@@ -101,6 +101,13 @@ function ResetPasswordForm() {
               <KeyRound className="absolute left-3.5 top-3.5 h-4 w-4 text-muted-foreground" />
             </div>
             <p className="text-[11px] text-muted-foreground">Kode 6 digit dikirim ke email Anda, berlaku 1 jam.</p>
+            <button
+              type="button"
+              onClick={() => router.push(`/forgot-password${email.trim() ? `?email=${encodeURIComponent(email.trim())}` : ""}`)}
+              className="text-[11px] font-semibold text-primary hover:underline"
+            >
+              Kirim Ulang Kode
+            </button>
           </div>
 
           <div className="space-y-1.5">

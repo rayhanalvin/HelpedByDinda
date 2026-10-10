@@ -41,6 +41,18 @@ type PayoutRow = {
   payoutReference: string | null;
 };
 
+type KelasFeeRow = {
+  id: string;
+  namaKelas: string;
+  program: string;
+  jenjang: string;
+  metode: string;
+  jenisKelas: string;
+  jumlahSiswa: number;
+  feePerSiswa: number;
+  totalFee: number;
+};
+
 export default function PengajarFeePage() {
   const [feeCurrent, setFeeCurrent] = React.useState<ApiTypes.FeeRow | null>(null);
   const [payouts, setPayouts] = React.useState<PayoutRow[]>([]);
@@ -49,6 +61,8 @@ export default function PengajarFeePage() {
   const [rateSessions, setRateSessions] = React.useState<{ kelasGroup: string; mode: "ONLINE" | "OFFLINE"; rate: number }[]>([]);
   const [previewProof, setPreviewProof] = React.useState<{ name: string; url: string; mimeType: string | null } | null>(null);
   const [liveSummary, setLiveSummary] = React.useState({ periode: "", totalJam: 0, totalFee: 0 });
+  const [kelasBulanan, setKelasBulanan] = React.useState<KelasFeeRow[]>([]);
+  const [feeKelasBulanan, setFeeKelasBulanan] = React.useState(0);
 
   // Invoice state
   type InvoiceRow = { id: string; title?: string | null; periode?: string | null; fileName?: string | null; createdAt?: string | null };
@@ -95,6 +109,8 @@ export default function PengajarFeePage() {
           currentPeriod: string;
           totalJam: number;
           totalFee: number;
+          feeKelasBulanan?: number;
+          kelasBulanan?: KelasFeeRow[];
         }>(`/api/profile/fee?periode=${new Date().toISOString().slice(0, 7)}`),
         apiFetch<{ ok: boolean; user: { pengajar: { nominalPerJam: number } | null } }>("/api/profile"),
       ]);
@@ -106,6 +122,8 @@ export default function PengajarFeePage() {
         totalJam: feeRes.totalJam ?? feeRes.data?.[0]?.totalJam ?? 0,
         totalFee: feeRes.totalFee ?? feeRes.data?.[0]?.totalFee ?? 0,
       });
+      setKelasBulanan(feeRes.kelasBulanan || []);
+      setFeeKelasBulanan(feeRes.feeKelasBulanan || 0);
       setProfile({
         nominalPerJam: profileRes.user.pengajar?.nominalPerJam || feeRes.data?.[0]?.nominalPerJam || 0,
         ratePerSession: feeRes.ratePerSession || profileRes.user.pengajar?.nominalPerJam || 0,
@@ -192,6 +210,78 @@ export default function PengajarFeePage() {
           )}
         </CardContent>
       </Card>
+
+      {/* Rincian Fee Bulanan per Kelas (sync met admin Kelola Kelas & Fee) */}
+      {kelasBulanan.length > 0 && (
+        <Card className="border-border shadow-xs">
+          <CardHeader>
+            <CardTitle className="text-lg flex items-center gap-2">
+              <FileText className="h-4 w-4 text-primary" /> Rincian Fee Bulanan per Kelas
+              <Badge variant="default" className="text-[10px]">Sync Admin</Badge>
+            </CardTitle>
+            <CardDescription>Fee bulanan terbasis op aantal actieve studenten per klas × nominal fee per student per maand (instelling door admin).</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="rounded-2xl border border-border bg-muted/20 p-4 mb-4 grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <p className="text-[11px] text-muted-foreground">Aantal Klasse Diampu</p>
+                <p className="text-xl font-black text-foreground tabular-nums">{kelasBulanan.length}</p>
+              </div>
+              <div>
+                <p className="text-[11px] text-muted-foreground">Total Fee Bulanan (Kelas & Fee Admin)</p>
+                <p className="text-xl font-black text-emerald-700 tabular-nums">{formatRupiah(feeKelasBulanan)}</p>
+              </div>
+            </div>
+            <div className="hidden md:block overflow-x-auto">
+              <table className="w-full text-left text-sm">
+                <thead className="border-b border-border text-xs uppercase font-semibold text-muted-foreground bg-muted/30">
+                  <tr>
+                    <th className="py-3 px-4">Kelas</th>
+                    <th className="py-3 px-4">Jenjang / Program</th>
+                    <th className="py-3 px-4">Metode / Tipe</th>
+                    <th className="py-3 px-4 text-right">Siswa Aktif</th>
+                    <th className="py-3 px-4 text-right">Fee / Siswa / Bulan</th>
+                    <th className="py-3 px-4 text-right">Total / Kelas</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-border">
+                  {kelasBulanan.map((kelas) => (
+                    <tr key={kelas.id} className="hover:bg-muted/30 transition-colors">
+                      <td className="py-3.5 px-4 font-bold text-foreground">{kelas.namaKelas}</td>
+                      <td className="py-3.5 px-4 text-xs text-muted-foreground">{kelas.jenjang.replace("_", "/")} · {kelas.program}</td>
+                      <td className="py-3.5 px-4 text-xs text-muted-foreground">{kelas.metode} · {kelas.jenisKelas === "PRIVATE" ? "Private" : "Group"}</td>
+                      <td className="py-3.5 px-4 text-right font-semibold text-foreground tabular-nums">{kelas.jumlahSiswa}</td>
+                      <td className="py-3.5 px-4 text-right font-semibold text-foreground tabular-nums">{formatRupiah(kelas.feePerSiswa)}</td>
+                      <td className="py-3.5 px-4 text-right font-bold text-emerald-700 tabular-nums">{formatRupiah(kelas.totalFee)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+                <tfoot className="border-t border-border bg-muted/30">
+                  <tr>
+                    <td colSpan={5} className="py-3 px-4 font-bold text-foreground">Total Fee Bulanan</td>
+                    <td className="py-3 px-4 text-right font-black text-emerald-700 tabular-nums">{formatRupiah(feeKelasBulanan)}</td>
+                  </tr>
+                </tfoot>
+              </table>
+            </div>
+            <div className="grid grid-cols-1 gap-3 md:hidden">
+              {kelasBulanan.map((kelas) => (
+                <div key={kelas.id} className="rounded-2xl border border-border p-4 space-y-2 bg-card">
+                  <div className="flex items-center justify-between">
+                    <h4 className="font-bold text-sm text-foreground">{kelas.namaKelas}</h4>
+                    <Badge variant={kelas.jenisKelas === "PRIVATE" ? "secondary" : "default"}>{kelas.jenisKelas === "PRIVATE" ? "Private" : "Group"}</Badge>
+                  </div>
+                  <p className="text-[11px] text-muted-foreground">{kelas.jenjang.replace("_", "/")} · {kelas.program} · {kelas.metode}</p>
+                  <div className="flex items-center justify-between text-xs pt-1 border-t border-border text-muted-foreground">
+                    <span>{kelas.jumlahSiswa} siswa × {formatRupiah(kelas.feePerSiswa)}</span>
+                    <span className="font-bold text-emerald-700 tabular-nums">{formatRupiah(kelas.totalFee)}</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Histori Tracking Fee (Weekly / Custom) */}
       {payouts.length > 0 && (

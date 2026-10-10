@@ -10,6 +10,7 @@ import { formatDateIndo } from "@/lib/utils";
 import { apiFetch } from "@/lib/api";
 import { Modal } from "@/components/ui/modal";
 import { useToast } from "@/components/ui/toast";
+import { renderRuanganLink } from "@/lib/ruangan-link";
 
 type APIJadwal = {
   id: string;
@@ -18,6 +19,8 @@ type APIJadwal = {
   kelompokId?: string | null;
   kelompokNama?: string | null;
   kelompokMurid?: string[];
+  isGroep?: boolean;
+  leden?: { muridId: string; murid: string }[];
   mataPelajaran: string;
   tanggal: string;
   jamMulai: string;
@@ -119,9 +122,14 @@ export default function PengajarJadwalPage() {
     setEditingId(schedule.id);
     const group = schedule.kelompokId ? teachingSchedules.filter((item) => item.kelompokId === schedule.kelompokId) : [schedule];
     setEditingGroup(Boolean(schedule.kelompokId));
+    const groupMuridIds = schedule.leden?.length
+      ? schedule.leden.map((lid) => lid.muridId)
+      : group.length > 1
+        ? group.map((item) => item.muridId)
+        : [schedule.muridId];
     setForm({
       muridId: schedule.muridId,
-      muridIds: group.map((item) => item.muridId),
+      muridIds: groupMuridIds,
       kelompokNama: schedule.kelompokNama || "",
       mataPelajaran: schedule.mataPelajaran,
       tanggal: schedule.tanggal.slice(0, 10),
@@ -310,7 +318,7 @@ export default function PengajarJadwalPage() {
                     <div className="flex items-center gap-2">
                       {schedule.mode === "online" ? <Video className="h-4 w-4 text-purple-600 shrink-0" /> : <MapPin className="h-4 w-4 text-rose-600 shrink-0" />}
                       <span>
-                        Ruang/Meet: <strong className="text-foreground">{schedule.ruangan || "—"}</strong>
+                        Ruang/Meet: {renderRuanganLink(schedule.ruangan)}
                       </span>
                     </div>
                     {schedule.catatan && <div className="text-[11px] text-muted-foreground italic sm:col-span-2">Fokus: {schedule.catatan}</div>}

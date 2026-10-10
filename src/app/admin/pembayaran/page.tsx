@@ -33,6 +33,19 @@ type PaymentRow = {
 
 const statusVariant = { SUCCESS: "success", PENDING: "warning", PROCESSING: "secondary", FAILED: "destructive", EXPIRED: "secondary" } as const;
 
+type AdminInvoiceRow = {
+  id: string;
+  title?: string | null;
+  periode?: string | null;
+  targetRole?: string;
+  targetUserNama?: string | null;
+  targetUserEmail?: string | null;
+  amount?: number | null;
+  fileName?: string | null;
+  paymentStatus?: string | null;
+  createdAt?: string;
+};
+
 export default function AdminPembayaranPage() {
   const { toast } = useToast();
   const [payments, setPayments] = React.useState<PaymentRow[]>([]);
@@ -45,11 +58,25 @@ export default function AdminPembayaranPage() {
   const [invoiceForm, setInvoiceForm] = React.useState({ targetUserId: "", title: "", periode: new Date().toISOString().slice(0, 7), amount: "" });
   const [invoiceFile, setInvoiceFile] = React.useState<File | null>(null);
   const [sendingInvoice, setSendingInvoice] = React.useState(false);
+  const [adminInvoices, setAdminInvoices] = React.useState<AdminInvoiceRow[]>([]);
+  const [showInvoiceList, setShowInvoiceList] = React.useState(false);
+  const [editingInvoice, setEditingInvoice] = React.useState<AdminInvoiceRow | null>(null);
+  const [editInvoiceForm, setEditInvoiceForm] = React.useState({ title: "", periode: "", amount: "" });
+  const [editInvoiceFile, setEditInvoiceFile] = React.useState<File | null>(null);
+  const [savingEditInvoice, setSavingEditInvoice] = React.useState(false);
+
+  const loadAdminInvoices = React.useCallback(async () => {
+    try {
+      const result = await apiFetch<{ ok: boolean; data: AdminInvoiceRow[] }>("/api/admin/invoice");
+      setAdminInvoices(result.data || []);
+    } catch {}
+  }, []);
 
   const loadPayments = React.useCallback(async () => {
     try {
       const result = await apiFetch<{ ok: boolean; data: PaymentRow[] }>("/api/admin/pembayaran");
       setPayments(result.data || []);
+      void loadAdminInvoices();
       if (!muridOptionsLoaded) {
         try {
           const muridRes = await apiFetch<{ ok: boolean; data: Array<{ id: string; userId: string; name: string; email: string; paketBulanan: number }> }>("/api/admin/murid");
@@ -62,7 +89,7 @@ export default function AdminPembayaranPage() {
     } finally {
       setLoading(false);
     }
-  }, [muridOptionsLoaded, toast]);
+  }, [loadAdminInvoices, muridOptionsLoaded, toast]);
 
   React.useEffect(() => {
     void loadPayments();
@@ -131,6 +158,52 @@ export default function AdminPembayaranPage() {
     }
   };
 
+  const beginEditInvoice = (inv: AdminInvoiceRow) => {
+    setEditingInvoice(inv);
+    setEditInvoiceForm({ title: inv.title || "", periode: inv.periode || "", amount: inv.amount ? String(inv.amount) : "" });
+    setEditInvoiceFile(null);
+  };
+
+  const saveEditInvoice = async () => {
+    if (!editingInvoice) return;
+    if (!editInvoiceForm.amount || Number(editInvoiceForm.amount) <= 0) {
+      toast("Nominal invoice wajib lebih dari 0.", "error");
+      return;
+    }
+    setSavingEditInvoice(true);
+    try {
+      const fd = new FormData();
+      fd.append("title", editInvoiceForm.title.trim() || editingInvoice.title || `Invoice SPP ${editInvoiceForm.periode}`);
+      fd.append("periode", editInvoiceForm.periode);
+      fd.append("amount", editInvoiceForm.amount);
+      if (editInvoiceFile) fd.append("invoice", editInvoiceFile);
+      const res = await apiFetch<{ ok: boolean; data: AdminInvoiceRow }>(`/api/admin/invoice/${editingInvoice.id}`, { method: "PUT", body: fd });
+      if (res.ok) {
+        toast("Invoice berhasil diperbarui en tersinkroniseerd naar murid.", "success");
+        setEditingInvoice(null);
+        setEditInvoiceFile(null);
+        void loadAdminInvoices();
+        void loadPayments();
+      }
+    } catch (error) {
+      toast(error instanceof Error ? error.message : "Gagal memperbarui invoice.", "error");
+    } finally {
+      setSavingEditInvoice(false);
+    }
+  };
+
+  const deleteInvoice = async (id: string) => {
+    if (!window.confirm("Hapus invoice deze? Payment gerelateerde zal ook worden verwijderd en murid-zicht wordt direct bijgewerkt.")) return;
+    try {
+      await apiFetch(`/api/admin/invoice/${id}`, { method: "DELETE" });
+      setAdminInvoices((current) => current.filter((inv) => inv.id !== id));
+      toast("Invoice berhasil dihapus en tersynchroniseerd uit murid-portal.", "success");
+      void loadPayments();
+    } catch (error) {
+      toast(error instanceof Error ? error.message : "Gagal menghapus invoice.", "error");
+    }
+  };
+
   return (
     <main className="space-y-6">
       <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
@@ -139,10 +212,56 @@ export default function AdminPembayaranPage() {
           <h1 className="mt-1 font-heading text-3xl font-extrabold">Tracking Pembayaran</h1>
           <p className="mt-2 text-muted-foreground">Pantau transaksi transfer bank murid dan konfirmasi pembayaran realtime, atau buat invoice SPP per murid.</p>
         </div>
-        <Button variant="accent" onClick={() => setShowInvoiceForm(true)}>
-          <Plus size={16} /> Buat Invoice SPP
-        </Button>
+        <div className="flex gap-2">
+          <Button variant="outline" onClick={() => setShowInvoiceList((value) => !value)}>
+            <Receipt size={16} /> Daftar Invoice SPP
+          </Button>
+          <Button variant="accent" onClick={() => setShowInvoiceForm(true)}>
+            <Plus size={16} /> Buat Invoice SPP
+          </Button>
+        </div>
       </div>
+      {showInvoiceList && (
+        <div className="rounded-2xl border border-border bg-card p-4 space-y-3">
+          <div className="flex items-center justify-between">
+            <div>
+              <h2 className="font-heading text-xl font-bold">Daftar Invoice SPP</h2>
+              <p className="text-sm text-muted-foreground">Admin-invoices gesynchroniseerd naar elk murid-portal. Bewerk of verwijder om de zichtbaarheid direct bij te werken.</p>
+            </div>
+            <Badge variant="secondary">{adminInvoices.length} invoice</Badge>
+          </div>
+          {adminInvoices.length === 0 ? (
+            <p className="text-sm text-muted-foreground">Belum ada invoice SPP aangemaakt. Maak een invoice via de knop &quot;Buat Invoice SPP&quot;.</p>
+          ) : (
+            <div className="space-y-2">
+              {adminInvoices.map((inv) => (
+                <div key={inv.id} className="flex flex-col gap-2 rounded-xl border border-border p-3 sm:flex-row sm:items-center sm:justify-between">
+                  <div className="min-w-0 flex-1">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <p className="font-bold text-sm text-foreground truncate">{inv.title || "Lembar Invoice SPP"}</p>
+                      <Badge variant={inv.paymentStatus === "SUCCESS" ? "success" : inv.paymentStatus ? "warning" : "secondary"}>
+                        {inv.paymentStatus ? `Payment: ${inv.paymentStatus}` : "Belum payment"}
+                      </Badge>
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      {inv.targetUserNama || "Algemeen"} · {inv.targetUserEmail || inv.targetRole || "—"} · Periode: {inv.periode || "—"} · {formatRupiah(inv.amount || 0)}
+                    </p>
+                    <p className="text-[11px] text-muted-foreground">File: {inv.fileName || "geen file"}</p>
+                  </div>
+                  <div className="flex gap-2 shrink-0">
+                    <Button size="sm" variant="outline" onClick={() => beginEditInvoice(inv)}>
+                      Edit
+                    </Button>
+                    <Button size="sm" variant="outline" className="text-rose-600 hover:bg-rose-50 hover:text-rose-700" onClick={() => void deleteInvoice(inv.id)}>
+                      <Trash2 size={13} /> Hapus
+                    </Button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
       <div className="grid gap-4 sm:grid-cols-3">
         <Card>
           <CardContent className="p-5">
@@ -301,6 +420,50 @@ export default function AdminPembayaranPage() {
             ) : (
               <img src={selectedProof.paymentProofData || undefined} alt={`Bukti pembayaran ${selectedProof.orderId}`} className="mx-auto max-h-[70vh] max-w-full rounded-xl object-contain" />
             )}
+          </div>
+        </div>
+      )}
+      {editingInvoice && (
+        <div className="fixed inset-0 z-50 grid place-items-center bg-black/40 p-4" onMouseDown={() => setEditingInvoice(null)}>
+          <div className="w-full max-w-lg space-y-4 rounded-2xl bg-card p-6 shadow-xl" onMouseDown={(event) => event.stopPropagation()}>
+            <div className="flex items-center justify-between">
+              <h2 className="font-heading text-xl font-bold">Edit Invoice SPP</h2>
+              <button type="button" onClick={() => setEditingInvoice(null)} className="text-muted-foreground hover:text-foreground" aria-label="Tutup">
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+            <p className="text-xs text-muted-foreground">Wijzig title, periode, nominal of vervang de file. Murid ziet de wijziging direct in zijn daftar invoice.</p>
+            <div className="grid grid-cols-2 gap-2">
+              <div className="space-y-1.5">
+                <label className="text-xs font-semibold text-foreground">Nominal SPP (Rp)</label>
+                <Input type="number" min="1" placeholder="contoh: 900000" value={editInvoiceForm.amount} onChange={(event) => setEditInvoiceForm({ ...editInvoiceForm, amount: event.target.value })} />
+              </div>
+              <div className="space-y-1.5">
+                <label className="text-xs font-semibold text-foreground">Periode (bulan)</label>
+                <Input type="month" value={editInvoiceForm.periode} onChange={(event) => setEditInvoiceForm({ ...editInvoiceForm, periode: event.target.value })} />
+              </div>
+            </div>
+            <div className="space-y-1.5">
+              <label className="text-xs font-semibold text-foreground">Judul / nota</label>
+              <Input placeholder="Invoice SPP Oktober 2026" value={editInvoiceForm.title} onChange={(event) => setEditInvoiceForm({ ...editInvoiceForm, title: event.target.value })} />
+            </div>
+            <label className="inline-flex items-center gap-1.5 rounded-xl border border-border px-3 py-2 text-xs font-semibold hover:bg-muted cursor-pointer">
+              <Paperclip className="h-3.5 w-3.5" /> {editInvoiceFile ? editInvoiceFile.name : editingInvoice.fileName ? `Vervang file: ${editingInvoice.fileName}` : "Lampiran file PDF/gambar (opsional)"}
+              <input type="file" accept="application/pdf,image/jpeg,image/png,image/webp" className="sr-only" onChange={(event) => setEditInvoiceFile(event.target.files?.[0] || null)} />
+            </label>
+            {editInvoiceFile && (
+              <button type="button" onClick={() => setEditInvoiceFile(null)} className="text-xs text-rose-600 hover:underline">
+                Hapus file
+              </button>
+            )}
+            <div className="flex justify-end gap-2">
+              <Button variant="outline" onClick={() => setEditingInvoice(null)}>
+                Batal
+              </Button>
+              <Button variant="accent" isLoading={savingEditInvoice} onClick={() => void saveEditInvoice()}>
+                <Receipt size={16} /> Simpan & Sync
+              </Button>
+            </div>
           </div>
         </div>
       )}

@@ -8,8 +8,25 @@ const maxSize = 8 * 1024 * 1024;
 export async function GET() {
   const session = await getSessionUser();
   if (!session || session.role !== "ADMIN") return NextResponse.json({ ok: false, message: "Unauthorized" }, { status: 401 });
-  const invoices = await prisma.invoice.findMany({ orderBy: { createdAt: "desc" }, include: { targetUser: { select: { id: true } } } });
-  return NextResponse.json({ ok: true, data: invoices }, { headers: { "Cache-Control": "no-store" } });
+  const invoices = await prisma.invoice.findMany({
+    orderBy: { createdAt: "desc" },
+    include: {
+      targetUser: { select: { id: true, name: true, email: true } },
+      relatedPayment: { select: { status: true } },
+    },
+  });
+  return NextResponse.json(
+    {
+      ok: true,
+      data: invoices.map((invoice) => ({
+        ...invoice,
+        targetUserNama: invoice.targetUser?.name || null,
+        targetUserEmail: invoice.targetUser?.email || null,
+        paymentStatus: invoice.relatedPayment?.status || null,
+      })),
+    },
+    { headers: { "Cache-Control": "no-store" } },
+  );
 }
 
 export async function POST(req: Request) {
@@ -92,7 +109,35 @@ export async function DELETE(req: Request) {
 
   const id = new URL(req.url).searchParams.get("id");
   if (!id) return NextResponse.json({ ok: false, message: "ID invoice wajib diisi." }, { status: 400 });
-  const deleted = await prisma.invoice.deleteMany({ where: { id } });
-  if (!deleted.count) return NextResponse.json({ ok: false, message: "Invoice tidak ditemukan." }, { status: 404 });
+
+  const deleted = await prisma.$transaction(async (transaction) => {
+    const invoice = await transaction.invoice.findUnique({ where: { id } });
+    if (!invoice) return null;
+
+    if (invoice.relatedPaymentId) {
+      await transaction.payment.deleteMany({ where: { id: invoice.relatedPaymentId } });
+    }
+    await transaction.invoice.delete({ where: { id } });
+
+    if (invoice.targetRole === "MURID" && invoice.targetUserId) {
+      const murid = await transaction.murid.findUnique({ where: { userId: invoice.targetUserId } });
+      if (murid) {
+        const active = await transaction.payment.findFirst({
+          where: { muridId: murid.id, status: { in: ["PENDING", "PROCESSING"] } },
+          select: { status: true },
+        });
+        const success = active
+          ? null
+          : await transaction.payment.findFirst({ where: { muridId: murid.id, status: "SUCCESS" }, orderBy: { paidAt: "desc" }, select: { status: true } });
+        await transaction.murid.update({
+          where: { id: murid.id },
+          data: { statusBayarBulanIni: active ? active.status : success ? "SUCCESS" : "PENDING" },
+        });
+      }
+    }
+    return { id };
+  });
+
+  if (!deleted) return NextResponse.json({ ok: false, message: "Invoice tidak ditemukan." }, { status: 404 });
   return NextResponse.json({ ok: true, deletedId: id });
 }

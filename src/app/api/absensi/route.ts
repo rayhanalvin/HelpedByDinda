@@ -97,6 +97,8 @@ function normalizeSchedule(sched: ScheduleWithRelations, sessionUserId: string, 
   return {
     id: sched.id,
     jadwalId: sched.id,
+    kelompokId: (sched as { kelompokId?: string | null }).kelompokId || null,
+    kelompokNama: (sched as { kelompokNama?: string | null }).kelompokNama || null,
     mataPelajaran: sched.mataPelajaran,
     tanggal: sched.tanggal,
     jamMulai: sched.jamMulai,
@@ -177,10 +179,43 @@ export async function GET(req: Request) {
     payload.push(normalizeSchedule(schedule, session.userId, attendance, participantAttendance));
   }
 
+  const groepAbsensi: Record<string, { muridId: string; muridNama: string; status: string | null }[]> = {};
+  const ledenByGroep = new Map<string, { muridId: string; murid: string }[]>();
+  if (session.role === "PENGAJAR") {
+    const groepen = payload.filter((item) => item.kelompokId);
+    if (groepen.length) {
+      const groupIds = Array.from(new Set(groepen.map((item) => item.kelompokId as string)));
+      const groupSchedules = await prisma.jadwal.findMany({ where: { kelompokId: { in: groupIds } }, include: { murid: { include: { user: { select: { name: true } } } } } });
+      const memberIds = Array.from(new Set(groupSchedules.map((item) => item.murid.userId)));
+      const rows = await prisma.absensi.findMany({ where: { jadwalId: { in: groupSchedules.map((item) => item.id) }, userId: { in: memberIds } } });
+      const statusByMember = new Map<string, string>();
+      for (const row of rows) {
+        if (!statusByMember.has(`${row.jadwalId}:${row.userId}`)) statusByMember.set(`${row.jadwalId}:${row.userId}`, row.status);
+      }
+      for (const group of groepen) {
+        const members = groupSchedules.filter((item) => item.kelompokId === group.kelompokId);
+        ledenByGroep.set(group.kelompokId as string, members.map((member) => ({ muridId: member.muridId, murid: member.murid.user.name })));
+        groepAbsensi[group.kelompokId as string] = members.map((member) => ({
+          muridId: member.muridId,
+          muridNama: member.murid.user.name,
+          status: statusByMember.get(`${member.id}:${member.murid.userId}`) || null,
+        }));
+      }
+    }
+  }
+
   const activeSchedule = payload.find((item) => item.status === "AKTIF" || item.status === "BERJALAN") || payload[0] || null;
 
   return NextResponse.json(
-    { ok: true, data: payload, active: activeSchedule },
+    {
+      ok: true,
+      data: payload.map((item) => ({
+        ...item,
+        leden: item.kelompokId ? ledenByGroep.get(item.kelompokId) || [] : [],
+      })),
+      active: activeSchedule,
+      groepAbsensi,
+    },
     {
       headers: { "Cache-Control": "no-store, no-cache, must-revalidate" },
     },
@@ -202,12 +237,13 @@ export async function POST(req: Request) {
     proofMimeType?: string;
     proofName?: string;
     catatan?: string;
+    entries?: { muridId?: string; status?: string }[];
   };
   const action = String(body.action || "").toLowerCase();
   const jadwalId = String(body.jadwalId || "");
   const location = body.location;
 
-  if (!jadwalId || !["start", "finish", "absence"].includes(action)) {
+  if (!jadwalId || !["start", "finish", "absence", "group-attendance"].includes(action)) {
     return NextResponse.json({ ok: false, message: "Parameter absensi tidak valid." }, { status: 400 });
   }
 
@@ -227,6 +263,68 @@ export async function POST(req: Request) {
 
   if (!belongsToUser) {
     return NextResponse.json({ ok: false, message: "Jadwal tidak sesuai dengan akun Anda." }, { status: 403 });
+  }
+
+  if (action === "group-attendance") {
+    if (session.role !== "PENGAJAR") {
+      return NextResponse.json({ ok: false, message: "Alleen pengajar kan absensi groep invullen." }, { status: 403 });
+    }
+    const rawEntries = Array.isArray(body.entries) ? (body.entries as { muridId?: string; status?: string }[]) : [];
+    const allowedStatuses = new Set(["HADIR", "IZIN", "SAKIT", "ALPHA"]);
+    const normalized = rawEntries
+      .filter((entry) => entry.muridId && allowedStatuses.has(String(entry.status || "").toUpperCase()))
+      .map((entry) => ({ muridId: String(entry.muridId), status: String(entry.status || "").toUpperCase() as "HADIR" | "IZIN" | "SAKIT" | "ALPHA" }));
+
+    if (schedule.kelompokId) {
+      const group = await prisma.jadwal.findMany({
+        where: { kelompokId: schedule.kelompokId },
+        select: { id: true, muridId: true, murid: { select: { userId: true } }, mataPelajaran: true, tanggal: true, pengajar: { select: { userId: true } } },
+      });
+      const validMuridIds = new Set(group.map((item) => item.muridId));
+      const selected = normalized.filter((entry) => validMuridIds.has(entry.muridId));
+      const attendanceRows = await prisma.$transaction(async (transaction) => {
+        const savedRows = [];
+        for (const member of group) {
+          const statusEntry = selected.find((entry) => entry.muridId === member.muridId);
+          const status = statusEntry?.status || "ALPHA";
+          const saved = await transaction.absensi.upsert({
+            where: { jadwalId_userId: { jadwalId: member.id, userId: member.murid.userId } },
+            create: {
+              jadwalId: member.id,
+              userId: member.murid.userId,
+              status,
+              waktuAbsen: new Date(),
+              mataPelajaran: member.mataPelajaran,
+              tanggal: member.tanggal,
+              catatan: status === "HADIR" ? "Kehadiran oleh pengajar (sesi groep)." : `Kehadiran ${status.toLowerCase()} oleh pengajar (sesi groep).`,
+            },
+            update: { status, catatan: status === "HADIR" ? "Kehadiran oleh pengajar (sesi groep)." : `Kehadiran ${status.toLowerCase()} oleh pengajar (sesi groep).` },
+          });
+          savedRows.push({ muridId: member.muridId, muridNama: member.murid.userId, status: saved.status });
+        }
+        return savedRows;
+      });
+      return NextResponse.json({ ok: true, data: { absentie: attendanceRows } }, { headers: { "Cache-Control": "no-store" } });
+    }
+
+    // Private session: save single murid status
+    if (!normalized.length) return NextResponse.json({ ok: false, message: "Pilih status kehadiran murid." }, { status: 400 });
+    const entry = normalized[0];
+    if (entry.muridId !== schedule.muridId) return NextResponse.json({ ok: false, message: "Murid niet bij deze sessie." }, { status: 403 });
+    const saved = await prisma.absensi.upsert({
+      where: { jadwalId_userId: { jadwalId: schedule.id, userId: schedule.murid.userId } },
+      create: {
+        jadwalId: schedule.id,
+        userId: schedule.murid.userId,
+        status: entry.status,
+        waktuAbsen: new Date(),
+        mataPelajaran: schedule.mataPelajaran,
+        tanggal: schedule.tanggal,
+        catatan: entry.status === "HADIR" ? "Kehadiran door pengajar." : `Kehadiran ${entry.status.toLowerCase()} door pengajar.`,
+      },
+      update: { status: entry.status, catatan: entry.status === "HADIR" ? "Kehadiran door pengajar." : `Kehadiran ${entry.status.toLowerCase()} door pengajar.` },
+    });
+    return NextResponse.json({ ok: true, data: saved });
   }
 
   const existing = await prisma.absensi.findUnique({

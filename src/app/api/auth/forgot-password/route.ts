@@ -81,16 +81,32 @@ export async function POST(req: Request) {
         to: user.email,
         subject: "Kode Verifikasi Setel Ulang Kata Sandi Helped By Dinda",
         html: `
-          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e2e8f0; border-radius: 12px;">
-            <h2 style="color: #6366f1; text-align: center;">Helped By Dinda</h2>
-            <p>Halo, <strong>${user.name}</strong></p>
-            <p>Kami menerima permintaan untuk menyetel ulang kata sandi akun Anda. Gunakan kode verifikasi di bawah ini untuk melanjutkan:</p>
-            <div style="text-align: center; margin: 30px 0;">
-              <span style="background-color: #6366f1; color: white; padding: 16px 24px; border-radius: 8px; font-weight: bold; font-size: 24px; letter-spacing: 4px; display: inline-block;">${code}</span>
+          <div style="font-family: Arial, Helvetica, sans-serif; max-width: 600px; margin: 0 auto; padding: 24px; background: #f8fafc; border-radius: 16px;">
+            <div style="text-align: center; margin-bottom: 20px;">
+              <h2 style="color: #6366f1; font-weight: 800; font-size: 22px; margin: 0;">Helped By Dinda</h2>
+              <p style="color: #94a3b8; font-size: 12px; margin: 4px 0;">Akademi Bimbel & Tutoring</p>
             </div>
-            <p style="color: #64748b; font-size: 13px;">Kode ini hanya berlaku selama <strong>1 jam</strong> sejak sekarang. Jika Anda tidak meminta pengaturan ulang kata sandi, abaikan email ini dengan aman.</p>
+            <div style="background: #ffffff; border-radius: 12px; padding: 24px; border: 1px solid #e2e8f0;">
+              <p style="font-size: 14px; color: #334155; margin: 0 0 8px;">Halo, <strong>${user.name}</strong></p>
+              <p style="font-size: 13px; color: #475569; line-height: 1.5; margin: 0 0 16px;">
+                Kami menerima permintaan untuk menyetel ulang kata sandi akun Anda (${user.email}).
+                Gunakan kode verifikasi <strong>6 digit</strong> di bawah ini op de website om verder te gaan:
+              </p>
+              <div style="text-align: center; margin: 20px 0;">
+                <span style="background-color: #6366f1; color: #ffffff; padding: 14px 28px; border-radius: 10px; font-weight: 800; font-size: 28px; letter-spacing: 8px; display: inline-block;">${code}</span>
+              </div>
+              <p style="font-size: 12px; color: #64748b; line-height: 1.6; margin: 0 0 12px;">
+                Kode heeft een geldigheidsduur van <strong>1 uur</strong> en kan maar <strong>eenmaal</strong> worden gebruikt.
+                Na het invoeren ervan kunt u een nieuwe wachtwoord maken en opnieuw inloggen.
+              </p>
+              <p style="font-size: 12px; color: #94a3b8; line-height: 1.5; margin: 0;">
+                Heeft u geen reset aangevraagd? Dan kunt u deze e-mail negeren — uw wachtwoord blijft ongewijzigd.
+              </p>
+            </div>
             <hr style="border: 0; border-top: 1px solid #e2e8f0; margin: 20px 0;" />
-            <p style="color: #94a3b8; font-size: 11px; text-align: center;">© ${new Date().getFullYear()} Helped By Dinda. Seluruh hak cipta dilindungi.</p>
+            <p style="color: #94a3b8; font-size: 11px; text-align: center; margin: 0;">
+              © ${new Date().getFullYear()} Helped By Dinda. Alle rechten voorbehouden.
+            </p>
           </div>
         `,
       };

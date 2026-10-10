@@ -10,6 +10,7 @@ import { apiFetch } from "@/lib/api";
 import { formatDateIndo } from "@/lib/utils";
 import { AttendanceExcuseForm } from "@/components/shared/AttendanceExcuseForm";
 import { useVisiblePolling } from "@/lib/use-visible-polling";
+import { renderRuanganLink } from "@/lib/ruangan-link";
 
 type ScheduleAttendance = {
   id: string;
@@ -195,7 +196,7 @@ export default function MuridAbsenPage() {
               </div>
               <div>
                 <p className="text-[11px] text-muted-foreground">Ruangan / Link</p>
-                <p className="text-xs sm:text-sm font-bold text-foreground">{schedule?.ruangan || "Jadwal terhubung ke kelas"}</p>
+                <p className="text-xs sm:text-sm font-bold">{schedule?.ruangan ? renderRuanganLink(schedule.ruangan) : "Jadwal terhubung ke kelas"}</p>
               </div>
             </div>
 
