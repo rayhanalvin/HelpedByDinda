@@ -100,6 +100,9 @@ model Pengajar {
   quizzes           Quiz[]
   ujian             Ujian[]
   kelas             PengajarKelas[]
+  availability      PengajarAvailability[]
+  muridDiampu       Murid[]
+  scheduleRequests  RescheduleRequest[]
 
   @@map("pengajar")
 }
@@ -154,13 +157,94 @@ model Murid {
   isActive            Boolean       @default(true)
   createdAt           DateTime      @default(now())
   updatedAt           DateTime      @updatedAt
+  idSiswa             String?
+  pengelompokan       String?
+  namaPanggilan       String?
+  jurusan             String?
+  kampus              String?
+  alamatRumah         String?
+  jenisKelas          String?
+  metodeBimbel        String?
+  jenisBimbingan      String?
+  tanggalMulai        DateTime?
+  lokasiBimbel        String?
+  alamatBimbel        String?
+  pengajarId          String?
+  catatan             String?
+  hargaPendaftaran    Int?
+  diskonPendaftaran   Int?
+  defaultPassword     String?
   jadwal              Jadwal[]
   rapot               Rapot[]
   asesmenDariMurid    AsesmenPengajar[] @relation("AsesmenDariMurid")
   user                User          @relation(fields: [userId], references: [id], onDelete: Cascade)
   payments            Payment[]
+  enrolledKelas       MuridKelas[]
+  pengajar            Pengajar?     @relation(fields: [pengajarId], references: [id], onDelete: SetNull)
+  rescheduleRequests  RescheduleRequest[]
 
   @@map("murid")
+}
+
+model MuridKelas {
+  id        String  @id @default(cuid())
+  muridId   String
+  kelas     String
+  mataPelajaran String?
+  programNama  String?
+  isActive  Boolean @default(true)
+  createdAt DateTime @default(now())
+  murid     Murid   @relation(fields: [muridId], references: [id], onDelete: Cascade)
+
+  @@unique([muridId, kelas])
+  @@map("murid_kelas")
+}
+
+model PengajarAvailability {
+  id         String   @id @default(cuid())
+  pengajarId String
+  jenis      String   @default("RUTINE") // RUTINE | SPECIFIK
+  hari       String?  // RUTINE: MON..SUN (0-6)
+  tanggal    DateTime? // SPECIFIK: specific date
+  jamMulai   String
+  jamSelesai String
+  mode       String   @default("ONLINE")
+  ruangan    String?
+  catatan    String?
+  isActive   Boolean  @default(true)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+  pengajar   Pengajar @relation(fields: [pengajarId], references: [id], onDelete: Cascade)
+
+  @@index([pengajarId])
+  @@map("pengajar_availability")
+}
+
+model RescheduleRequest {
+  id              String    @id @default(cuid())
+  muridId         String
+  pengajarId      String
+  jadwalId        String
+  tanggalLama     DateTime
+  jamMulaiLama    String
+  jamSelesaiLama  String
+  tanggalBaru     DateTime
+  jamMulaiBaru    String
+  jamSelesaiBaru  String
+  catatan         String?
+  status          String    @default("PENDING") // PENDING | APPROVED | REJECTED
+  handledBy       String?   // ADMIN | PENGAJAR
+  handledById     String?
+  handledAt       DateTime?
+  createdAt       DateTime  @default(now())
+  murid           Murid     @relation(fields: [muridId], references: [id], onDelete: Cascade)
+  pengajar        Pengajar  @relation(fields: [pengajarId], references: [id], onDelete: Cascade)
+  jadwal          Jadwal    @relation(fields: [jadwalId], references: [id], onDelete: Cascade)
+
+  @@index([muridId])
+  @@index([pengajarId])
+  @@index([status])
+  @@map("reschedule_requests")
 }
 
 model Jadwal {
@@ -184,6 +268,7 @@ model Jadwal {
   murid         Murid      @relation(fields: [muridId], references: [id], onDelete: Cascade)
   pengajar      Pengajar   @relation(fields: [pengajarId], references: [id], onDelete: Cascade)
   quizzes       Quiz[]
+  rescheduleRequests RescheduleRequest[]
 
   @@map("jadwal")
 }

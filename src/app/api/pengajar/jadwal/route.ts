@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { getSessionUser } from "@/lib/auth-session";
+import { hasTeacherConflict, toDateKey } from "@/lib/jadwal-availability";
 
 async function getPengajar() {
   const session = await getSessionUser();
@@ -52,6 +53,8 @@ export async function POST(request: Request) {
   const parsed = parseSchedule(body, pengajar.id);
   if (parsed.error) return NextResponse.json({ ok: false, message: parsed.error }, { status: 400 });
   if (!parsed.data) return NextResponse.json({ ok: false, message: "Data jadwal belum lengkap." }, { status: 400 });
+  const conflict = await hasTeacherConflict(pengajar.id, toDateKey(parsed.data.tanggal), parsed.data.jamMulai, parsed.data.jamSelesai);
+  if (conflict) return NextResponse.json({ ok: false, message: "Kamu sudah punya jadwal pada jam tersebut. Jadwal tidak ditambahkan agar tidak bentrok." }, { status: 409 });
   const murid = await prisma.murid.findMany({ where: { id: { in: parsed.data.muridIds } }, select: { id: true } });
   if (murid.length !== parsed.data.muridIds.length) return NextResponse.json({ ok: false, message: "Satu atau lebih murid tidak ditemukan." }, { status: 404 });
   const isGroup = parsed.data.muridIds.length > 1;

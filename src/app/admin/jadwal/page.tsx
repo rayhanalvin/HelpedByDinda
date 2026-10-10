@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { Calendar, Plus, Loader2 } from "lucide-react";
+import { Calendar, Plus, Loader2, Search, CalendarClock, CheckCircle2, XCircle, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -39,6 +39,23 @@ type SimpleUserOpt = {
   kelas?: string;
 };
 
+type RescheduleRequest = {
+  id: string;
+  muridNama: string;
+  pengajarNama: string;
+  mataPelajaran: string;
+  tanggalLama: string;
+  jamMulaiLama: string;
+  jamSelesaiLama: string;
+  tanggalBaru: string;
+  jamMulaiBaru: string;
+  jamSelesaiBaru: string;
+  catatan: string | null;
+  status: "PENDING" | "APPROVED" | "REJECTED";
+  handledBy: string | null;
+  createdAt: string;
+};
+
 export default function AdminJadwalPage() {
   const { toast } = useToast();
   const [jadwalList, setJadwalList] = React.useState<APIJadwal[]>([]);
@@ -49,9 +66,14 @@ export default function AdminJadwalPage() {
   const [calendarView, setCalendarView] = React.useState<"harian" | "mingguan">("mingguan");
   const [selectedDate, setSelectedDate] = React.useState(new Date().toISOString().slice(0, 10));
   const [isRefreshing, setIsRefreshing] = React.useState(false);
+  const [rescheduleList, setRescheduleList] = React.useState<RescheduleRequest[]>([]);
+  const [processingRequestId, setProcessingRequestId] = React.useState<string | null>(null);
 
   const [isModalOpen, setIsModalOpen] = React.useState(false);
   const [editingId, setEditingId] = React.useState<string | null>(null);
+  const [pengajarQuery, setPengajarQuery] = React.useState("");
+  const [muridQuery, setMuridQuery] = React.useState("");
+  const [availabilityHint, setAvailabilityHint] = React.useState("");
   const [formData, setFormData] = React.useState({
     pengajarId: "",
     muridId: "",
@@ -72,10 +94,11 @@ export default function AdminJadwalPage() {
       try {
         if (!silent) setLoading(true);
         if (silent) setIsRefreshing(true);
-        const [resJadwal, resPengajar, resMurid] = await Promise.all([
+        const [resJadwal, resPengajar, resMurid, resReschedule] = await Promise.all([
           apiFetch<{ ok: boolean; data: APIJadwal[] }>("/api/admin/jadwal"),
           apiFetch<{ ok: boolean; data: { id: string; name: string; spesialisasi: string }[] }>("/api/admin/pengajar"),
           apiFetch<{ ok: boolean; data: { id: string; name: string; kelas: string }[] }>("/api/admin/murid"),
+          apiFetch<{ ok: boolean; data: RescheduleRequest[] }>("/api/reschedule"),
         ]);
 
         if (resJadwal.ok) setJadwalList(resJadwal.data);
@@ -85,6 +108,7 @@ export default function AdminJadwalPage() {
         if (resMurid.ok) {
           setMuridList(resMurid.data.map((m) => ({ id: m.id, name: m.name, info: getKelasLabel(m.kelas), kelas: m.kelas })));
         }
+        if (resReschedule.ok) setRescheduleList(resReschedule.data);
       } catch {
         if (!silent) toast("Gagal sinkronisasi data jadwal.", "error");
       } finally {
@@ -104,6 +128,9 @@ export default function AdminJadwalPage() {
 
   const handleOpenAdd = React.useCallback(() => {
     setEditingId(null);
+    setPengajarQuery("");
+    setMuridQuery("");
+    setAvailabilityHint("");
     setFormData({
       pengajarId: pengajarList[0]?.id || "",
       muridId: muridList[0]?.id || "",
@@ -123,6 +150,9 @@ export default function AdminJadwalPage() {
 
   const handleOpenEdit = (j: APIJadwal) => {
     setEditingId(j.id);
+    setPengajarQuery("");
+    setMuridQuery("");
+    setAvailabilityHint("");
     const groupMuridIds = j.kelompokId ? jadwalList.filter((item) => item.kelompokId === j.kelompokId).map((item) => item.muridId) : [j.muridId];
     const startedAtValue = (j as unknown as { startedAt?: string | null }).startedAt;
     setFormData({
@@ -142,6 +172,41 @@ export default function AdminJadwalPage() {
     setIsModalOpen(true);
   };
 
+  const checkAvailability = React.useCallback(
+    async (pengajarId: string) => {
+      if (!isModalOpen || !pengajarId) return;
+      const tanggal = formData.tanggal;
+      const jamMulai = formData.jamMulai;
+      const jamSelesai = formData.jamSelesai;
+      if (!tanggal || !jamMulai || !jamSelesai) return;
+      const query = new URLSearchParams({ pengajarId, date: tanggal });
+      try {
+        const response = await fetch(`/api/public/pengajar-availability?${query.toString()}`, { cache: "no-store" });
+        const json = (await response.json()) as { ok: boolean; data: { ranges: { start: string; end: string }[]; booked: { jamMulai: string; jamSelesai: string }[] } };
+        if (!json.ok) {
+          setAvailabilityHint("");
+          return;
+        }
+        const covered = json.data.ranges.some((range) => jamMulai >= range.start && jamSelesai <= range.end);
+        const bentrok = json.data.booked.some((b) => jamMulai < b.jamSelesai && b.jamMulai < jamSelesai);
+        if (bentrok) {
+          setAvailabilityHint("⚠️ Pengajar sudah terisi pada jam ini — jadwal akan diblokkan.");
+        } else if (!covered && json.data.ranges.length > 0) {
+          setAvailabilityHint("ℹ️ Jam ini derupan ketersediaan rutin pengajar. Slot lain mungkin lebih sesuai.");
+        } else {
+          setAvailabilityHint("");
+        }
+      } catch {
+        setAvailabilityHint("");
+      }
+    },
+    [isModalOpen, formData.tanggal, formData.jamMulai, formData.jamSelesai],
+  );
+
+  React.useEffect(() => {
+    void checkAvailability(formData.pengajarId);
+  }, [checkAvailability, formData.pengajarId]);
+
   const handleDelete = async (id: string) => {
     const schedule = jadwalList.find((item) => item.id === id);
     const message = schedule?.kelompokId ? "Hapus seluruh jadwal dan peserta dalam kelompok ini?" : "Apakah Anda yakin ingin menghapus jadwal ini?";
@@ -153,6 +218,22 @@ export default function AdminJadwalPage() {
       } catch (e) {
         toast(e instanceof Error ? e.message : "Gagal menghapus jadwal.", "error");
       }
+    }
+  };
+
+  const handleRescheduleAction = async (request: RescheduleRequest, action: "APPROVED" | "REJECTED") => {
+    if (processingRequestId) return;
+    const label = action === "APPROVED" ? "Disetujui" : "Ditolak";
+    if (!confirm(`Disetujui atuh ditolak pengajuan reschedule dari ${request.muridNama}?\n\nLama: ${formatDateIndo(request.tanggalLama)} ${request.jamMulaiLama}-${request.jamSelesaiLama}\nBaru: ${formatDateIndo(request.tanggalBaru)} ${request.jamMulaiBaru}-${request.jamSelesaiBaru}`)) return;
+    setProcessingRequestId(request.id);
+    try {
+      await apiFetch(`/api/reschedule/${request.id}`, { method: "PUT", body: JSON.stringify({ action }) });
+      toast(action === "APPROVED" ? "Reschedule disetujui — jadwal diperbarui otomatis." : "Pengajuan reschedule ditolak. Jadwal awal tetap.", "success");
+      fetchAllData(true);
+    } catch (err) {
+      toast(err instanceof Error ? err.message : "Gagal diproses pengajuan reschedule.", "error");
+    } finally {
+      setProcessingRequestId(null);
     }
   };
 
@@ -212,6 +293,64 @@ export default function AdminJadwalPage() {
           </button>
         ))}
       </div>
+
+      {/* Pengajuan Reschedule */}
+      {rescheduleList.filter((request) => request.status === "PENDING").length > 0 && (
+        <div className="rounded-xl border border-amber-300/60 bg-amber-50 p-4">
+          <div className="flex items-center gap-2 mb-2">
+            <RefreshCw className="h-4 w-4 text-amber-600 animate-spin" />
+            <h2 className="text-sm font-bold text-amber-700">
+              Pengajuan Reschedule Pengganti ({rescheduleList.filter((request) => request.status === "PENDING").length})
+            </h2>
+          </div>
+          <p className="text-[11px] text-amber-700 mb-3">
+            Murid meminta perubahan tanggal/jam sesi. Disetujui atuh ditolak — jadwal pengajar diperbarui otomatis.
+          </p>
+          <div className="space-y-2.5">
+            {rescheduleList
+              .filter((request) => request.status === "PENDING")
+              .map((request) => (
+                <div key={request.id} className="rounded-xl border border-amber-200 bg-card p-3">
+                  <div className="flex flex-wrap gap-2">
+                    <Badge variant="secondary">PENDING</Badge>
+                    <span className="text-xs font-bold text-foreground">{request.mataPelajaran}</span>
+                    <span className="text-xs text-muted-foreground">· {request.muridNama} · Pengajar {request.pengajarNama}</span>
+                  </div>
+                  <div className="flex items-center gap-2.5 mt-2 text-xs">
+                    <div className="rounded-lg bg-muted px-2.5 py-1.5 text-muted-foreground">
+                      Lama: {formatDateIndo(request.tanggalLama)} {request.jamMulaiLama}–{request.jamSelesaiLama}
+                    </div>
+                    <span className="text-muted-foreground">→</span>
+                    <div className="rounded-lg bg-secondary/30 px-2.5 py-1.5 text-secondary-foreground">
+                      Baru: {formatDateIndo(request.tanggalBaru)} {request.jamMulaiBaru}–{request.jamSelesaiBaru}
+                    </div>
+                  </div>
+                  {request.catatan && <p className="text-[11px] text-muted-foreground mt-1.5 italic">“{request.catatan}”</p>}
+                  <div className="flex justify-end gap-2 mt-2.5">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="text-xs text-rose-600 hover:bg-rose-50"
+                      isLoading={processingRequestId === request.id}
+                      onClick={() => void handleRescheduleAction(request, "REJECTED")}
+                    >
+                      <XCircle className="h-3.5 w-3.5" /> Ditolak
+                    </Button>
+                    <Button
+                      variant="accent"
+                      size="sm"
+                      className="text-xs font-bold"
+                      isLoading={processingRequestId === request.id}
+                      onClick={() => void handleRescheduleAction(request, "APPROVED")}
+                    >
+                      <CheckCircle2 className="h-3.5 w-3.5" /> Disetujui
+                    </Button>
+                  </div>
+                </div>
+              ))}
+          </div>
+        </div>
+      )}
 
       <div className="flex flex-wrap items-center gap-2">
         <Button variant={calendarView === "harian" ? "default" : "outline"} size="sm" onClick={() => setCalendarView("harian")}>
@@ -305,28 +444,47 @@ export default function AdminJadwalPage() {
       )}
 
       {/* Modal Buat/Ubah Jadwal */}
-      <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} title={editingId ? "Ubah Jadwal Mengajar" : "Buat Jadwal Mengajar Baru"} description="Sinkronkan jadwal langsung dengan basis data bimbingan.">
+      <Modal
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        title={editingId ? "Ubah Jadwal Mengajar" : "Buat Jadwal Mengajar Baru"}
+        description="Sinkronkan jadwal langsung dengan basis data bimbingan. Pengajar dan murid dapat dicari, dan bentrokatan otomatis diblokkan."
+        className="max-w-3xl"
+      >
         <form onSubmit={handleSave} className="space-y-4">
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1.5">
               <label className="text-xs font-semibold text-foreground">Pengajar (Tutor)</label>
-              <select
-                className="flex h-11 w-full rounded-xl border border-input bg-card px-3 py-2 text-sm text-foreground shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
-                value={formData.pengajarId}
-                onChange={(e) => setFormData({ ...formData, pengajarId: e.target.value })}
-              >
-                {pengajarList.map((p) => (
-                  <option key={p.id} value={p.id}>
-                    {p.name} ({p.info})
-                  </option>
-                ))}
-              </select>
+              <div className="relative">
+                <Input placeholder="Cari pengajar..." value={pengajarQuery} onChange={(e) => setPengajarQuery(e.target.value)} className="pl-8 h-9 text-xs" />
+                <Search className="absolute left-2.5 top-2.5 h-3.5 w-3.5 text-muted-foreground" />
+              </div>
+              <div className="grid max-h-44 gap-1 overflow-y-auto rounded-xl border border-border p-2">
+                {pengajarList
+                  .filter((p) => !pengajarQuery || `${p.name} ${p.info}`.toLowerCase().includes(pengajarQuery.toLowerCase()))
+                  .map((p) => (
+                    <label key={p.id} className="flex min-w-0 items-center gap-2 rounded-lg px-2 py-2 text-xs cursor-pointer hover:bg-muted">
+                      <input type="radio" name="pengajar-radio" checked={formData.pengajarId === p.id} onChange={() => setFormData({ ...formData, pengajarId: p.id })} />
+                      <span className="truncate">
+                        {p.name} <span className="text-muted-foreground">({p.info})</span>
+                      </span>
+                    </label>
+                  ))}
+                {!pengajarList.filter((p) => !pengajarQuery || `${p.name} ${p.info}`.toLowerCase().includes(pengajarQuery.toLowerCase())).length && <p className="text-[10px] text-muted-foreground py-2">Pengajar tidak ditemukan.</p>}
+              </div>
+              {availabilityHint && <p className="text-[10px] text-muted-foreground mt-1">{availabilityHint}</p>}
             </div>
 
             <div className="space-y-1.5">
               <label className="text-xs font-semibold text-foreground">Murid</label>
-              <div className="grid max-h-48 gap-1 overflow-y-auto rounded-xl border border-border p-2 sm:grid-cols-2">
-                {muridList.map((murid) => (
+              <div className="relative">
+                <Input placeholder="Cari murid..." value={muridQuery} onChange={(e) => setMuridQuery(e.target.value)} className="pl-8 h-9 text-xs" />
+                <Search className="absolute left-2.5 top-2.5 h-3.5 w-3.5 text-muted-foreground" />
+              </div>
+              <div className="grid max-h-48 gap-0.5 overflow-y-auto rounded-xl border border-border p-2">
+                {muridList
+                  .filter((m) => !muridQuery || `${m.name} ${m.info}`.toLowerCase().includes(muridQuery.toLowerCase()))
+                  .map((murid) => (
                   <label key={murid.id} className="flex min-w-0 items-center gap-2 rounded-lg px-2 py-2 text-xs hover:bg-muted">
                     <input
                       type="checkbox"
@@ -340,9 +498,13 @@ export default function AdminJadwalPage() {
                       {murid.name} ({murid.info})
                     </span>
                   </label>
-                ))}
+                  ))}
+                {!muridList.filter((m) => !muridQuery || `${m.name} ${m.info}`.toLowerCase().includes(muridQuery.toLowerCase())).length && <p className="text-[10px] text-muted-foreground py-2">Murid tidak ditemukan.</p>}
               </div>
               <p className="text-[10px] text-muted-foreground">Pilih beberapa murid untuk menggabungkan jadwal menjadi satu sesi kelompok.</p>
+              <p className="text-[11px] font-semibold text-primary flex items-center gap-1">
+                <CalendarClock className="h-3.5 w-3.5" /> Terpilih: {formData.muridIds.length} murid
+              </p>
             </div>
           </div>
 

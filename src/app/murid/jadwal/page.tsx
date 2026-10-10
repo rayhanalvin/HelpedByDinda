@@ -1,10 +1,13 @@
 "use client";
 
 import * as React from "react";
-import { Calendar, Clock, MapPin, Video, User, ChevronRight, Loader2 } from "lucide-react";
+import { Calendar, Clock, MapPin, Video, User, ChevronRight, Loader2, CalendarClock, CheckCircle2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
+import { Modal } from "@/components/ui/modal";
+import { useToast } from "@/components/ui/toast";
 import Link from "next/link";
 import { formatDateIndo } from "@/lib/utils";
 import { apiFetch } from "@/lib/api";
@@ -27,13 +30,35 @@ type APIJadwal = {
   status: string;
   pengajarNama: string;
   muridNama: string;
+  startedAt?: string | null;
 };
 
 export default function MuridJadwalPage() {
+  const { toast } = useToast();
   const [schedules, setSchedules] = React.useState<APIJadwal[]>([]);
   const [loading, setLoading] = React.useState(true);
   const [filterMode, setFilterMode] = React.useState<"all" | "online" | "offline">("all");
   const [isRefreshing, setIsRefreshing] = React.useState(false);
+  const [rescheduleTarget, setRescheduleTarget] = React.useState<APIJadwal | null>(null);
+  const [rsForm, setRsForm] = React.useState({ tanggalBaru: "", jamMulaiBaru: "", jamSelesaiBaru: "", catatan: "" });
+  const [rsSlots, setRsSlots] = React.useState<{ start: string; end: string; mode: string; ruangan: string | null }[]>([]);
+  const [loadingSlots, setLoadingSlots] = React.useState(false);
+  const [sending, setSending] = React.useState(false);
+  const [requests, setRequests] = React.useState<
+    {
+      id: string;
+      jadwalId: string;
+      mataPelajaran: string;
+      tanggalLama: string;
+      jamMulaiLama: string;
+      jamSelesaiLama: string;
+      tanggalBaru: string;
+      jamMulaiBaru: string;
+      jamSelesaiBaru: string;
+      status: string;
+      catatan: string | null;
+    }[]
+  >([]);
 
   const fetchSchedules = React.useCallback((silent = false) => {
     if (!silent) setLoading(true);
@@ -53,6 +78,9 @@ export default function MuridJadwalPage() {
 
   React.useEffect(() => {
     fetchSchedules();
+    apiFetch<{ ok: boolean; data: { id: string; jadwalId: string; mataPelajaran: string; tanggalLama: string; jamMulaiLama: string; jamSelesaiLama: string; tanggalBaru: string; jamMulaiBaru: string; jamSelesaiBaru: string; status: string; catatan: string | null }[] }>("/api/reschedule")
+      .then((res) => res.ok && setRequests(res.data))
+      .catch(() => undefined);
   }, [fetchSchedules]);
   useVisiblePolling(() => fetchSchedules(true), 30000);
 
@@ -60,6 +88,65 @@ export default function MuridJadwalPage() {
     const matchMode = filterMode === "all" || j.mode === filterMode;
     return matchMode;
   });
+
+  const openReschedule = (schedule: APIJadwal) => {
+    setRescheduleTarget(schedule);
+    setRsForm({ tanggalBaru: "", jamMulaiBaru: "", jamSelesaiBaru: "", catatan: "" });
+    setRsSlots([]);
+  };
+
+  const loadSlots = async (tanggalKey: string) => {
+    if (!rescheduleTarget) return;
+    setLoadingSlots(true);
+    setRsForm({ ...rsForm, tanggalBaru: tanggalKey, jamMulaiBaru: "", jamSelesaiBaru: "" });
+    try {
+      const query = new URLSearchParams({ pengajarId: rescheduleTarget.pengajarId, date: tanggalKey });
+      const response = await fetch(`/api/public/pengajar-availability?${query.toString()}`, { cache: "no-store" });
+      const json = (await response.json()) as {
+        ok: boolean;
+        data: { ranges: { start: string; end: string; mode: string; ruangan: string | null }[] };
+      };
+      const freeRanges = json.ok ? json.data.ranges : [];
+      const generated: { start: string; end: string; mode: string; ruangan: string | null }[] = [];
+      for (const range of freeRanges) {
+        const [startHour, startMin] = range.start.split(":").map(Number);
+        const [endHour, endMin] = range.end.split(":").map(Number);
+        const startTotal = startHour * 60 + startMin;
+        const endTotal = endHour * 60 + endMin;
+        for (let cursor = startTotal; cursor + 60 <= endTotal; cursor += 60) {
+          const from = `${String(Math.floor(cursor / 60)).padStart(2, "0")}:${String(cursor % 60).padStart(2, "0")}`;
+          const to = `${String(Math.floor((cursor + 60) / 60)).padStart(2, "0")}:${String((cursor + 60) % 60).padStart(2, "0")}`;
+          generated.push({ start: from, end: to, mode: range.mode, ruangan: range.ruangan });
+        }
+      }
+      setRsSlots(generated);
+    } finally {
+      setLoadingSlots(false);
+    }
+  };
+
+  const submitReschedule = async () => {
+    if (!rescheduleTarget || !rsForm.tanggalBaru || !rsForm.jamMulaiBaru || !rsForm.jamSelesaiBaru) {
+      toast("Pilih tanggal dan jam pengganti.", "error");
+      return;
+    }
+    setSending(true);
+    try {
+      await apiFetch("/api/reschedule", {
+        method: "POST",
+        body: JSON.stringify({ jadwalId: rescheduleTarget.id, ...rsForm }),
+      });
+      toast("Pengajuan reschedule disubmit. Admin/Pengajar akan disetujui atuh ditolak.", "success");
+      setRescheduleTarget(null);
+      apiFetch<{ ok: boolean; data: { id: string; jadwalId: string; mataPelajaran: string; tanggalLama: string; jamMulaiLama: string; jamSelesaiLama: string; tanggalBaru: string; jamMulaiBaru: string; jamSelesaiBaru: string; status: string; catatan: string | null }[] }>("/api/reschedule")
+        .then((res) => res.ok && setRequests(res.data))
+        .catch(() => undefined);
+    } catch (error) {
+      toast(error instanceof Error ? error.message : "Pengajuan reschedule gagal.", "error");
+    } finally {
+      setSending(false);
+    }
+  };
 
   return (
     <div className="space-y-8">
@@ -149,6 +236,11 @@ export default function MuridJadwalPage() {
                       <ChevronRight className="h-3.5 w-3.5" />
                     </Button>
                   </Link>
+                  {!item.startedAt && (
+                    <Button variant="outline" size="sm" onClick={() => openReschedule(item)} className="w-full sm:w-auto text-xs gap-1">
+                      <CalendarClock className="h-3.5 w-3.5" /> Reschedule
+                    </Button>
+                  )}
                 </div>
               </CardContent>
             </Card>
@@ -163,6 +255,98 @@ export default function MuridJadwalPage() {
           )}
         </div>
       )}
+
+      {/* Pengajuan Reschedule */}
+      {requests.length > 0 && (
+        <Card className="border-border shadow-xs">
+          <CardContent className="p-5 space-y-3">
+            <div className="flex items-center gap-2">
+              <CalendarClock className="h-4 w-4 text-primary" />
+              <h3 className="text-sm font-bold text-foreground">Pengajuan Reschedule Saya</h3>
+            </div>
+            <div className="space-y-2.5">
+              {requests.map((request) => (
+                <div key={request.id} className="rounded-xl border border-border bg-muted/30 p-3 flex flex-col gap-1.5 text-xs">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <Badge variant={request.status === "APPROVED" ? "success" : request.status === "REJECTED" ? "destructive" : "warning"}>
+                      {request.status === "APPROVED" ? "Disetujui" : request.status === "REJECTED" ? "Ditolak" : "Pending"}
+                    </Badge>
+                    <span className="font-bold text-foreground">{request.mataPelajaran}</span>
+                    <span className="text-muted-foreground">
+                      {formatDateIndo(request.tanggalLama)} {request.jamMulaiLama}–{request.jamSelesaiLama} → {formatDateIndo(request.tanggalBaru)} {request.jamMulaiBaru}–{request.jamSelesaiBaru}
+                    </span>
+                  </div>
+                  {request.catatan && <p className="text-muted-foreground italic">Catatan: {request.catatan}</p>}
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Modal Reschedule */}
+      <Modal
+        isOpen={Boolean(rescheduleTarget)}
+        onClose={() => setRescheduleTarget(null)}
+        title="Pengajuan Reschedule Jadwal"
+        description={rescheduleTarget ? `Sesi ${rescheduleTarget.mataPelajaran} bersama ${rescheduleTarget.pengajarNama} pada ${formatDateIndo(rescheduleTarget.tanggal)} ${rescheduleTarget.jamMulai}–${rescheduleTarget.jamSelesai}. Pilih slot pengganti sesuai ketersediaan pengajar.` : ""}
+      >
+        <div className="space-y-4">
+          <div className="space-y-1.5">
+            <label className="text-xs font-semibold text-foreground">Tanggal Pengganti</label>
+            <Input type="date" required className="w-full" value={rsForm.tanggalBaru} min={new Date().toISOString().slice(0, 10)} onChange={(event) => loadSlots(event.target.value)} />
+          </div>
+
+          <div className="space-y-1.5">
+            <label className="text-xs font-semibold text-foreground">Jam Pengganti (slot tersedia pengajar)</label>
+            {loadingSlots ? (
+              <div className="flex items-center gap-2 py-3 text-xs text-muted-foreground">
+                <Loader2 className="h-4 w-4 animate-spin" /> Mencari slot tersedia...
+              </div>
+            ) : (
+              <div className="flex flex-wrap gap-1.5">
+                {rsSlots.map((slot) => (
+                  <button
+                    key={`${slot.start}-${slot.end}`}
+                    type="button"
+                    onClick={() => setRsForm({ ...rsForm, jamMulaiBaru: slot.start, jamSelesaiBaru: slot.end })}
+                    className={`rounded-lg px-3 py-1.5 text-xs font-semibold transition-all ${
+                      rsForm.jamMulaiBaru === slot.start ? "bg-primary text-white shadow-sm" : "border border-primary/20 bg-secondary/30 text-foreground hover:bg-primary/10"
+                    }`}
+                  >
+                    {slot.start} – {slot.end}
+                  </button>
+                ))}
+                {!rsSlots.length && !loadingSlots && <p className="text-xs text-muted-foreground">Pilih tanggal pengganti atuh jadwal tersedia akan tampil.</p>}
+              </div>
+            )}
+          </div>
+
+          <div className="space-y-1.5">
+            <label className="text-xs font-semibold text-foreground">Catatan untuk Admin / Pengajar (opsional)</label>
+            <textarea
+              rows={2}
+              className="w-full rounded-xl border border-input bg-card px-3 py-2 text-sm text-foreground shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+              value={rsForm.catatan}
+              onChange={(event) => setRsForm({ ...rsForm, catatan: event.target.value })}
+              placeholder="Contoh: jadwal bentrok dengan sekolah, meminta jam pengganti..."
+            />
+          </div>
+
+          <p className="text-[11px] text-muted-foreground flex items-center gap-1">
+            <CheckCircle2 className="h-3 w-3 text-primary" /> Pengajuan akan direvisi biro admin atuh pengajar. Jadwal awal tetap berlaku hingga disetujui.
+          </p>
+
+          <div className="flex justify-end gap-2 pt-2">
+            <Button type="button" variant="outline" onClick={() => setRescheduleTarget(null)}>
+              Batal
+            </Button>
+            <Button variant="accent" isLoading={sending} onClick={submitReschedule} className="font-bold">
+              Kirim Pengajuan
+            </Button>
+          </div>
+        </div>
+      </Modal>
     </div>
   );
 }

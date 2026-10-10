@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { getSessionUser } from "@/lib/auth-session";
+import { hasTeacherConflict, toDateKey } from "@/lib/jadwal-availability";
 
 async function getOwnedSchedule(id: string) {
   const session = await getSessionUser();
@@ -24,6 +25,8 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
   if (!body.muridId || !body.mataPelajaran || !/^\d{4}-\d{2}-\d{2}$/.test(tanggal) || !/^\d{2}:\d{2}$/.test(jamMulai) || !/^\d{2}:\d{2}$/.test(jamSelesai) || jamMulai >= jamSelesai) {
     return NextResponse.json({ ok: false, message: "Lengkapi data jadwal dengan benar." }, { status: 400 });
   }
+  const conflict = await hasTeacherConflict(schedule.pengajarId, toDateKey(new Date(`${tanggal}T12:00:00Z`)), jamMulai, jamSelesai, groupIds);
+  if (conflict) return NextResponse.json({ ok: false, message: "Kamu sudah punya jadwal pada jam tersebut. Jadwal tidak diperbarui agar tidak bentrok." }, { status: 409 });
   const sharedData = {
     kelompokNama: schedule.kelompokId ? String(body.kelompokNama || schedule.kelompokNama || "") : null,
     mataPelajaran: String(body.mataPelajaran).trim(),

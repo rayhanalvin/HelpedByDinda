@@ -5,6 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { prisma } from "@/lib/db";
 import { getPortalContent } from "@/lib/portal-content";
+import { JadwalTersediaPicker } from "@/components/shared/JadwalTersediaPicker";
 
 export const dynamic = "force-dynamic";
 
@@ -73,6 +74,10 @@ export default async function PengajarPublikPage() {
                   <div className="pt-2 flex flex-wrap gap-2 text-xs">
                     <span className="rounded-lg bg-secondary px-2.5 py-1 text-secondary-foreground font-medium">Aktif Mengajar</span>
                     <span className="rounded-lg bg-muted px-2.5 py-1 text-muted-foreground font-medium">Bimbel Online & Offline</span>
+                  </div>
+
+                  <div className="pt-3 border-t border-border/60">
+                    <JadwalTersediaPicker pengajarId={tutor.id} pengajarNama={tutor.name} />
                   </div>
                 </div>
               </CardContent>

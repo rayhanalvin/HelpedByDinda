@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { getSessionUser } from "@/lib/auth-session";
+import { hasTeacherConflict, utcDayRange, toDateKey } from "@/lib/jadwal-availability";
 
 export async function GET() {
   const session = await getSessionUser();
@@ -52,14 +53,20 @@ export async function POST(req: Request) {
 
   const selectedMuridIds: string[] = Array.isArray(body.muridIds) ? (body.muridIds as unknown[]).map(String).filter(Boolean) : [String(body.muridId || "")].filter(Boolean);
   if (!selectedMuridIds.length) return NextResponse.json({ ok: false, message: "Pilih minimal satu murid." }, { status: 400 });
+  const tanggalKey = toDateKey(body.tanggal ? new Date(body.tanggal) : new Date());
+  const jamMulai = String(body.jamMulai || "08:00");
+  const jamSelesai = String(body.jamSelesai || "09:30");
+  if (jamMulai >= jamSelesai) return NextResponse.json({ ok: false, message: "Jam mulai harus sebelum jam selesai." }, { status: 400 });
+  const conflict = await hasTeacherConflict(String(body.pengajarId), tanggalKey, jamMulai, jamSelesai);
+  if (conflict) return NextResponse.json({ ok: false, message: "Pengajar sudah terisi pada jam tersebut. Jadwal tidak ditambahkan agar tidak bentrok." }, { status: 409 });
   const kelompokNama = String(body.kelompokNama || "").trim() || (selectedMuridIds.length > 1 ? `Kelompok ${new Date(body.tanggal).toLocaleDateString("id-ID")}` : null);
   const kelompokId = selectedMuridIds.length > 1 ? `kelompok-${crypto.randomUUID()}` : null;
   const sharedData = {
     pengajarId: String(body.pengajarId),
     mataPelajaran: String(body.mataPelajaran || "Matematika"),
     tanggal: new Date(body.tanggal),
-    jamMulai: String(body.jamMulai || "08:00"),
-    jamSelesai: String(body.jamSelesai || "09:30"),
+    jamMulai,
+    jamSelesai,
     startedAt: body.startedAt ? new Date(body.startedAt) : null,
     mode: body.mode === "ONLINE" ? ("ONLINE" as const) : ("OFFLINE" as const),
     ruangan: body.ruangan ? String(body.ruangan) : null,

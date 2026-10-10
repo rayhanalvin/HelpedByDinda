@@ -24,6 +24,14 @@ export function formatDateIndo(dateStr: string | Date): string {
   }).format(date);
 }
 
+export function formatDateShort(dateStr: string | Date): string {
+  const date = typeof dateStr === "string" ? new Date(dateStr) : dateStr;
+  return new Intl.DateTimeFormat("id-ID", {
+    day: "numeric",
+    month: "short",
+  }).format(date);
+}
+
 export function formatTimeIndo(timeStr: string): string {
   // e.g. "16:00:00" -> "16.00"
   const parts = timeStr.split(":");

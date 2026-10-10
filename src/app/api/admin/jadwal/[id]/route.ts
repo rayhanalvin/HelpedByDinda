@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { getSessionUser } from "@/lib/auth-session";
+import { hasTeacherConflict, utcDayRange, toDateKey } from "@/lib/jadwal-availability";
 
 export async function PUT(req: Request, { params }: { params: Promise<{ id: string }> }) {
   const session = await getSessionUser();
@@ -19,6 +20,13 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
     if (hasAttendance) return NextResponse.json({ ok: false, message: "Jadwal tidak dapat diubah setelah ada presensi atau pengajuan izin/sakit." }, { status: 409 });
     const selectedMuridIds: string[] = Array.isArray(body.muridIds) ? Array.from(new Set<string>((body.muridIds as unknown[]).map(String).filter((value) => value.length > 0))) : [String(body.muridId || current.muridId)];
     if (!selectedMuridIds.length) return NextResponse.json({ ok: false, message: "Pilih minimal satu murid." }, { status: 400 });
+    const tanggalKey = toDateKey(body.tanggal ? new Date(body.tanggal) : current.tanggal);
+    const nextJamMulai = String(body.jamMulai || current.jamMulai);
+    const nextJamSelesai = String(body.jamSelesai || current.jamSelesai);
+    if (nextJamMulai >= nextJamSelesai) return NextResponse.json({ ok: false, message: "Jam mulai harus sebelum jam selesai." }, { status: 400 });
+    const excludeIds = (current.kelompokId ? currentGroup.map((item) => item.id) : [current.id]);
+    const conflict = await hasTeacherConflict(String(body.pengajarId || current.pengajarId), tanggalKey, nextJamMulai, nextJamSelesai, excludeIds);
+    if (conflict) return NextResponse.json({ ok: false, message: "Pengajar sudah terisi pada jam tersebut. Jadwal tidak diperbarui agar tidak bentrok." }, { status: 409 });
     const validStudents = await prisma.murid.findMany({ where: { id: { in: selectedMuridIds } }, select: { id: true } });
     if (validStudents.length !== selectedMuridIds.length) return NextResponse.json({ ok: false, message: "Satu atau lebih murid tidak ditemukan." }, { status: 404 });
 
@@ -30,8 +38,8 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
       kelompokNama,
       mataPelajaran: String(body.mataPelajaran),
       tanggal: new Date(body.tanggal),
-      jamMulai: String(body.jamMulai),
-      jamSelesai: String(body.jamSelesai),
+      jamMulai: nextJamMulai,
+      jamSelesai: nextJamSelesai,
       startedAt: body.startedAt ? new Date(body.startedAt) : null,
       mode: body.mode === "ONLINE" || body.mode === "online" ? ("ONLINE" as const) : ("OFFLINE" as const),
       ruangan: body.ruangan ? String(body.ruangan) : null,

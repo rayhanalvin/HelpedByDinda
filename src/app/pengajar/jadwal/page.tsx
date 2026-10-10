@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { Calendar, Clock, MapPin, Video, Users, ChevronRight, Loader2, Plus, Pencil, Trash2 } from "lucide-react";
+import { Calendar, Clock, MapPin, Video, Users, ChevronRight, Loader2, Plus, Pencil, Trash2, CheckCircle2, XCircle, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
@@ -30,6 +30,23 @@ type APIJadwal = {
   muridNama: string;
 };
 
+type RescheduleRequest = {
+  id: string;
+  muridNama: string;
+  pengajarNama: string;
+  mataPelajaran: string;
+  tanggalLama: string;
+  jamMulaiLama: string;
+  jamSelesaiLama: string;
+  tanggalBaru: string;
+  jamMulaiBaru: string;
+  jamSelesaiBaru: string;
+  catatan: string | null;
+  status: "PENDING" | "APPROVED" | "REJECTED";
+  handledBy: string | null;
+  createdAt: string;
+};
+
 export default function PengajarJadwalPage() {
   const { toast } = useToast();
   const [teachingSchedules, setTeachingSchedules] = React.useState<APIJadwal[]>([]);
@@ -52,12 +69,18 @@ export default function PengajarJadwalPage() {
     catatan: "",
   });
   const [editingGroup, setEditingGroup] = React.useState(false);
+  const [rescheduleList, setRescheduleList] = React.useState<RescheduleRequest[]>([]);
+  const [processingId, setProcessingId] = React.useState<string | null>(null);
 
   const fetchTeachingSchedules = React.useCallback((silent = false) => {
     if (!silent) setLoading(true);
-    apiFetch<{ ok: boolean; data: APIJadwal[] }>("/api/portal/jadwal")
+    Promise.all([
+      apiFetch<{ ok: boolean; data: APIJadwal[] }>("/api/portal/jadwal"),
+      apiFetch<{ ok: boolean; data: RescheduleRequest[] }>("/api/reschedule"),
+    ])
       .then((res) => {
-        if (res.ok) setTeachingSchedules(res.data);
+        if (res[0].ok) setTeachingSchedules(res[0].data);
+        if (res[1].ok) setRescheduleList(res[1].data);
       })
       .catch(() => {})
       .finally(() => {
@@ -136,6 +159,21 @@ export default function PengajarJadwalPage() {
     }
   };
 
+  const handleRescheduleAction = async (request: RescheduleRequest, action: "APPROVED" | "REJECTED") => {
+    if (processingId) return;
+    if (!confirm(`Disetujui atuh ditolak pengajuan reschedule dari ${request.muridNama}?\n\nLama: ${formatDateIndo(request.tanggalLama)} ${request.jamMulaiLama}-${request.jamSelesaiLama}\nBaru: ${formatDateIndo(request.tanggalBaru)} ${request.jamMulaiBaru}-${request.jamSelesaiBaru}`)) return;
+    setProcessingId(request.id);
+    try {
+      await apiFetch(`/api/reschedule/${request.id}`, { method: "PUT", body: JSON.stringify({ action }) });
+      toast(action === "APPROVED" ? "Reschedule disetujui — jadwal terperbarui otomatis." : "Pengajuan ditolak. Jadwal awal tetap.", "success");
+      fetchTeachingSchedules();
+    } catch (err) {
+      toast(err instanceof Error ? err.message : "Gagal diproses pengajuan.", "error");
+    } finally {
+      setProcessingId(null);
+    }
+  };
+
   const startOfWeek = new Date(selectedDate);
   startOfWeek.setDate(startOfWeek.getDate() - ((startOfWeek.getDay() + 6) % 7));
   const weekDates = Array.from({ length: 7 }, (_, index) => {
@@ -170,6 +208,62 @@ export default function PengajarJadwalPage() {
         </Button>
         <input type="date" className="h-10 rounded-xl border bg-card px-3 text-sm" value={selectedDate} onChange={(event) => setSelectedDate(event.target.value)} />
       </div>
+
+      {/* Pengajuan Reschedule dari Murid */}
+      {rescheduleList.filter((request) => request.status === "PENDING").length > 0 && (
+        <div className="rounded-xl border border-amber-300/60 bg-amber-50 p-4">
+          <div className="flex items-center gap-2 mb-2">
+            <RefreshCw className="h-4 w-4 text-amber-600 animate-spin" />
+            <h2 className="text-sm font-bold text-amber-700">
+              Pengajuan Reschedule ({rescheduleList.filter((request) => request.status === "PENDING").length})
+            </h2>
+          </div>
+          <p className="text-[11px] text-amber-700 mb-3">Murid meminta perubahan tanggal/jam sesi. Anda dapat disetujui atuh ditolak — jadwal terperbarui otomatis.</p>
+          <div className="space-y-2.5">
+            {rescheduleList
+              .filter((request) => request.status === "PENDING")
+              .map((request) => (
+                <div key={request.id} className="rounded-xl border border-amber-200 bg-card p-3">
+                  <div className="flex flex-wrap gap-2">
+                    <Badge variant="secondary">PENDING</Badge>
+                    <span className="text-xs font-bold text-foreground">{request.mataPelajaran}</span>
+                    <span className="text-xs text-muted-foreground">· {request.muridNama}</span>
+                  </div>
+                  <div className="flex items-center gap-2.5 mt-2 text-xs">
+                    <div className="rounded-lg bg-muted px-2.5 py-1.5 text-muted-foreground">
+                      Lama: {formatDateIndo(request.tanggalLama)} {request.jamMulaiLama}–{request.jamSelesaiLama}
+                    </div>
+                    <span className="text-muted-foreground">→</span>
+                    <div className="rounded-lg bg-secondary/30 px-2.5 py-1.5 text-secondary-foreground">
+                      Baru: {formatDateIndo(request.tanggalBaru)} {request.jamMulaiBaru}–{request.jamSelesaiBaru}
+                    </div>
+                  </div>
+                  {request.catatan && <p className="text-[11px] text-muted-foreground mt-1.5 italic">“{request.catatan}”</p>}
+                  <div className="flex justify-end gap-2 mt-2.5">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="text-xs text-rose-600 hover:bg-rose-50"
+                      isLoading={processingId === request.id}
+                      onClick={() => void handleRescheduleAction(request, "REJECTED")}
+                    >
+                      <XCircle className="h-3.5 w-3.5" /> Ditolak
+                    </Button>
+                    <Button
+                      variant="accent"
+                      size="sm"
+                      className="text-xs font-bold"
+                      isLoading={processingId === request.id}
+                      onClick={() => void handleRescheduleAction(request, "APPROVED")}
+                    >
+                      <CheckCircle2 className="h-3.5 w-3.5" /> Disetujui
+                    </Button>
+                  </div>
+                </div>
+              ))}
+          </div>
+        </div>
+      )}
 
       {loading ? (
         <div className="flex items-center justify-center p-12 text-muted-foreground">

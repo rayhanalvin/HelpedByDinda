@@ -10,6 +10,7 @@
     "db:push": "prisma db push",
     "db:generate": "prisma generate",
     "db:seed": "tsx prisma/seed.ts",
+    "db:revisi": "tsx prisma/revisi-jadwal-murid.ts",
     "cleanup:users": "tsx prisma/cleanup-pengajar-murid.ts",
     "cleanup:users:dry": "tsx prisma/cleanup-pengajar-murid.ts --dry-run",
     "cleanup:spp": "tsx prisma/cleanup-spp-invoice.ts",
@@ -30,7 +31,8 @@
     "prisma": "^7.10.0",
     "react": "19.1.0",
     "react-dom": "19.1.0",
-    "tailwind-merge": "^3.7.0"
+    "tailwind-merge": "^3.7.0",
+    "xlsx": "^0.18.5"
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3",
