@@ -34,7 +34,7 @@ export async function GET(req: Request) {
         nominalPerJam: fee.nominalPerJam,
         ratePerSession: fallbackRate,
         rateSessions: (fee.pengajar.rateSessions || []).map((rate) => ({ kelasGroup: rate.kelasGroup, mode: rate.mode, rate: rate.ratePerSession })),
-        totalFee: fee.periode === (periode || getCurrentPeriod()) ? totalFeeCurrent : fee.totalFee,
+          totalFee: totalFeeCurrent,
         status: fee.status,
         payoutMethod: fee.payoutMethod,
         payoutBankName: fee.payoutBankName,

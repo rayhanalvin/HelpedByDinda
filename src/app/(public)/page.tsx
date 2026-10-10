@@ -11,7 +11,7 @@ export const dynamic = "force-dynamic";
 
 export default async function HomePage() {
   let beritaTerbaru: Array<{ id: string; slug: string; judul: string; ringkasan: string | null; isi: string; thumbnailUrl: string | null; kategori: string; createdAt: Date }> = [];
-  let pengajar: Array<{ id: string; name: string; avatarUrl: string | null; spesialisasi: string; bio: string | null }> = [];
+  let pengajar: Array<{ id: string; name: string; avatarUrl: string | null; spesialisasi: string; bio: string | null; testimonials: Array<{ id: string; text: string; rating: number; userName: string }> }> = [];
   const programs: Array<{ id: string; category: string; title: string; target: string; price: number; description: string; popular: boolean }> = [];
   const portalContent = await getPortalContent("beranda");
 
