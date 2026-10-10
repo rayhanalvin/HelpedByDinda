@@ -11,7 +11,9 @@
     "db:generate": "prisma generate",
     "db:seed": "tsx prisma/seed.ts",
     "cleanup:users": "tsx prisma/cleanup-pengajar-murid.ts",
-    "cleanup:users:dry": "tsx prisma/cleanup-pengajar-murid.ts --dry-run"
+    "cleanup:users:dry": "tsx prisma/cleanup-pengajar-murid.ts --dry-run",
+    "cleanup:spp": "tsx prisma/cleanup-spp-invoice.ts",
+    "cleanup:spp:dry": "tsx prisma/cleanup-spp-invoice.ts --dry-run"
   },
   "dependencies": {
     "@prisma/adapter-pg": "^7.10.0",

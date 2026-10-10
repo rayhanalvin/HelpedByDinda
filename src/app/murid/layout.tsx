@@ -86,8 +86,12 @@ export default function MuridLayout({ children }: { children: React.ReactNode })
             return;
           }
         }
-      } catch {
-        // Fallback to dummy student values if the session is unavailable.
+      } catch (error) {
+        // Session invalid or expired: return to the public home page.
+        const unauthorized = error instanceof Error && /unauthorized/i.test(error.message);
+        if (active && unauthorized && !window.location.pathname.startsWith("/login")) {
+          window.location.href = "/";
+        }
       }
     };
 

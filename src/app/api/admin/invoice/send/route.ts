@@ -46,12 +46,16 @@ export async function POST(req: Request) {
   const passMail = process.env.SMTP_PASS || "";
   const from = process.env.EMAIL_FROM || `Helped By Dinda <${userMail}>`;
 
-  const transporter = createTransport({
-    host,
-    port,
-    secure: port === 465,
-    auth: { user: userMail, pass: passMail },
-  });
+  const smtpConfigured = Boolean(passMail);
+  let transporter: ReturnType<typeof createTransport> | null = null;
+  if (smtpConfigured) {
+    transporter = createTransport({
+      host,
+      port,
+      secure: port === 465,
+      auth: { user: userMail, pass: passMail },
+    });
+  }
 
   const results: { userId: string | null; email: string | null; ok: boolean; error?: string }[] = [];
 
@@ -81,7 +85,9 @@ export async function POST(req: Request) {
     }
 
     try {
-      await transporter.sendMail(mailOptions);
+      if (transporter) {
+        await transporter.sendMail(mailOptions);
+      }
       await prisma.reminderLog.create({
         data: {
           userId: user.id,
@@ -90,7 +96,7 @@ export async function POST(req: Request) {
           targetEmail: user.email,
           targetRole: invoice.targetRole === "PENGAJAR" ? "pengajar" : "murid",
           status: "sent",
-          keterangan: `Invoice ${invoice.title || invoice.periode || ""} dikirim oleh admin.`,
+          keterangan: `${smtpConfigured ? "Invoice" : "Pemberitahuan invoice (email SMTP belum dikonfigurasi, notifikasi in-app dikirim)"} ${invoice.title || invoice.periode || ""} dikirim oleh admin.`,
         },
       });
 

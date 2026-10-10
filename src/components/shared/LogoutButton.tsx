@@ -1,7 +1,6 @@
 "use client";
 
 import * as React from "react";
-import { useRouter } from "next/navigation";
 import { LogOut } from "lucide-react";
 import { apiFetch } from "@/lib/api";
 import { cn } from "@/lib/utils";
@@ -13,20 +12,34 @@ interface LogoutButtonProps {
 }
 
 export function LogoutButton({ className, label = "Keluar / Logout", size = "md" }: LogoutButtonProps) {
-  const router = useRouter();
   const [loading, setLoading] = React.useState(false);
 
   const handleLogout = async () => {
     if (loading) return;
     setLoading(true);
     try {
-      await apiFetch("/api/auth/logout", { method: "POST" });
+      await apiFetch<{ ok: boolean }>("/api/auth/logout", { method: "POST", cache: "no-store" });
     } catch {
-      // Even if the API fails, clear local state and redirect.
-    } finally {
-      router.replace("/");
-      router.refresh();
+      // Even if the API fails, clear local state and fall back to client cookie clearing below.
     }
+    // Clear local auth-related state so no dashboard layout can bounce the user back.
+    try {
+      ["admin", "pengajar", "murid"].forEach((role) => {
+        window.localStorage.removeItem(`helped-by-dinda:name:${role}`);
+        window.localStorage.removeItem(`helped-by-dinda-avatar:${role}`);
+        window.localStorage.removeItem(`helped-by-dinda-email:${role}`);
+        window.localStorage.removeItem(`helped-by-dinda:name`);
+        window.localStorage.removeItem(`helped-by-dinda-avatar`);
+        window.localStorage.removeItem(`helped-by-dinda-email`);
+      });
+    } catch {
+      // Ignore localStorage failures (private mode etc.)
+    }
+    // Force-clearing the cookie client-side as a fallback in case the API could not be reached.
+    document.cookie = "hbd_session=; Path=/; Max-Age=0; SameSite=Lax";
+    // Full page navigation guarantees a clean state and lands on the public home page
+    // (https://helpedbydinda.vercel.app) for every actor role.
+    window.location.href = "/";
   };
 
   return (

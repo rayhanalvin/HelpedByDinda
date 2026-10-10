@@ -76,8 +76,13 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           avatarUrl: result.user.avatarUrl || DUMMY_ADMIN.avatarUrl,
           userId: result.user.id,
         });
-      } catch {
-        // Fallback to the default admin profile if the session is unavailable.
+      } catch (error) {
+        // Session invalid or expired: return to the public home page instead of
+        // showing a dummy profile that could be mistaken for a live session.
+        const unauthorized = error instanceof Error && /unauthorized/i.test(error.message);
+        if (active && unauthorized && !window.location.pathname.startsWith("/login")) {
+          window.location.href = "/";
+        }
       }
     };
 

@@ -11,7 +11,7 @@ export const dynamic = "force-dynamic";
 
 export default async function HomePage() {
   let beritaTerbaru: Array<{ id: string; slug: string; judul: string; ringkasan: string | null; isi: string; thumbnailUrl: string | null; kategori: string; createdAt: Date }> = [];
-  let pengajar: Array<{ id: string; name: string; avatarUrl: string | null; spesialisasi: string; bio: string | null; testimonials: Array<{ id: string; text: string; rating: number; userName: string }> }> = [];
+  let pengajar: Array<{ id: string; name: string; avatarUrl: string | null; spesialisasi: string; bio: string | null }> = [];
   const programs: Array<{ id: string; category: string; title: string; target: string; price: number; description: string; popular: boolean }> = [];
   const portalContent = await getPortalContent("beranda");
 
@@ -33,7 +33,13 @@ export default async function HomePage() {
       orderBy: { createdAt: "asc" },
       take: 4,
     });
-    pengajar = rows.map((item) => ({ id: item.id, name: item.user.name, avatarUrl: item.user.avatarUrl, spesialisasi: item.spesialisasi, bio: item.bio }));
+    pengajar = rows.map((item) => ({
+      id: item.id,
+      name: item.user.name,
+      avatarUrl: item.user.avatarUrl,
+      spesialisasi: item.spesialisasi,
+      bio: item.bio,
+    }));
   } catch (error) {
     console.warn("Homepage teachers unavailable:", error instanceof Error ? error.message : error);
   }
