@@ -24,7 +24,7 @@ export function LogoutButton({ className, label = "Keluar / Logout", size = "md"
     } catch {
       // Even if the API fails, clear local state and redirect.
     } finally {
-      router.replace("/login");
+      router.replace("/");
       router.refresh();
     }
   };

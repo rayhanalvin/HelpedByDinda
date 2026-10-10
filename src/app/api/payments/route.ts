@@ -53,7 +53,7 @@ export async function GET() {
     prisma.payment.findMany({ where: { muridId: murid.id }, orderBy: { createdAt: "desc" } }),
     prisma.paymentSettings.findUnique({ where: { id: "default" }, select: { bankName: true, accountNumber: true, accountName: true } }),
     prisma.invoice.findFirst({
-      where: { targetRole: "MURID", targetUserId: session.userId },
+      where: { targetRole: "MURID", targetUserId: session.userId, NOT: { relatedPayment: { status: "SUCCESS" } } },
       orderBy: { createdAt: "desc" },
       select: { id: true, periode: true, title: true, createdAt: true },
     }),

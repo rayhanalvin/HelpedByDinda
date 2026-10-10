@@ -59,7 +59,7 @@ export async function POST(req: Request) {
       if (murid) {
         const settings = await transaction.paymentSettings.findUnique({ where: { id: "default" } });
         const orderId = `INV-${murid.id}-${Date.now()}`;
-        await transaction.payment.create({
+        const payment = await transaction.payment.create({
           data: {
             muridId: murid.id,
             userId: targetUserId,
@@ -71,6 +71,10 @@ export async function POST(req: Request) {
             recipientAccountName: settings?.accountName || null,
             status: "PENDING",
           },
+        });
+        await transaction.invoice.update({
+          where: { id: invoice.id },
+          data: { relatedPaymentId: payment.id },
         });
         await transaction.murid.update({ where: { id: murid.id }, data: { statusBayarBulanIni: "PENDING" } });
       }

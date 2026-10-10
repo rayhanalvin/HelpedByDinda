@@ -3,6 +3,7 @@ import { prisma } from "@/lib/db";
 import { getSessionUser } from "@/lib/auth-session";
 import { isValidKelas } from "@/lib/kelas";
 import { getCurrentPeriod, getTeachingHoursByTeacher } from "@/lib/teaching-hours";
+import { isMuridPaymentUnlocked } from "@/lib/murid-guards";
 
 export async function GET() {
   const session = await getSessionUser();
@@ -22,7 +23,7 @@ export async function GET() {
       role: true,
       pengajar: { select: { id: true, spesialisasi: true, bio: true, nominalPerJam: true, ratePerSession: true, money: true, totalJamBulanIni: true, bankName: true, bankAccountNumber: true, bankAccountName: true, rateSessions: true } },
       murid: {
-        select: { kelas: true, sekolah: true, namaWali: true, phoneWali: true, paketBulanan: true, programId: true, programNama: true, programKategori: true, statusBayarBulanIni: true, onboardingComplete: true, onboardingCategory: true },
+        select: { id: true, kelas: true, sekolah: true, namaWali: true, phoneWali: true, paketBulanan: true, programId: true, programNama: true, programKategori: true, statusBayarBulanIni: true, onboardingComplete: true, onboardingCategory: true },
       },
       createdAt: true,
       updatedAt: true,
@@ -48,7 +49,13 @@ export async function GET() {
     });
   }
 
-  return NextResponse.json({ ok: true, user });
+  let access = { paymentUnlocked: true };
+  if (user.murid && !user.pengajar) {
+    const muridId = user.murid.id;
+    access = { paymentUnlocked: await isMuridPaymentUnlocked(muridId) };
+  }
+
+  return NextResponse.json({ ok: true, user, ...access });
 }
 
 export async function DELETE() {

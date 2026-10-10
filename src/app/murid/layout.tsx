@@ -57,6 +57,7 @@ export default function MuridLayout({ children }: { children: React.ReactNode })
               onboardingComplete?: boolean | null;
             } | null;
           };
+          paymentUnlocked?: boolean;
         }>("/api/profile");
         if (!active) return;
 
@@ -70,17 +71,17 @@ export default function MuridLayout({ children }: { children: React.ReactNode })
 
         const murid = result.user?.murid;
         if (murid) {
-          const status = String(murid.statusBayarBulanIni || "").toUpperCase();
+          const paymentUnlocked = result.paymentUnlocked !== false;
           const onboardingComplete = Boolean(murid.onboardingComplete);
           const isOnboardingPage = pathname === "/murid/onboarding";
           const isPaymentPage = pathname === "/murid/pembayaran";
 
-          if (status !== "SUCCESS" && !isPaymentPage) {
+          if (!paymentUnlocked && !isPaymentPage) {
             router.push("/murid/pembayaran");
             return;
           }
 
-          if (status === "SUCCESS" && !onboardingComplete && !isOnboardingPage) {
+          if (paymentUnlocked && !onboardingComplete && !isOnboardingPage) {
             router.push("/murid/onboarding");
             return;
           }

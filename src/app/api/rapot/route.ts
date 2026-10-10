@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { getSessionUser } from "@/lib/auth-session";
+import { requireMuridFullAccess } from "@/lib/murid-guards";
 
 function currentPeriodLabel() {
   return new Intl.DateTimeFormat("id-ID", { month: "long", year: "numeric", timeZone: "Asia/Jakarta" }).format(new Date());
@@ -14,6 +15,11 @@ function validScore(value: unknown, min: number, max: number) {
 export async function GET() {
   const session = await getSessionUser();
   if (!session) return NextResponse.json({ ok: false, message: "Unauthorized" }, { status: 401 });
+
+  if (session.role === "MURID") {
+    const access = await requireMuridFullAccess(session);
+    if (!access.ok) return access.response;
+  }
 
   const [rapot, assessments] = await Promise.all([
     prisma.rapot.findMany({

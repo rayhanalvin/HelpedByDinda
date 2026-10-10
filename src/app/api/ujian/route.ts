@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { getSessionUser } from "@/lib/auth-session";
+import { requireMuridFullAccess } from "@/lib/murid-guards";
 
 export async function GET(req: Request) {
   const session = await getSessionUser();
@@ -17,6 +18,8 @@ export async function GET(req: Request) {
 
   // Murid only see published exams; admin sees everything; pengajar sees own drafts + published all
   if (session.role === "MURID") {
+    const access = await requireMuridFullAccess(session);
+    if (!access.ok) return access.response;
     where.isPublished = true;
   } else if (session.role === "PENGAJAR") {
     const pengajar = await prisma.pengajar.findUnique({ where: { userId: session.userId }, select: { id: true } });

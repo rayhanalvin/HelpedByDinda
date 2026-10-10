@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { getSessionUser } from "@/lib/auth-session";
+import { isMuridPaymentUnlocked } from "@/lib/murid-guards";
 
 const VALID_CATEGORIES = ["SD", "SMP", "SMA", "KULIAH"];
 
@@ -17,7 +18,7 @@ export async function PUT(req: Request) {
   const murid = await prisma.murid.findUnique({ where: { userId: session.userId } });
   if (!murid) return NextResponse.json({ ok: false, message: "Profil murid tidak ditemukan." }, { status: 404 });
 
-  if (murid.statusBayarBulanIni !== "SUCCESS") {
+  if (!(await isMuridPaymentUnlocked(murid.id))) {
     return NextResponse.json({ ok: false, message: "Silakan selesaikan pembayaran terlebih dahulu sebelum mengisi formulir pendaftaran." }, { status: 400 });
   }
 

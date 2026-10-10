@@ -68,9 +68,20 @@ export async function PUT(req: Request) {
       },
     });
 
+    const remainingActive = await transaction.payment.findFirst({
+      where: { muridId: payment.muridId, status: { in: ["PENDING", "PROCESSING"] } },
+      select: { status: true },
+    });
+    const remainingSuccess = remainingActive
+      ? null
+      : await transaction.payment.findFirst({
+          where: { muridId: payment.muridId, status: "SUCCESS" },
+          orderBy: { paidAt: "desc" },
+          select: { id: true },
+        });
     await transaction.murid.update({
       where: { id: payment.muridId },
-      data: { statusBayarBulanIni: status as "PENDING" | "PROCESSING" | "SUCCESS" | "FAILED" | "EXPIRED" },
+      data: { statusBayarBulanIni: remainingActive ? remainingActive.status : remainingSuccess ? "SUCCESS" : "PENDING" },
     });
 
     return nextPayment;

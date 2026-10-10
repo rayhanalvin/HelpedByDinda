@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { getSessionUser } from "@/lib/auth-session";
+import { requireMuridFullAccess } from "@/lib/murid-guards";
 
 type ScheduleWithRelations = {
   id: string;
@@ -146,6 +147,8 @@ export async function GET(req: Request) {
   }
 
   if (session.role === "MURID") {
+    const access = await requireMuridFullAccess(session);
+    if (!access.ok) return access.response;
     schedules = await prisma.jadwal.findMany({
       where: {
         murid: { userId: session.userId },

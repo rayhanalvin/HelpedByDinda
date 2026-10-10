@@ -3,6 +3,7 @@ import { prisma } from "@/lib/db";
 import { getSessionUser } from "@/lib/auth-session";
 import { canQuizUseClass, isQuizScheduleActive, normalizeQuestions } from "@/lib/quiz-access";
 import { validateMaterialClass } from "@/lib/materi-access";
+import { requireMuridFullAccess } from "@/lib/murid-guards";
 
 const include = { jadwal: { include: { murid: true } }, pengajar: { include: { user: true } } } as const;
 
@@ -32,6 +33,8 @@ export async function GET() {
   if (!session) return NextResponse.json({ ok: false, message: "Unauthorized" }, { status: 401 });
 
   if (session.role === "MURID") {
+    const access = await requireMuridFullAccess(session);
+    if (!access.ok) return access.response;
     const murid = await prisma.murid.findUnique({ where: { userId: session.userId }, select: { id: true, kelas: true } });
     if (!murid) return NextResponse.json({ ok: false, message: "Profil murid tidak ditemukan." }, { status: 404 });
     const quizzes = await prisma.quiz.findMany({ where: { isPublished: true, jadwal: { muridId: murid.id } }, include, orderBy: { createdAt: "desc" } });

@@ -8,9 +8,12 @@ export async function GET() {
     return NextResponse.json({ ok: false, message: "Unauthorized" }, { status: 401 });
   }
 
+  const role = session.role === "PENGAJAR" ? "PENGAJAR" : "MURID";
   const invoices = await prisma.invoice.findMany({
     where: {
-      OR: [{ targetRole: session.role === "PENGAJAR" ? "PENGAJAR" : "MURID", targetUserId: null }, { targetUserId: session.userId }],
+      OR: [{ targetRole: role, targetUserId: null }, { targetUserId: session.userId }],
+      // Auto-hide invoices whose linked payment has been confirmed by admin
+      NOT: { relatedPayment: { status: "SUCCESS" } },
     },
     orderBy: { createdAt: "desc" },
     select: {

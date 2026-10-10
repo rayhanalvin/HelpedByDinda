@@ -220,6 +220,7 @@ model Payment {
   paymentProofUploadedAt DateTime?
   murid                  Murid         @relation(fields: [muridId], references: [id], onDelete: Cascade)
   user                   User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  invoice                Invoice?
 
   @@map("payments")
 }
@@ -333,9 +334,11 @@ model Invoice {
   fileData     String?
   fileName     String?
   fileMimeType String?
+  relatedPaymentId String?    @unique
   createdAt    DateTime      @default(now())
   updatedAt    DateTime      @updatedAt
   targetUser   User?         @relation(fields: [targetUserId], references: [id], onDelete: Cascade)
+  relatedPayment Payment?    @relation(fields: [relatedPaymentId], references: [id])
 
   @@map("invoices")
 }

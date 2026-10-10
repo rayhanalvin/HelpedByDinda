@@ -1,10 +1,16 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { getSessionUser } from "@/lib/auth-session";
+import { requireMuridFullAccess } from "@/lib/murid-guards";
 
 export async function GET(req: Request) {
   const session = await getSessionUser();
   if (!session || !["PENGAJAR", "MURID"].includes(session.role)) return NextResponse.json({ ok: false, message: "Unauthorized" }, { status: 401 });
+
+  if (session.role === "MURID") {
+    const access = await requireMuridFullAccess(session);
+    if (!access.ok) return access.response;
+  }
 
   const oneDayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
   const attachmentId = new URL(req.url).searchParams.get("attachmentId");
