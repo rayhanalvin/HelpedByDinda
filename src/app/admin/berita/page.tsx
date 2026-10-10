@@ -10,6 +10,8 @@ import { Modal } from "@/components/ui/modal";
 import { useToast } from "@/components/ui/toast";
 import { apiFetch } from "@/lib/api";
 import { PORTAL_CATEGORIES } from "@/lib/portal-categories";
+import { ImageUploader } from "@/components/shared/ImageUploader";
+import { Image as ImageIcon, Heading1, Heading2, Quote, List, Bold, SeparatorHorizontal } from "lucide-react";
 
 type BeritaRow = {
   id: string;
@@ -435,10 +437,13 @@ export default function AdminBeritaPage() {
               />
             </div>
             <div className="grid grid-cols-2 gap-3">
-              <div className="space-y-1.5">
-                <label className="text-xs font-semibold text-foreground">URL Gambar</label>
-                <Input value={portalFormData.imageUrl} onChange={(e) => setPortalFormData({ ...portalFormData, imageUrl: e.target.value })} />
-              </div>
+              <ImageUploader
+                label="Gambar Halaman"
+                value={portalFormData.imageUrl}
+                onChange={(url) => setPortalFormData({ ...portalFormData, imageUrl: url })}
+                placeholder="Upload atau tempel URL gambar"
+                compact
+              />
               <div className="space-y-1.5">
                 <label className="text-xs font-semibold text-foreground">Urutan</label>
                 <Input type="number" value={portalFormData.urutan} onChange={(e) => setPortalFormData({ ...portalFormData, urutan: Number(e.target.value) })} />
@@ -490,20 +495,66 @@ export default function AdminBeritaPage() {
               <Input value={formData.authorName} onChange={(e) => setFormData({ ...formData, authorName: e.target.value })} />
             </div>
 
-            <div className="space-y-1.5">
-              <label className="text-xs font-semibold text-foreground">Thumbnail URL</label>
-              <Input value={formData.thumbnailUrl} onChange={(e) => setFormData({ ...formData, thumbnailUrl: e.target.value })} placeholder="https://..." />
-            </div>
+            <ImageUploader
+              label="Thumbnail Berita"
+              value={formData.thumbnailUrl}
+              onChange={(url) => setFormData({ ...formData, thumbnailUrl: url })}
+              placeholder="Tempel URL gambar atau unggah dari perangkat"
+            />
 
             <div className="space-y-1.5">
               <label className="text-xs font-semibold text-foreground">Isi Berita</label>
-              <textarea
-                required
-                rows={8}
-                value={formData.isi}
-                onChange={(e) => setFormData({ ...formData, isi: e.target.value })}
-                className="w-full rounded-xl border border-border bg-background px-3 py-2 text-sm text-foreground outline-none ring-0 placeholder:text-muted-foreground focus:border-primary"
-              />
+              <div className="overflow-hidden rounded-xl border border-border">
+                <div className="flex flex-wrap items-center gap-1 border-b border-border bg-muted/30 px-2 py-1.5">
+                  <button
+                    type="button"
+                    title="Sisipkan Heading 1"
+                    onClick={() => setFormData({ ...formData, isi: `${formData.isi}\n## Judul Bagian` })}
+                    className="rounded-md p-1.5 text-muted-foreground hover:bg-muted hover:text-foreground"
+                  >
+                    <Heading1 className="h-4 w-4" />
+                  </button>
+                  <button
+                    type="button"
+                    title="Sisipkan Heading 2"
+                    onClick={() => setFormData({ ...formData, isi: `${formData.isi}\n### Sub Judul` })}
+                    className="rounded-md p-1.5 text-muted-foreground hover:bg-muted hover:text-foreground"
+                  >
+                    <Heading2 className="h-4 w-4" />
+                  </button>
+                  <button
+                    type="button"
+                    title="Sisipkan kutipan"
+                    onClick={() => setFormData({ ...formData, isi: `${formData.isi}\n> Kutipan penting` })}
+                    className="rounded-md p-1.5 text-muted-foreground hover:bg-muted hover:text-foreground"
+                  >
+                    <Quote className="h-4 w-4" />
+                  </button>
+                  <button
+                    type="button"
+                    title="Tambahkan gambar"
+                    onClick={() => {
+                      const url = window.prompt("Tempel URL gambar (atau unggah dulu melalui Thumbnail di atas):");
+                      if (url && url.trim()) {
+                        setFormData({ ...formData, isi: `${formData.isi}\n![Gambar](${url.trim()})` });
+                      }
+                    }}
+                    className="rounded-md p-1.5 text-muted-foreground hover:bg-muted hover:text-foreground"
+                  >
+                    <ImageIcon className="h-4 w-4" />
+                  </button>
+                  <span className="mx-1 h-4 w-px bg-border" />
+                  <span className="text-[10px] text-muted-foreground">Baris baru = paragraf baru</span>
+                </div>
+                <textarea
+                  required
+                  rows={10}
+                  value={formData.isi}
+                  onChange={(e) => setFormData({ ...formData, isi: e.target.value })}
+                  placeholder={"Tulis isi berita di sini...\n\n## Judul Bagian\n\nTulis paragraf di baris sendiri.\n\n![Gambar](url-gambar) untuk menyisipkan gambar."}
+                  className="w-full bg-background px-3 py-2 text-sm text-foreground outline-none ring-0 placeholder:text-muted-foreground focus:border-primary"
+                />
+              </div>
             </div>
 
             <div className="flex items-center justify-between rounded-xl border border-border bg-muted/30 px-3 py-2">

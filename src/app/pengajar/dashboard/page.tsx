@@ -38,6 +38,7 @@ export default function PengajarDashboardPage() {
   });
   const [jadwalPengajar, setJadwalPengajar] = React.useState<Schedule[]>([]);
   const [feeBulanIni, setFeeBulanIni] = React.useState<TeacherFee | null>(null);
+  const [liveFee, setLiveFee] = React.useState({ totalJam: 0, totalFee: 0 });
 
   React.useEffect(() => {
     const loadMetadata = async () => {
@@ -81,11 +82,12 @@ export default function PengajarDashboardPage() {
     try {
       const [scheduleRes, feeRes, reminderRes] = await Promise.all([
         apiFetch<{ ok: boolean; data: Schedule[] }>("/api/portal/jadwal"),
-        apiFetch<{ ok: boolean; data: TeacherFee[] }>(`/api/profile/fee?periode=${new Date().toISOString().slice(0, 7)}`),
+        apiFetch<{ ok: boolean; data: TeacherFee[]; totalJam: number; totalFee: number }>(`/api/profile/fee?periode=${new Date().toISOString().slice(0, 7)}`),
         apiFetch<{ ok: boolean; data: ApiTypes.ReminderLog[] }>("/api/reminder"),
       ]);
       setJadwalPengajar(scheduleRes.data || []);
       setFeeBulanIni(feeRes.data?.[0] || null);
+      setLiveFee({ totalJam: feeRes.totalJam ?? feeRes.data?.[0]?.totalJam ?? 0, totalFee: feeRes.totalFee ?? feeRes.data?.[0]?.totalFee ?? 0 });
       setReminders(reminderRes.data || []);
     } catch {
       // Keep the dashboard available with the last successful snapshot.
@@ -135,8 +137,8 @@ export default function PengajarDashboardPage() {
           <CardContent className="p-5 flex items-center justify-between">
             <div>
               <p className="text-xs text-muted-foreground font-medium">Estimasi Fee Bulan Ini</p>
-              <h3 className="text-xl font-bold text-foreground mt-0.5 tabular-nums">{feeBulanIni ? formatRupiah(feeBulanIni.totalFee) : "Rp 0"}</h3>
-              <p className="text-[11px] text-emerald-600 font-semibold mt-1">{feeBulanIni?.totalJam || 0} Jam Mengajar Valid</p>
+              <h3 className="text-xl font-bold text-foreground mt-0.5 tabular-nums">{formatRupiah(liveFee.totalFee)}</h3>
+              <p className="text-[11px] text-emerald-600 font-semibold mt-1">{liveFee.totalJam} Jam Mengajar Valid (real-time)</p>
             </div>
             <div className="h-11 w-11 rounded-2xl bg-emerald-100 text-emerald-700 flex items-center justify-center shrink-0">
               <Coins className="h-5 w-5" />
@@ -260,10 +262,8 @@ export default function PengajarDashboardPage() {
                   <Badge variant={feeBulanIni?.status === "PAID" ? "success" : "warning"}>{feeBulanIni?.status === "PAID" ? "SUDAH DIBAYAR" : "BELUM DIBAYAR"}</Badge>
                 </div>
                 <div className="mt-2">
-                  <p className="text-2xl font-extrabold text-foreground tabular-nums">{feeBulanIni ? formatRupiah(feeBulanIni.totalFee) : "Rp 0"}</p>
-                  <p className="text-[11px] text-muted-foreground mt-1">
-                    {feeBulanIni?.totalJam || profile.totalJamBulanIni} Sesi × {formatRupiah(profile.ratePerSession || profile.nominalPerJam)}
-                  </p>
+                  <p className="text-2xl font-extrabold text-foreground tabular-nums">{formatRupiah(liveFee.totalFee)}</p>
+                  <p className="text-[11px] text-muted-foreground mt-1">{liveFee.totalJam} Sesi × {formatRupiah(profile.ratePerSession || profile.nominalPerJam)}</p>
                 </div>
               </div>
             </CardContent>

@@ -21,6 +21,11 @@ type PengajarWithUser = {
     mode: "ONLINE" | "OFFLINE";
     ratePerSession: number;
   }[];
+  kelas?: {
+    id: string;
+    jumlahSiswa: number;
+    feePerSiswa: number;
+  }[];
   user: {
     id: string;
     name: string;
@@ -49,6 +54,8 @@ const serializePengajar = (item: PengajarWithUser) => ({
   bankAccountNumber: item.bankAccountNumber,
   bankAccountName: item.bankAccountName,
   rateSessions: (item.rateSessions || []).map((rate) => ({ kelasGroup: rate.kelasGroup, mode: rate.mode, rate: rate.ratePerSession })),
+  kelasCount: item.kelas?.length || 0,
+  totalFeeBulanan: (item.kelas || []).reduce((sum, kelas) => sum + (kelas.jumlahSiswa || 0) * (kelas.feePerSiswa || 0), 0),
 });
 
 export async function GET(_req: Request, { params }: { params: Promise<{ id: string }> }) {
@@ -60,7 +67,7 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
   const { id } = await params;
   const pengajar = await prisma.pengajar.findUnique({
     where: { id },
-    include: { user: true, rateSessions: true },
+    include: { user: true, rateSessions: true, kelas: true },
   });
 
   if (!pengajar) {
@@ -124,7 +131,7 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
         bankAccountNumber: body.bankAccountNumber === undefined ? pengajar.bankAccountNumber : String(body.bankAccountNumber || "").trim() || null,
         bankAccountName: body.bankAccountName === undefined ? pengajar.bankAccountName : String(body.bankAccountName || "").trim() || null,
       },
-      include: { user: true, rateSessions: true },
+      include: { user: true, rateSessions: true, kelas: true },
     });
     return [user, teacher] as const;
   });

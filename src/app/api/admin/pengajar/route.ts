@@ -23,6 +23,11 @@ type PengajarWithUser = {
     mode: "ONLINE" | "OFFLINE";
     ratePerSession: number;
   }[];
+  kelas?: {
+    id: string;
+    jumlahSiswa: number;
+    feePerSiswa: number;
+  }[];
   user: {
     name: string;
     email: string;
@@ -31,7 +36,7 @@ type PengajarWithUser = {
   };
 };
 
-const serializePengajar = (item: PengajarWithUser, synchronizedHours = item.totalJamBulanIni) => ({
+const serializePengajar = (item: PengajarWithUser, synchronizedHours = item.totalJamBulanIni, totalFeeBulananOverride?: number) => ({
   id: item.id,
   userId: item.userId,
   name: item.user.name,
@@ -45,6 +50,8 @@ const serializePengajar = (item: PengajarWithUser, synchronizedHours = item.tota
   bio: item.bio,
   isActive: item.isActive,
   totalJamBulanIni: synchronizedHours,
+  kelasCount: item.kelas?.length || 0,
+  totalFeeBulanan: totalFeeBulananOverride ?? (item.kelas || []).reduce((sum, kelas) => sum + (kelas.jumlahSiswa || 0) * (kelas.feePerSiswa || 0), 0),
   createdAt: item.createdAt.toISOString(),
   bankName: item.bankName,
   bankAccountNumber: item.bankAccountNumber,
@@ -59,7 +66,7 @@ export async function GET() {
   }
 
   const pengajar = await prisma.pengajar.findMany({
-    include: { user: true, rateSessions: true },
+    include: { user: true, rateSessions: true, kelas: true },
     orderBy: { createdAt: "desc" },
   });
   const hoursByTeacher = await getTeachingHoursByTeacher(getCurrentPeriod());

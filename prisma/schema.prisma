@@ -99,8 +99,28 @@ model Pengajar {
   user              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   quizzes           Quiz[]
   ujian             Ujian[]
+  kelas             PengajarKelas[]
 
   @@map("pengajar")
+}
+
+model PengajarKelas {
+  id           String     @id @default(cuid())
+  pengajarId   String
+  namaKelas    String
+  program      String     @default("Reguler")
+  jenjang      String     @default("SMA_SMK")
+  metode       String     @default("ONLINE")
+  jenisKelas   String     @default("PRIVATE")
+  jumlahSiswa  Int        @default(1)
+  feePerSiswa  Int        @default(0)
+  isActive     Boolean    @default(true)
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+  pengajar     Pengajar   @relation(fields: [pengajarId], references: [id], onDelete: Cascade)
+
+  @@index([pengajarId])
+  @@map("pengajar_kelas")
 }
 
 model PengajarRate {

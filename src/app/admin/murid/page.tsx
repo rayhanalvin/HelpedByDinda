@@ -13,6 +13,8 @@ import { formatRupiah, formatDateIndo } from "@/lib/utils";
 import { apiFetch } from "@/lib/api";
 import { KELAS_GROUPS, KELAS_OPTIONS, getKelasGroup, getKelasLabel, getKelasValue } from "@/lib/kelas";
 import { useVisiblePolling } from "@/lib/use-visible-polling";
+import { KeyRound, UserPlus } from "lucide-react";
+import { PasswordInput } from "@/components/shared/PasswordInput";
 
 type MuridRow = {
   id: string;
@@ -61,6 +63,7 @@ export default function AdminMuridPage() {
   // Modal State
   const [isModalOpen, setIsModalOpen] = React.useState(false);
   const [editingId, setEditingId] = React.useState<string | null>(null);
+  const [createAccountMode, setCreateAccountMode] = React.useState(false);
   const [formData, setFormData] = React.useState({
     nama: "",
     email: "",
@@ -70,10 +73,16 @@ export default function AdminMuridPage() {
     namaWali: "",
     phoneWali: "",
     paketBulanan: 900000,
+    password: "",
   });
+  const [isAccountModalOpen, setIsAccountModalOpen] = React.useState(false);
+  const [accountTarget, setAccountTarget] = React.useState<MuridRow | null>(null);
+  const [newPassword, setNewPassword] = React.useState("");
+  const [savingPassword, setSavingPassword] = React.useState(false);
 
   const handleOpenAdd = () => {
     setEditingId(null);
+    setCreateAccountMode(false);
     setFormData({
       nama: "",
       email: "",
@@ -83,12 +92,31 @@ export default function AdminMuridPage() {
       namaWali: "",
       phoneWali: "",
       paketBulanan: 900000,
+      password: "",
+    });
+    setIsModalOpen(true);
+  };
+
+  const handleOpenAddAccount = () => {
+    setEditingId(null);
+    setCreateAccountMode(true);
+    setFormData({
+      nama: "",
+      email: "",
+      phone: "",
+      kelas: defaultKelas,
+      sekolah: "",
+      namaWali: "",
+      phoneWali: "",
+      paketBulanan: 900000,
+      password: "",
     });
     setIsModalOpen(true);
   };
 
   const handleOpenEdit = (m: MuridRow) => {
     setEditingId(m.id);
+    setCreateAccountMode(false);
     setFormData({
       nama: m.name,
       email: m.email,
@@ -98,6 +126,7 @@ export default function AdminMuridPage() {
       namaWali: m.namaWali || "",
       phoneWali: m.phoneWali || "",
       paketBulanan: m.paketBulanan,
+      password: "",
     });
     setIsModalOpen(true);
   };
@@ -111,6 +140,31 @@ export default function AdminMuridPage() {
       toast("Data murid berhasil dihapus.", "info");
     } catch (error) {
       toast(error instanceof Error ? error.message : "Gagal menghapus murid.", "error");
+    }
+  };
+
+  const handleOpenAccount = (m: MuridRow) => {
+    setAccountTarget(m);
+    setNewPassword("");
+    setIsAccountModalOpen(true);
+  };
+
+  const handleResetPassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!accountTarget || !newPassword.trim()) return;
+    setSavingPassword(true);
+    try {
+      const result = await apiFetch<{ ok: boolean; data: MuridRow }>(`/api/admin/murid/${accountTarget.id}`, {
+        method: "PUT",
+        body: JSON.stringify({ password: newPassword }),
+      });
+      setMuridList((prev) => prev.map((m) => (m.id === accountTarget.id ? result.data : m)));
+      toast(`Password akun ${accountTarget.name} berhasil diperbarui.`, "success");
+      setIsAccountModalOpen(false);
+    } catch (error) {
+      toast(error instanceof Error ? error.message : "Gagal memperbarui password.", "error");
+    } finally {
+      setSavingPassword(false);
     }
   };
 
@@ -130,6 +184,7 @@ export default function AdminMuridPage() {
             namaWali: formData.namaWali,
             phoneWali: formData.phoneWali,
             paketBulanan: formData.paketBulanan,
+            password: formData.password || undefined,
           }),
         });
 
@@ -148,7 +203,7 @@ export default function AdminMuridPage() {
             phoneWali: formData.phoneWali,
             paketBulanan: formData.paketBulanan,
             avatarUrl: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80",
-            password: "student123",
+            password: formData.password || "student123",
           }),
         });
 
@@ -175,9 +230,14 @@ export default function AdminMuridPage() {
           <p className="text-xs sm:text-sm text-muted-foreground mt-1">Data lengkap seluruh siswa bimbingan belajar, informasi sekolah, dan kontak wali.</p>
         </div>
 
-        <Button onClick={handleOpenAdd} variant="accent" className="font-bold gap-2">
-          <Plus className="h-4 w-4" /> Tambah Murid Baru
-        </Button>
+        <div className="flex flex-wrap gap-2">
+          <Button onClick={handleOpenAdd} variant="accent" className="font-bold gap-2">
+            <Plus className="h-4 w-4" /> Tambah Murid Baru
+          </Button>
+          <Button onClick={handleOpenAddAccount} variant="outline" className="font-bold gap-2">
+            <UserPlus className="h-4 w-4" /> Buat Akun Murid
+          </Button>
+        </div>
       </div>
 
       {/* Filter and Search Bar */}
@@ -213,6 +273,7 @@ export default function AdminMuridPage() {
                   <th className="py-3.5 px-4">Kontak Wali</th>
                   <th className="py-3.5 px-4">Paket SPP</th>
                   <th className="py-3.5 px-4">Status Bayar</th>
+                  <th className="py-3.5 px-4">Akun Login</th>
                   <th className="py-3.5 px-4">Terdaftar</th>
                   <th className="py-3.5 px-4 text-right">Aksi</th>
                 </tr>
@@ -249,9 +310,17 @@ export default function AdminMuridPage() {
                     <td className="py-3.5 px-4">
                       <Badge variant={m.statusBayarBulanIni === "dibayar" ? "success" : "warning"}>{m.statusBayarBulanIni.toUpperCase()}</Badge>
                     </td>
+                    <td className="py-3.5 px-4">
+                      <Badge variant="success" className="gap-1">
+                        <CheckCircle2 className="h-3 w-3" /> Aktif
+                      </Badge>
+                    </td>
                     <td className="py-3.5 px-4 text-xs text-muted-foreground">{m.createdAt ? formatDateIndo(m.createdAt) : "-"}</td>
                     <td className="py-3.5 px-4 text-right">
                       <div className="flex items-center justify-end gap-1">
+                        <Button variant="outline" size="sm" onClick={() => handleOpenAccount(m)} className="h-8 gap-1 text-[11px]">
+                          <KeyRound className="h-3.5 w-3.5" /> Akun
+                        </Button>
                         <Button variant="ghost" size="sm" onClick={() => handleOpenEdit(m)} className="h-8 w-8 p-0">
                           <Edit className="h-4 w-4" />
                         </Button>
@@ -294,6 +363,9 @@ export default function AdminMuridPage() {
                 </div>
 
                 <div className="flex justify-end gap-2 pt-2 border-t border-border">
+                  <Button variant="outline" size="sm" onClick={() => handleOpenAccount(m)} className="text-xs">
+                    <KeyRound className="h-3.5 w-3.5" /> Akun
+                  </Button>
                   <Button variant="outline" size="sm" onClick={() => handleOpenEdit(m)} className="text-xs">
                     Edit Data
                   </Button>
@@ -310,7 +382,12 @@ export default function AdminMuridPage() {
       {loading && <div className="text-sm text-muted-foreground">Memuat data murid...</div>}
 
       {/* Modal Tambah / Edit Murid */}
-      <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} title={editingId ? "Ubah Data Murid" : "Tambah Murid Baru"} description="Lengkapi data siswa dan kontak wali untuk administrasi bimbel.">
+      <Modal
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        title={editingId ? "Ubah Data Murid" : createAccountMode ? "Buat Akun Murid" : "Tambah Murid Baru"}
+        description={createAccountMode ? "Buat akun login murid secara langsung dari admin. Password awal akan digunakan murid untuk login ke portal." : "Lengkapi data siswa dan kontak wali untuk administrasi bimbel."}
+      >
         <form onSubmit={handleSave} className="space-y-4">
           <div className="space-y-1.5">
             <label className="text-xs font-semibold text-foreground">Nama Lengkap Murid</label>
@@ -365,12 +442,51 @@ export default function AdminMuridPage() {
             <Input type="number" value={formData.paketBulanan} onChange={(e) => setFormData({ ...formData, paketBulanan: Number(e.target.value) })} />
           </div>
 
+          {createAccountMode && (
+            <div className="space-y-1.5">
+              <label className="text-xs font-semibold text-foreground">Password Awal Login</label>
+              <PasswordInput
+                required
+                placeholder="Minimal 8 karakter"
+                value={formData.password}
+                onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+              />
+              <p className="text-[11px] text-muted-foreground">Murid dapat mengganti password sendiri setelah login melalui menu profil.</p>
+            </div>
+          )}
+
           <div className="pt-3 border-t border-border flex justify-end gap-2">
             <Button type="button" variant="outline" onClick={() => setIsModalOpen(false)}>
               Batal
             </Button>
             <Button type="submit" variant="accent" className="font-bold">
-              Simpan Data Murid
+              {createAccountMode ? "Buat Akun & Simpan" : "Simpan Data Murid"}
+            </Button>
+          </div>
+        </form>
+      </Modal>
+
+      {/* Modal Reset Password */}
+      <Modal
+        isOpen={isAccountModalOpen}
+        onClose={() => setIsAccountModalOpen(false)}
+        title={`Akun Login ${accountTarget?.name || "Murid"}`}
+        description={accountTarget ? `Email login: ${accountTarget.email}. Gunakan form ini untuk mereset password murid.` : ""}
+      >
+        <form onSubmit={handleResetPassword} className="space-y-4">
+          <div className="rounded-xl border border-primary/20 bg-primary/5 p-3 text-xs text-primary">
+            Akun ini dapat digunakan murid untuk login ke portal murid. Password akan disimpan secara aman (terenkripsi).
+          </div>
+          <div className="space-y-1.5">
+            <label className="text-xs font-semibold text-foreground">Password Baru</label>
+            <PasswordInput required minLength={8} placeholder="Minimal 8 karakter" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} />
+          </div>
+          <div className="flex justify-end gap-2 pt-2">
+            <Button type="button" variant="outline" onClick={() => setIsAccountModalOpen(false)}>
+              Batal
+            </Button>
+            <Button type="submit" variant="accent" isLoading={savingPassword}>
+              Reset Password
             </Button>
           </div>
         </form>

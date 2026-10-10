@@ -32,6 +32,8 @@ type PengajarRow = {
   bankAccountNumber: string | null;
   bankAccountName: string | null;
   rateSessions: { kelasGroup: string; mode: "ONLINE" | "OFFLINE"; rate: number }[];
+  kelasCount: number;
+  totalFeeBulanan: number;
   createdAt: string;
 };
 
@@ -93,6 +95,34 @@ export default function AdminPengajarPage() {
   });
   const [quickRate, setQuickRate] = React.useState<Record<string, string>>({});
   const [savingRateId, setSavingRateId] = React.useState<string | null>(null);
+  const [kelasModalOpen, setKelasModalOpen] = React.useState(false);
+  const [kelasPengajarId, setKelasPengajarId] = React.useState<string | null>(null);
+  const [kelasList, setKelasList] = React.useState<PengajarKelasRow[]>([]);
+  const [kelasFormOpen, setKelasFormOpen] = React.useState(false);
+  const [editingKelasId, setEditingKelasId] = React.useState<string | null>(null);
+  const [kelasForm, setKelasForm] = React.useState({
+    namaKelas: "",
+    program: "Reguler",
+    jenjang: "SMA_SMK",
+    metode: "ONLINE",
+    jenisKelas: "PRIVATE",
+    jumlahSiswa: 1,
+    feePerSiswa: 0,
+  });
+  const [savingKelas, setSavingKelas] = React.useState(false);
+
+  type PengajarKelasRow = {
+    id: string;
+    namaKelas: string;
+    program: string;
+    jenjang: string;
+    metode: string;
+    jenisKelas: string;
+    jumlahSiswa: number;
+    feePerSiswa: number;
+    totalFee: number;
+    isActive: boolean;
+  };
 
   const handleQuickRateSave = async (pengajarId: string) => {
     const raw = (quickRate[pengajarId] || "").trim();
@@ -115,6 +145,88 @@ export default function AdminPengajarPage() {
       toast(error instanceof Error ? error.message : "Gagal menyimpan tarif.", "error");
     } finally {
       setSavingRateId(null);
+    }
+  };
+
+  const openKelolaKelas = async (p: PengajarRow) => {
+    setKelasPengajarId(p.id);
+    setKelasModalOpen(true);
+    setKelasFormOpen(false);
+    setEditingKelasId(null);
+    setKelasForm({ namaKelas: "", program: "Reguler", jenjang: "SMA_SMK", metode: "ONLINE", jenisKelas: "PRIVATE", jumlahSiswa: 1, feePerSiswa: 0 });
+    await loadKelas(p.id);
+  };
+
+  const loadKelas = async (pengajarId: string) => {
+    try {
+      const result = await apiFetch<{ ok: boolean; data: PengajarKelasRow[] }>(`/api/admin/pengajar/${pengajarId}/kelas`);
+      setKelasList(result.data || []);
+    } catch (error) {
+      toast(error instanceof Error ? error.message : "Gagal memuat kelas pengajar.", "error");
+    }
+  };
+
+  const handleKelasFormOpen = () => {
+    setEditingKelasId(null);
+    setKelasForm({ namaKelas: "", program: "Reguler", jenjang: "SMA_SMK", metode: "ONLINE", jenisKelas: "PRIVATE", jumlahSiswa: 1, feePerSiswa: 0 });
+    setKelasFormOpen(true);
+  };
+
+  const handleKelasEdit = (k: PengajarKelasRow) => {
+    setEditingKelasId(k.id);
+    setKelasForm({
+      namaKelas: k.namaKelas,
+      program: k.program,
+      jenjang: k.jenjang,
+      metode: k.metode,
+      jenisKelas: k.jenisKelas,
+      jumlahSiswa: k.jumlahSiswa,
+      feePerSiswa: k.feePerSiswa,
+    });
+    setKelasFormOpen(true);
+  };
+
+  const handleKelasSave = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!kelasPengajarId) return;
+    setSavingKelas(true);
+    try {
+      const body = {
+        namaKelas: kelasForm.namaKelas,
+        program: kelasForm.program,
+        jenjang: kelasForm.jenjang,
+        metode: kelasForm.metode,
+        jenisKelas: kelasForm.jenisKelas,
+        jumlahSiswa: kelasForm.jumlahSiswa,
+        feePerSiswa: kelasForm.feePerSiswa,
+      };
+      if (editingKelasId) {
+        await apiFetch(`/api/admin/pengajar/${kelasPengajarId}/kelas/${editingKelasId}`, { method: "PUT", body: JSON.stringify(body) });
+        toast("Kelas pengajar berhasil diperbarui.", "success");
+      } else {
+        await apiFetch(`/api/admin/pengajar/${kelasPengajarId}/kelas`, { method: "POST", body: JSON.stringify(body) });
+        toast("Kelas baru berhasil ditambahkan.", "success");
+      }
+      await loadKelas(kelasPengajarId);
+      setKelasFormOpen(false);
+      await loadPengajar(true);
+    } catch (error) {
+      toast(error instanceof Error ? error.message : "Gagal menyimpan kelas.", "error");
+    } finally {
+      setSavingKelas(false);
+    }
+  };
+
+  const handleKelasDelete = async (kelasId: string) => {
+    if (!kelasPengajarId) return;
+    if (!confirm("Hapus kelas ini dari pengajar?")) return;
+    try {
+      await apiFetch(`/api/admin/pengajar/${kelasPengajarId}/kelas/${kelasId}`, { method: "DELETE" });
+      await loadKelas(kelasPengajarId);
+      await loadPengajar(true);
+      toast("Kelas berhasil dihapus.", "info");
+    } catch (error) {
+      toast(error instanceof Error ? error.message : "Gagal menghapus kelas.", "error");
     }
   };
 
@@ -296,8 +408,9 @@ export default function AdminPengajarPage() {
                   <th className="py-3.5 px-4">Pengajar</th>
                   <th className="py-3.5 px-4">Spesialisasi Mapel</th>
                   <th className="py-3.5 px-4">Kontak Telepon</th>
-                  <th className="py-3.5 px-4">Tarif Fee / Sesi</th>
-                  <th className="py-3.5 px-4">Jam Mengajar Bulan Ini</th>
+                  <th className="py-3.5 px-4">Jumlah Kelas Diampu</th>
+                  <th className="py-3.5 px-4">Total Fee Bulanan</th>
+                  <th className="py-3.5 px-4">Total Jam Mengajar</th>
                   <th className="py-3.5 px-4">Status</th>
                   <th className="py-3.5 px-4">Terdaftar</th>
                   <th className="py-3.5 px-4 text-right">Aksi</th>
@@ -324,37 +437,16 @@ export default function AdminPengajarPage() {
                     <td className="py-3.5 px-4 font-medium text-foreground">{p.spesialisasi}</td>
                     <td className="py-3.5 px-4 text-xs text-muted-foreground">{p.phone}</td>
                     <td className="py-3.5 px-4">
-                      <div className="font-bold text-emerald-700 tabular-nums">{formatRupiah(p.ratePerSession || p.nominalPerJam)} / sesi</div>
-                      <div className="mt-1.5 flex items-center gap-1">
-                        <Input
-                          type="number"
-                          aria-label={`Set tarif baru untuk ${p.name}`}
-                          placeholder="Set nominal tarif"
-                          value={quickRate[p.id] || ""}
-                          onChange={(e) => setQuickRate((prev) => ({ ...prev, [p.id]: e.target.value }))}
-                          onKeyDown={(e) => {
-                            if (e.key === "Enter") {
-                              e.preventDefault();
-                              void handleQuickRateSave(p.id);
-                            }
-                          }}
-                          className="h-7 w-28 text-[11px]"
-                        />
-                        <Button size="sm" variant="outline" className="h-7 px-2 text-[11px]" isLoading={savingRateId === p.id} onClick={() => handleQuickRateSave(p.id)}>
-                          Simpan
+                      <div className="flex items-center gap-1.5">
+                        <Badge variant="secondary" className="font-semibold tabular-nums">
+                          {p.kelasCount} Kelas
+                        </Badge>
+                        <Button size="sm" variant="outline" className="h-7 px-2 text-[11px]" onClick={() => openKelolaKelas(p)}>
+                          <Briefcase className="h-3 w-3" /> Kelola Kelas
                         </Button>
                       </div>
-                      {p.rateSessions && p.rateSessions.length > 0 && (
-                        <div className="mt-1 flex flex-wrap gap-1">
-                          {p.rateSessions.slice(0, 3).map((rate) => (
-                            <span key={`${rate.kelasGroup}-${rate.mode}`} className="rounded-md bg-muted px-1.5 py-0.5 text-[9.5px] font-medium text-muted-foreground">
-                              {rate.kelasGroup} • {formatRupiah(rate.rate)}
-                            </span>
-                          ))}
-                          {p.rateSessions.length > 3 && <span className="text-[9.5px] text-muted-foreground">+{p.rateSessions.length - 3}</span>}
-                        </div>
-                      )}
                     </td>
+                    <td className="py-3.5 px-4 font-bold text-emerald-700 tabular-nums">{formatRupiah(p.totalFeeBulanan)}</td>
                     <td className="py-3.5 px-4 text-xs font-semibold text-foreground">{p.totalJamBulanIni} Jam</td>
                     <td className="py-3.5 px-4">
                       <Badge variant={p.isActive ? "success" : "secondary"}>{p.isActive ? "AKTIF" : "NONAKTIF"}</Badge>
@@ -392,17 +484,11 @@ export default function AdminPengajarPage() {
 
                 <div className="text-xs text-muted-foreground border-t border-border pt-2 space-y-1">
                   <p>
-                    Rate Sesi: <strong className="text-emerald-700">{formatRupiah(p.ratePerSession || p.nominalPerJam)}/sesi</strong>
+                    Kelas Diampu: <strong className="text-foreground">{p.kelasCount} Kelas</strong>
                   </p>
-                  {p.rateSessions && p.rateSessions.length > 0 && (
-                    <p className="flex flex-wrap gap-1">
-                      {p.rateSessions.slice(0, 3).map((rate) => (
-                        <span key={`${rate.kelasGroup}-${rate.mode}`} className="rounded-md bg-muted px-1.5 py-0.5 text-[9.5px] font-medium text-muted-foreground">
-                          {rate.kelasGroup} {rate.mode === "OFFLINE" ? "Off" : "On"} {formatRupiah(rate.rate)}
-                        </span>
-                      ))}
-                    </p>
-                  )}
+                  <p>
+                    Total Fee Bulanan: <strong className="text-emerald-700">{formatRupiah(p.totalFeeBulanan)}</strong>
+                  </p>
                   <p>
                     Total Jam Mengajar: <strong className="text-foreground">{p.totalJamBulanIni} Jam</strong>
                   </p>
@@ -410,8 +496,11 @@ export default function AdminPengajarPage() {
                 </div>
 
                 <div className="flex justify-end gap-2 pt-2 border-t border-border">
+                  <Button variant="outline" size="sm" onClick={() => openKelolaKelas(p)} className="text-xs">
+                    Kelola Kelas
+                  </Button>
                   <Button variant="outline" size="sm" onClick={() => handleOpenEdit(p)} className="text-xs">
-                    Atur Rate & Profil
+                    Atur Profil
                   </Button>
                   <Button variant="ghost" size="sm" onClick={() => handleDelete(p.id)} className="text-xs text-rose-600 hover:bg-rose-50">
                     Hapus
@@ -529,6 +618,136 @@ export default function AdminPengajarPage() {
             </Button>
             <Button type="submit" variant="accent" className="font-bold">
               Simpan Data Pengajar
+            </Button>
+          </div>
+        </form>
+      </Modal>
+
+      {/* Modal Kelola Kelas */}
+      <Modal
+        isOpen={kelasModalOpen}
+        onClose={() => setKelasModalOpen(false)}
+        title="Kelola Kelas & Fee Pengajar"
+        description="Kelola beberapa kelas yang diampu pengajar beserta jumlah siswa dan nominal fee per siswa per bulan."
+        className="max-w-3xl"
+      >
+        <div className="space-y-4">
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <p className="text-sm font-bold text-foreground">
+                Total Fee Bulanan: <span className="text-emerald-700">{formatRupiah(kelasList.reduce((sum, k) => sum + k.totalFee, 0))}</span>
+              </p>
+              <p className="text-xs text-muted-foreground">Total otomatis dari jumlah siswa aktif × fee per siswa per bulan.</p>
+            </div>
+            <Button size="sm" variant="accent" onClick={handleKelasFormOpen} className="gap-1.5">
+              <Plus className="h-4 w-4" /> Tambah Kelas
+            </Button>
+          </div>
+
+          {kelasList.length === 0 ? (
+            <div className="rounded-2xl border border-dashed border-border bg-muted/20 p-6 text-center text-sm text-muted-foreground">
+              Belum ada kelas terdaftar. Tambahkan kelas pertama untuk menghitung fee bulanan.
+            </div>
+          ) : (
+            <div className="space-y-2">
+              {kelasList.map((k) => (
+                <div key={k.id} className="flex flex-col gap-3 rounded-2xl border border-border bg-card p-4 sm:flex-row sm:items-center sm:justify-between">
+                  <div className="space-y-1">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <p className="font-bold text-foreground">{k.namaKelas}</p>
+                      <Badge variant={k.isActive ? "success" : "secondary"}>{k.isActive ? "Aktif" : "Nonaktif"}</Badge>
+                    </div>
+                    <div className="flex flex-wrap gap-1.5 text-[10px] font-semibold text-muted-foreground">
+                      <span className="rounded-md bg-muted px-1.5 py-0.5">{k.program}</span>
+                      <span className="rounded-md bg-muted px-1.5 py-0.5">{k.jenjang.replace("_SMK", "/SMK")}</span>
+                      <span className="rounded-md bg-muted px-1.5 py-0.5">{k.metode === "ONLINE" ? "Online" : "Offline"}</span>
+                      <span className="rounded-md bg-muted px-1.5 py-0.5">{k.jenisKelas === "PRIVATE" ? "Private 1–3" : "Group 4–10"}</span>
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      {k.jumlahSiswa} siswa aktif × {formatRupiah(k.feePerSiswa)}/siswa/bulan
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <p className="font-bold text-emerald-700 tabular-nums text-sm">{formatRupiah(k.totalFee)}</p>
+                    <Button variant="outline" size="sm" className="h-8 px-2 text-xs" onClick={() => handleKelasEdit(k)}>
+                      <Edit className="h-3.5 w-3.5" /> Edit
+                    </Button>
+                    <Button variant="ghost" size="sm" className="h-8 w-8 p-0 text-rose-600 hover:bg-rose-50" onClick={() => handleKelasDelete(k.id)}>
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+
+          <div className="border-t border-border pt-3">
+            <p className="text-xs font-semibold text-muted-foreground">Total keseluruhan fee pengajar</p>
+            <p className="font-heading text-2xl font-extrabold text-emerald-700 tabular-nums">{formatRupiah(kelasList.reduce((sum, k) => sum + k.totalFee, 0))}</p>
+          </div>
+        </div>
+      </Modal>
+
+      {/* Modal Form Kelas */}
+      <Modal isOpen={kelasFormOpen} onClose={() => setKelasFormOpen(false)} title={editingKelasId ? "Edit Kelas" : "Tambah Kelas Baru"} description="Isi data kelas dan nominal fee per siswa per bulan. Sistem otomatis menghitung total fee kelas.">
+        <form onSubmit={handleKelasSave} className="space-y-4">
+          <div className="space-y-1.5">
+            <label className="text-xs font-semibold text-foreground">Nama / Kode Kelas</label>
+            <Input required placeholder="Contoh: Kelas A, Bimbel Intensif, Kelas 12 IPA-1" value={kelasForm.namaKelas} onChange={(e) => setKelasForm({ ...kelasForm, namaKelas: e.target.value })} />
+          </div>
+
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-1.5">
+              <label className="text-xs font-semibold text-foreground">Program Bimbingan</label>
+              <select className="flex h-11 w-full rounded-xl border border-input bg-card px-3 py-2 text-sm text-foreground" value={kelasForm.program} onChange={(e) => setKelasForm({ ...kelasForm, program: e.target.value })}>
+                <option value="Reguler">Reguler</option>
+                <option value="TKA">TKA</option>
+                <option value="UTBK">UTBK</option>
+              </select>
+            </div>
+            <div className="space-y-1.5">
+              <label className="text-xs font-semibold text-foreground">Jenjang</label>
+              <select className="flex h-11 w-full rounded-xl border border-input bg-card px-3 py-2 text-sm text-foreground" value={kelasForm.jenjang} onChange={(e) => setKelasForm({ ...kelasForm, jenjang: e.target.value })}>
+                <option value="SD">SD</option>
+                <option value="SMP">SMP</option>
+                <option value="SMA_SMK">SMA/SMK</option>
+                <option value="KULIAH">Kuliah</option>
+              </select>
+            </div>
+            <div className="space-y-1.5">
+              <label className="text-xs font-semibold text-foreground">Metode</label>
+              <select className="flex h-11 w-full rounded-xl border border-input bg-card px-3 py-2 text-sm text-foreground" value={kelasForm.metode} onChange={(e) => setKelasForm({ ...kelasForm, metode: e.target.value })}>
+                <option value="ONLINE">Online</option>
+                <option value="OFFLINE">Offline</option>
+              </select>
+            </div>
+            <div className="space-y-1.5">
+              <label className="text-xs font-semibold text-foreground">Jenis Kelas</label>
+              <select className="flex h-11 w-full rounded-xl border border-input bg-card px-3 py-2 text-sm text-foreground" value={kelasForm.jenisKelas} onChange={(e) => setKelasForm({ ...kelasForm, jenisKelas: e.target.value })}>
+                <option value="PRIVATE">Private (1–3 siswa)</option>
+                <option value="GROUP">Group (4–10 siswa)</option>
+              </select>
+            </div>
+            <div className="space-y-1.5">
+              <label className="text-xs font-semibold text-foreground">Jumlah Siswa Aktif</label>
+              <Input type="number" min="0" required value={kelasForm.jumlahSiswa} onChange={(e) => setKelasForm({ ...kelasForm, jumlahSiswa: Number(e.target.value) })} />
+            </div>
+            <div className="space-y-1.5">
+              <label className="text-xs font-semibold text-foreground">Fee per Siswa per Bulan (Rp)</label>
+              <Input type="number" min="0" required value={kelasForm.feePerSiswa} placeholder="Contoh: 150000" onChange={(e) => setKelasForm({ ...kelasForm, feePerSiswa: Number(e.target.value) })} />
+            </div>
+          </div>
+
+          <div className="rounded-xl border border-primary/20 bg-primary/5 p-3 text-xs text-primary">
+            Total fee kelas ini: <strong>{formatRupiah((kelasForm.jumlahSiswa || 0) * (kelasForm.feePerSiswa || 0))}</strong> / bulan
+          </div>
+
+          <div className="flex justify-end gap-2 pt-2">
+            <Button type="button" variant="outline" onClick={() => setKelasFormOpen(false)}>
+              Batal
+            </Button>
+            <Button type="submit" variant="accent" isLoading={savingKelas}>
+              {editingKelasId ? "Simpan Perubahan" : "Tambah Kelas"}
             </Button>
           </div>
         </form>

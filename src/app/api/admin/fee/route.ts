@@ -14,7 +14,7 @@ export async function GET(req: Request) {
   const fees = await prisma.fee.findMany({
     where: periode ? { periode } : undefined,
     orderBy: { createdAt: "desc" },
-    include: { pengajar: { include: { user: { select: { name: true, email: true } }, rateSessions: true } } },
+    include: { pengajar: { include: { user: { select: { name: true, email: true } }, rateSessions: true, kelas: { where: { isActive: true } } } } },
   });
   const hoursByTeacher = await getTeachingSessionsByTeacher(periode || getCurrentPeriod());
 
@@ -35,6 +35,8 @@ export async function GET(req: Request) {
         ratePerSession: fallbackRate,
         rateSessions: (fee.pengajar.rateSessions || []).map((rate) => ({ kelasGroup: rate.kelasGroup, mode: rate.mode, rate: rate.ratePerSession })),
           totalFee: totalFeeCurrent,
+        totalFeeKelasBulanan: (fee.pengajar.kelas || []).reduce((sum, kelas) => sum + (kelas.jumlahSiswa || 0) * (kelas.feePerSiswa || 0), 0),
+        jumlahKelasDiampu: fee.pengajar.kelas?.length || 0,
         status: fee.status,
         payoutMethod: fee.payoutMethod,
         payoutBankName: fee.payoutBankName,

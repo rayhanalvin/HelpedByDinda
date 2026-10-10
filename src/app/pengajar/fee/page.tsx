@@ -48,6 +48,7 @@ export default function PengajarFeePage() {
   const [profile, setProfile] = React.useState({ nominalPerJam: 0, ratePerSession: 0, rateSessions: [] as { kelasGroup: string; mode: "ONLINE" | "OFFLINE"; rate: number }[] });
   const [rateSessions, setRateSessions] = React.useState<{ kelasGroup: string; mode: "ONLINE" | "OFFLINE"; rate: number }[]>([]);
   const [previewProof, setPreviewProof] = React.useState<{ name: string; url: string; mimeType: string | null } | null>(null);
+  const [liveSummary, setLiveSummary] = React.useState({ periode: "", totalJam: 0, totalFee: 0 });
 
   // Invoice state
   type InvoiceRow = { id: string; title?: string | null; periode?: string | null; fileName?: string | null; createdAt?: string | null };
@@ -84,12 +85,27 @@ export default function PengajarFeePage() {
   const loadFeeData = React.useCallback(async () => {
     try {
       const [feeRes, profileRes] = await Promise.all([
-        apiFetch<{ ok: boolean; data: ApiTypes.FeeRow[]; attendance: AttendanceRow[]; payouts: PayoutRow[]; ratePerSession: number; rateSessions: { kelasGroup: string; mode: "ONLINE" | "OFFLINE"; rate: number }[] }>(`/api/profile/fee?periode=${new Date().toISOString().slice(0, 7)}`),
+        apiFetch<{
+          ok: boolean;
+          data: ApiTypes.FeeRow[];
+          attendance: AttendanceRow[];
+          payouts: PayoutRow[];
+          ratePerSession: number;
+          rateSessions: { kelasGroup: string; mode: "ONLINE" | "OFFLINE"; rate: number }[];
+          currentPeriod: string;
+          totalJam: number;
+          totalFee: number;
+        }>(`/api/profile/fee?periode=${new Date().toISOString().slice(0, 7)}`),
         apiFetch<{ ok: boolean; user: { pengajar: { nominalPerJam: number } | null } }>("/api/profile"),
       ]);
       setFeeCurrent(feeRes.data?.[0] || null);
       setPayouts(feeRes.payouts || []);
       setTeachingSessions(feeRes.attendance || []);
+      setLiveSummary({
+        periode: feeRes.currentPeriod || new Date().toISOString().slice(0, 7),
+        totalJam: feeRes.totalJam ?? feeRes.data?.[0]?.totalJam ?? 0,
+        totalFee: feeRes.totalFee ?? feeRes.data?.[0]?.totalFee ?? 0,
+      });
       setProfile({
         nominalPerJam: profileRes.user.pengajar?.nominalPerJam || feeRes.data?.[0]?.nominalPerJam || 0,
         ratePerSession: feeRes.ratePerSession || profileRes.user.pengajar?.nominalPerJam || 0,
@@ -124,21 +140,19 @@ export default function PengajarFeePage() {
         <CardContent className="p-6 sm:p-8 space-y-6">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div className="flex items-center gap-2">
-              <Badge variant="default" className="bg-primary text-white">
-                Periode: {feeCurrent?.periode || "2025-07"}
-              </Badge>
+              <Badge variant="default" className="bg-primary text-white">Periode: {liveSummary.periode || feeCurrent?.periode}</Badge>
               <Badge variant={feeCurrent?.status === "PAID" || feeCurrent?.status === "dibayar" ? "success" : "warning"}>
                 {feeCurrent?.status === "PAID" || feeCurrent?.status === "dibayar" ? "SUDAH DITRANSFER" : "MENUNGGU PEMBAYARAN ADMIN"}
               </Badge>
             </div>
-            <span className="text-xs text-muted-foreground">Cut-off fee: Akhir bulan kalender</span>
+            <span className="text-xs text-muted-foreground">Diperbarui real-time dari absensi • Cut-off: akhir bulan</span>
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 p-6 rounded-2xl bg-card border border-border">
             <div>
               <p className="text-xs text-muted-foreground font-medium">Total Jam Mengajar</p>
-              <h3 className="text-3xl font-black text-foreground tabular-nums mt-1">{feeCurrent?.totalJam || 42} Jam</h3>
-              <p className="text-[11px] text-emerald-600 mt-1">Presensi hadir terverifikasi</p>
+              <h3 className="text-3xl font-black text-foreground tabular-nums mt-1">{liveSummary.totalJam} Jam</h3>
+              <p className="text-[11px] text-emerald-600 mt-1">Presensi hadir terverifikasi (live)</p>
             </div>
 
             <div>
@@ -149,12 +163,12 @@ export default function PengajarFeePage() {
 
             <div>
               <p className="text-xs text-muted-foreground font-medium">Total Fee Terhitung</p>
-              <h3 className="text-3xl font-black text-emerald-700 tabular-nums mt-1">{feeCurrent ? formatRupiah(feeCurrent.totalFee) : "Rp 0"}</h3>
+              <h3 className="text-3xl font-black text-emerald-700 tabular-nums mt-1">{formatRupiah(liveSummary.totalFee)}</h3>
               <p className="text-[11px] text-muted-foreground mt-1">{feeCurrent?.status === "dibayar" ? "Sudah disalurkan" : "Akan dibayarkan tgl 5 bulan depan"}</p>
             </div>
           </div>
 
-          <p className="text-xs text-muted-foreground">* Fee dihitung berdasarkan **sesi mengajar** (status Hadir / Terlambat) dengan tarif per sesi yang diatur admin per jenjang kelas & mode.</p>
+          <p className="text-xs text-muted-foreground">* Fee dihitung real-time berdasarkan sesi mengajar (status Hadir / Terlambat) dengan tarif per sesi yang diatur admin per jenjang kelas & mode.</p>
           {rateSessions.length > 0 && (
             <div className="rounded-2xl border border-border bg-muted/20 p-4">
               <p className="text-xs font-bold text-foreground">Tarif Sesi per Jenjang & Mode (atur admin)</p>

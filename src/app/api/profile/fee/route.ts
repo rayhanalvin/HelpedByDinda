@@ -29,8 +29,14 @@ export async function GET(req: Request) {
   });
   const fallbackRate = pengajar.ratePerSession ?? pengajar.nominalPerJam;
   const rateValues = normalizeRateSessions(pengajar.rateSessions);
-  const sessions = await getTeachingSessionsByTeacher(getCurrentPeriod(), [pengajar.id]);
+  const currentPeriod = getCurrentPeriod();
+  const sessions = await getTeachingSessionsByTeacher(currentPeriod, [pengajar.id]);
   const pengajarSessions = sessions.sessionsByTeacher.get(pengajar.id) || [];
+  const totalJamLive = pengajarSessions.length;
+  const totalFeeLive = pengajarSessions.reduce(
+    (sum, session) => sum + resolvePengajarRate(rateValues, fallbackRate, { kelasGroup: session.kelasGroup, mode: session.mode }),
+    0,
+  );
   const attendance = await prisma.absensi.findMany({
     where: {
       jadwalId: { in: pengajarSessions.map((session) => session.id) },
@@ -50,6 +56,10 @@ export async function GET(req: Request) {
 
   return NextResponse.json({
     ok: true,
+    currentPeriod,
+    periode: currentPeriod,
+    totalJam: totalJamLive,
+    totalFee: totalFeeLive,
     ratePerSession: fallbackRate,
     rateSessions: (pengajar.rateSessions || []).map((rate) => ({ kelasGroup: rate.kelasGroup, mode: rate.mode, rate: rate.ratePerSession })),
     data: fees.map((fee) => ({
@@ -57,10 +67,10 @@ export async function GET(req: Request) {
       pengajarId: fee.pengajarId,
       pengajarNama: "",
       periode: fee.periode,
-      totalJam: fee.totalJam,
+      totalJam: fee.periode === currentPeriod ? totalJamLive : fee.totalJam,
       nominalPerJam: fee.nominalPerJam,
       ratePerSession: fallbackRate,
-      totalFee: fee.totalFee,
+      totalFee: fee.periode === currentPeriod ? totalFeeLive : fee.totalFee,
       status: fee.status,
       teacherBankName: fee.payoutBankName ?? pengajar.bankName,
       teacherAccountNumber: fee.payoutAccountNumber ?? pengajar.bankAccountNumber,

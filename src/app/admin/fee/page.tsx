@@ -34,6 +34,8 @@ type FeeRow = {
   periodKey?: string;
   periodLabel?: string | null;
   manualTotalFee?: number | null;
+  totalFeeKelasBulanan?: number;
+  jumlahKelasDiampu?: number;
 };
 
 type FeePeriodType = "MONTHLY" | "WEEKLY" | "CUSTOM";
@@ -259,6 +261,16 @@ export default function AdminFeePage() {
                 <p className="text-sm text-muted-foreground">
                   {item.totalJam} sesi × {formatRupiah(item.ratePerSession || item.nominalPerJam)}/sesi
                 </p>
+                {item.jumlahKelasDiampu ? (
+                  <div className="mt-1 flex flex-wrap items-center gap-2">
+                    <span className="rounded-md bg-emerald-50 px-1.5 py-0.5 text-[10px] font-bold text-emerald-700">
+                      {item.jumlahKelasDiampu} Kelas Diampu
+                    </span>
+                    <span className="rounded-md bg-primary/5 px-1.5 py-0.5 text-[10px] font-bold text-primary">
+                      Fee Kelas: {formatRupiah(item.totalFeeKelasBulanan || 0)}/bulan
+                    </span>
+                  </div>
+                ) : null}
                 {item.rateSessions && item.rateSessions.length > 0 && (
                   <div className="mt-1 flex flex-wrap gap-1">
                     {item.rateSessions.slice(0, 4).map((rate) => (
