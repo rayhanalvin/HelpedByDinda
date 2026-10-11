@@ -3,12 +3,14 @@
 import * as React from "react";
 import Link from "next/link";
 import { ArrowLeft, Mail, Send, CheckCircle2 } from "lucide-react";
+import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { BrandLogo } from "@/components/shared/BrandLogo";
 import { useToast } from "@/components/ui/toast";
 
 export default function ForgotPasswordPage() {
+  const router = useRouter();
   const { toast } = useToast();
   const [email, setEmail] = React.useState("");
   const [loading, setLoading] = React.useState(false);
@@ -20,6 +22,16 @@ export default function ForgotPasswordPage() {
     const fromUrl = new URLSearchParams(window.location.search).get("email");
     if (fromUrl) setEmail(fromUrl);
   }, []);
+
+  // Setelah kode terkirim, langsung arahkan ke halaman Setel Ulang Sandi
+  // (email dibawa otomatis, tidak perlu dimasukkan lagi).
+  React.useEffect(() => {
+    if (!sent || !email.trim()) return;
+    const timer = window.setTimeout(() => {
+      router.push(`/reset-password?email=${encodeURIComponent(email.trim())}`);
+    }, 3000);
+    return () => window.clearTimeout(timer);
+  }, [sent, email, router]);
 
   React.useEffect(() => {
     if (resendCooldown <= 0) return;
@@ -108,11 +120,13 @@ export default function ForgotPasswordPage() {
             </div>
           )}
           <div className="grid grid-cols-1 gap-2">
-            <Link href="/reset-password">
-              <Button variant="default" className="w-full text-xs font-bold">
-                Masukkan Kode & Ganti Sandi
-              </Button>
-            </Link>
+            <Button
+              variant="default"
+              className="w-full text-xs font-bold"
+              onClick={() => router.push(`/reset-password?email=${encodeURIComponent(email.trim())}`)}
+            >
+              Masukkan Kode & Ganti Sandi
+            </Button>
             <Button variant="outline" className="w-full text-xs" disabled={resendCooldown > 0 || loading} onClick={handleResend}>
               {resendCooldown > 0 ? `Kirim Ulang Kode (${resendCooldown}s)` : "Kirim Ulang Kode"}
             </Button>

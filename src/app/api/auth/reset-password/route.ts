@@ -20,8 +20,8 @@ export async function POST(req: Request) {
     const passwordStr = String(password || "");
     const emailStr = String(email || "").trim().toLowerCase();
 
-    if (!tokenStr || !passwordStr) {
-      return NextResponse.json({ ok: false, message: "Token dan sandi baru wajib diisi." }, { status: 400 });
+    if (!tokenStr || !emailStr || !passwordStr) {
+      return NextResponse.json({ ok: false, message: "Email, kode verifikasi, dan sandi baru wajib diisi." }, { status: 400 });
     }
 
     if (passwordStr.length < 6) {
@@ -44,11 +44,11 @@ export async function POST(req: Request) {
       );
     }
 
-    // Locate the matching token (optionally scoped to the email)
+    // Kode verifikasi hanya berlaku untuk akun dengan email yang sesuai.
     const user = await prisma.user.findFirst({
       where: {
         resetToken: tokenStr,
-        ...(emailStr ? { email: emailStr } : {}),
+        email: emailStr,
         resetTokenExpiry: {
           gt: new Date(),
         },
@@ -62,7 +62,10 @@ export async function POST(req: Request) {
           data: { resetAttempts: { increment: 1 } },
         });
       }
-      return NextResponse.json({ ok: false, message: "Tautan reset tidak valid atau masa berlaku telah kedaluwarsa." }, { status: 400 });
+      return NextResponse.json(
+        { ok: false, message: "Kode verifikasi tidak sesuai dengan email Anda atau sudah kedaluwarsa. Silakan minta kode baru." },
+        { status: 400 },
+      );
     }
 
     // Salt and hash the new password

@@ -1,12 +1,10 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { createTransport } from "nodemailer";
-import { randomBytes } from "crypto";
+import { randomInt } from "crypto";
 
 function generateVerificationCode() {
-  const bytes = randomBytes(4);
-  const num = (bytes[0] << 24) | (bytes[1] << 16) | (bytes[2] << 8) | bytes[3];
-  return String(100000 + (num % 900000));
+  return String(randomInt(100000, 1000000));
 }
 
 export async function POST(req: Request) {
@@ -14,7 +12,7 @@ export async function POST(req: Request) {
     let email = "";
     try {
       const body = await req.json();
-      email = String(body?.email || "").trim();
+      email = String(body?.email || "").trim().toLowerCase();
     } catch {
       email = "";
     }
@@ -23,13 +21,17 @@ export async function POST(req: Request) {
       return NextResponse.json({ ok: false, message: "Email wajib diisi." }, { status: 400 });
     }
 
+    // Satu tabel users mencakup semua akun: murid, pengajar, dan admin.
     const user = await prisma.user.findUnique({
-      where: { email: email.toLowerCase() },
+      where: { email },
+      select: { id: true, email: true, name: true },
     });
 
     if (!user) {
-      // For security, don't leak whether the email exists.
-      return NextResponse.json({ ok: true, message: "Koneksi berhasil. Jika email terdaftar, instruksi setel ulang sandi dikirimkan." });
+      return NextResponse.json(
+        { ok: false, message: "Email tidak terdaftar di Helped by Dinda. Silakan periksa kembali alamat email Anda." },
+        { status: 404 },
+      );
     }
 
     // Generate 6-digit verification code
@@ -90,22 +92,22 @@ export async function POST(req: Request) {
               <p style="font-size: 14px; color: #334155; margin: 0 0 8px;">Halo, <strong>${user.name}</strong></p>
               <p style="font-size: 13px; color: #475569; line-height: 1.5; margin: 0 0 16px;">
                 Kami menerima permintaan untuk menyetel ulang kata sandi akun Anda (${user.email}).
-                Gunakan kode verifikasi <strong>6 digit</strong> di bawah ini op de website om verder te gaan:
+                Gunakan kode verifikasi <strong>6 digit</strong> di bawah ini untuk melanjutkan proses pemulihan akun Anda:
               </p>
               <div style="text-align: center; margin: 20px 0;">
                 <span style="background-color: #6366f1; color: #ffffff; padding: 14px 28px; border-radius: 10px; font-weight: 800; font-size: 28px; letter-spacing: 8px; display: inline-block;">${code}</span>
               </div>
               <p style="font-size: 12px; color: #64748b; line-height: 1.6; margin: 0 0 12px;">
-                Kode heeft een geldigheidsduur van <strong>1 uur</strong> en kan maar <strong>eenmaal</strong> worden gebruikt.
-                Na het invoeren ervan kunt u een nieuwe wachtwoord maken en opnieuw inloggen.
+                Kode verifikasi berlaku selama <strong>1 jam</strong> dan hanya dapat digunakan <strong>satu kali</strong>.
+                Setelah memasukkan kode, Anda dapat membuat kata sandi baru dan masuk kembali.
               </p>
               <p style="font-size: 12px; color: #94a3b8; line-height: 1.5; margin: 0;">
-                Heeft u geen reset aangevraagd? Dan kunt u deze e-mail negeren — uw wachtwoord blijft ongewijzigd.
+                Tidak meminta pengaturan ulang kata sandi? Abaikan email ini — kata sandi Anda tetap aman.
               </p>
             </div>
             <hr style="border: 0; border-top: 1px solid #e2e8f0; margin: 20px 0;" />
             <p style="color: #94a3b8; font-size: 11px; text-align: center; margin: 0;">
-              © ${new Date().getFullYear()} Helped By Dinda. Alle rechten voorbehouden.
+              © ${new Date().getFullYear()} Helped By Dinda. Hak cipta dilindungi.
             </p>
           </div>
         `,

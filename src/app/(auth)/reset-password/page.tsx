@@ -17,7 +17,11 @@ function ResetPasswordForm() {
 
   const tokenFromUrl = searchParams.get("token") || "";
   const [code, setCode] = React.useState(tokenFromUrl);
-  const [email, setEmail] = React.useState("");
+  // Email dikirim dari halaman Lupa Kata Sandi, tidak perlu diminta lagi.
+  const emailFromUrl = React.useMemo(
+    () => (searchParams.get("email") || "").trim().toLowerCase(),
+    [searchParams],
+  );
   const [password, setPassword] = React.useState("");
   const [confirmPassword, setConfirmPassword] = React.useState("");
   const [loading, setLoading] = React.useState(false);
@@ -25,6 +29,12 @@ function ResetPasswordForm() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    if (!emailFromUrl) {
+      toast("Email tidak ditemukan. Silakan mulai dari halaman Lupa Kata Sandi.", "error");
+      router.push("/forgot-password");
+      return;
+    }
 
     if (!code || code.length !== 6) {
       toast("Kode verifikasi tidak valid. Periksa kembali email Anda.", "error");
@@ -46,7 +56,7 @@ function ResetPasswordForm() {
       const response = await fetch("/api/auth/reset-password", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ token: code, email: email.trim() || undefined, password }),
+        body: JSON.stringify({ token: code, email: emailFromUrl, password }),
       });
       const data = await response.json();
 
@@ -90,11 +100,6 @@ function ResetPasswordForm() {
       ) : (
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-1.5">
-            <label className="text-xs font-semibold text-foreground">Email Terdaftar</label>
-            <Input type="email" placeholder="nama@email.com" value={email} onChange={(e) => setEmail(e.target.value)} />
-          </div>
-
-          <div className="space-y-1.5">
             <label className="text-xs font-semibold text-foreground">Kode Verifikasi</label>
             <div className="relative">
               <Input inputMode="numeric" maxLength={6} placeholder="123456" value={code} onChange={(e) => setCode(e.target.value.replace(/\D/g, ""))} className="pl-10 text-center text-lg font-bold tracking-[0.5em]" />
@@ -103,7 +108,7 @@ function ResetPasswordForm() {
             <p className="text-[11px] text-muted-foreground">Kode 6 digit dikirim ke email Anda, berlaku 1 jam.</p>
             <button
               type="button"
-              onClick={() => router.push(`/forgot-password${email.trim() ? `?email=${encodeURIComponent(email.trim())}` : ""}`)}
+              onClick={() => router.push(`/forgot-password${emailFromUrl ? `?email=${encodeURIComponent(emailFromUrl)}` : ""}`)}
               className="text-[11px] font-semibold text-primary hover:underline"
             >
               Kirim Ulang Kode
