@@ -204,6 +204,7 @@ model PengajarAvailability {
   id         String   @id @default(cuid())
   pengajarId String
   jenis      String   @default("RUTINE") // RUTINE | SPECIFIK
+  status     String   @default("TERSEDIA") // TERSEDIA | TIDAK_TERSEDIA
   hari       String?  // RUTINE: MON..SUN (0-6)
   tanggal    DateTime? // SPECIFIK: specific date
   jamMulai   String

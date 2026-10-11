@@ -6,6 +6,7 @@ function serializeRule(rule: {
   id: string;
   pengajarId: string;
   jenis: string;
+  status: string;
   hari: string | null;
   tanggal: Date | null;
   jamMulai: string;
@@ -21,6 +22,7 @@ function serializeRule(rule: {
     id: rule.id,
     pengajarId: rule.pengajarId,
     jenis: rule.jenis.toUpperCase() === "SPECIFIK" ? "SPECIFIK" : "RUTINE",
+    status: rule.status === "TIDAK_TERSEDIA" ? "TIDAK_TERSEDIA" : "TERSEDIA",
     hari: rule.hari,
     tanggal: rule.tanggal ? rule.tanggal.toISOString() : null,
     jamMulai: rule.jamMulai,
@@ -35,6 +37,7 @@ function serializeRule(rule: {
 
 type ParsedRule = {
   jenis: "RUTINE" | "SPECIFIK";
+  status: "TERSEDIA" | "TIDAK_TERSEDIA";
   hari: string | null;
   tanggal: Date | null;
   jamMulai: string;
@@ -46,6 +49,7 @@ type ParsedRule = {
 
 function parseRule(body: Record<string, unknown>): { error?: string; data?: ParsedRule } {
   const jenis = String(body.jenis || "RUTINE").toUpperCase() === "SPECIFIK" ? "SPECIFIK" : "RUTINE";
+  const status = String(body.status || "TERSEDIA").toUpperCase() === "TIDAK_TERSEDIA" ? "TIDAK_TERSEDIA" : "TERSEDIA";
   const jamMulai = String(body.jamMulai || "");
   const jamSelesai = String(body.jamSelesai || "");
   if (!/^\d{2}:\d{2}$/.test(jamMulai) || !/^\d{2}:\d{2}$/.test(jamSelesai) || jamMulai >= jamSelesai) {
@@ -62,6 +66,7 @@ function parseRule(body: Record<string, unknown>): { error?: string; data?: Pars
   return {
     data: {
       jenis,
+      status,
       hari,
       tanggal,
       jamMulai,

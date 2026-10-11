@@ -267,7 +267,7 @@ export async function POST(req: Request) {
 
   if (action === "group-attendance") {
     if (session.role !== "PENGAJAR") {
-      return NextResponse.json({ ok: false, message: "Alleen pengajar kan absensi groep invullen." }, { status: 403 });
+      return NextResponse.json({ ok: false, message: "Hanya pengajar yang dapat mengisi absensi sesi." }, { status: 403 });
     }
     const rawEntries = Array.isArray(body.entries) ? (body.entries as { muridId?: string; status?: string }[]) : [];
     const allowedStatuses = new Set(["HADIR", "IZIN", "SAKIT", "ALPHA"]);
@@ -296,7 +296,7 @@ export async function POST(req: Request) {
               waktuAbsen: new Date(),
               mataPelajaran: member.mataPelajaran,
               tanggal: member.tanggal,
-              catatan: status === "HADIR" ? "Kehadiran oleh pengajar (sesi groep)." : `Kehadiran ${status.toLowerCase()} oleh pengajar (sesi groep).`,
+              catatan: status === "HADIR" ? "Kehadiran oleh pengajar (sesi belajar grup)." : `Kehadiran ${status.toLowerCase()} oleh pengajar (sesi belajar grup).`,
             },
             update: { status, catatan: status === "HADIR" ? "Kehadiran oleh pengajar (sesi groep)." : `Kehadiran ${status.toLowerCase()} oleh pengajar (sesi groep).` },
           });
@@ -310,7 +310,7 @@ export async function POST(req: Request) {
     // Private session: save single murid status
     if (!normalized.length) return NextResponse.json({ ok: false, message: "Pilih status kehadiran murid." }, { status: 400 });
     const entry = normalized[0];
-    if (entry.muridId !== schedule.muridId) return NextResponse.json({ ok: false, message: "Murid niet bij deze sessie." }, { status: 403 });
+    if (entry.muridId !== schedule.muridId) return NextResponse.json({ ok: false, message: "Murid tidak terdaftar pada sesi ini." }, { status: 403 });
     const saved = await prisma.absensi.upsert({
       where: { jadwalId_userId: { jadwalId: schedule.id, userId: schedule.murid.userId } },
       create: {
@@ -320,9 +320,9 @@ export async function POST(req: Request) {
         waktuAbsen: new Date(),
         mataPelajaran: schedule.mataPelajaran,
         tanggal: schedule.tanggal,
-        catatan: entry.status === "HADIR" ? "Kehadiran door pengajar." : `Kehadiran ${entry.status.toLowerCase()} door pengajar.`,
+        catatan: entry.status === "HADIR" ? "Kehadiran oleh pengajar (sesi belajar privat)." : `Kehadiran ${entry.status.toLowerCase()} oleh pengajar (sesi belajar privat).`,
       },
-      update: { status: entry.status, catatan: entry.status === "HADIR" ? "Kehadiran door pengajar." : `Kehadiran ${entry.status.toLowerCase()} door pengajar.` },
+      update: { status: entry.status, catatan: entry.status === "HADIR" ? "Kehadiran oleh pengajar (sesi belajar privat)." : `Kehadiran ${entry.status.toLowerCase()} oleh pengajar (sesi belajar privat).` },
     });
     return NextResponse.json({ ok: true, data: saved });
   }

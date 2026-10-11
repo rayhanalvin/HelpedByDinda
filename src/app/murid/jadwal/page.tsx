@@ -192,6 +192,13 @@ export default function MuridJadwalPage() {
                 <div className="space-y-2 flex-1">
                   <div className="flex flex-wrap items-center gap-2">
                     <Badge variant={item.mode === "online" ? "default" : "secondary"}>{item.mode === "online" ? "KELAS ONLINE" : "TATAP MUKA OFFLINE"}</Badge>
+                    {item.isGroep ? (
+                      <Badge variant="outline" className="text-primary">
+                        Kelas Grup
+                      </Badge>
+                    ) : (
+                      <Badge variant="outline">Kelas Privat</Badge>
+                    )}
                     <span className="text-xs font-bold text-muted-foreground flex items-center gap-1">
                       <Calendar className="h-3.5 w-3.5" />
                       {formatDateIndo(item.tanggal)}

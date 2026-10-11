@@ -21,6 +21,7 @@ type AvailabilityResponse = {
     bookedTotal: number;
     ranges: { start: string; end: string; mode: string; ruangan: string | null; ruleId: string }[];
     booked: { jamMulai: string; jamSelesai: string; mataPelajaran: string }[];
+    unavailable?: { jamMulai: string; jamSelesai: string; catatan: string | null; ruangan: string | null }[];
   };
 };
 
@@ -46,6 +47,7 @@ export function JadwalTersediaPicker({ pengajarId, pengajarNama }: { pengajarId:
   const [selectedDate, setSelectedDate] = React.useState<string>("");
   const [ranges, setRanges] = React.useState<{ start: string; end: string; mode: string; ruangan: string | null; ruleId: string }[]>([]);
   const [booked, setBooked] = React.useState<{ jamMulai: string; jamSelesai: string; mataPelajaran: string }[]>([]);
+  const [unavailable, setUnavailable] = React.useState<{ jamMulai: string; jamSelesai: string; catatan: string | null; ruangan: string | null }[]>([]);
   const [slots, setSlots] = React.useState<FreeSlot[]>([]);
   const [selectedSlot, setSelectedSlot] = React.useState<FreeSlot | null>(null);
   const didInit = React.useRef(false);
@@ -115,6 +117,7 @@ export function JadwalTersediaPicker({ pengajarId, pengajarNama }: { pengajarId:
         }
         setSlots(generated);
         setBooked(json.ok ? json.data.booked : []);
+        setUnavailable(json.ok ? json.data.unavailable || [] : []);
       } finally {
         setFetchingSlots(false);
       }
@@ -179,7 +182,7 @@ export function JadwalTersediaPicker({ pengajarId, pengajarNama }: { pengajarId:
             const status = statusOf(cell.key);
             const isToday = cell.key === todayKey;
             const isSelected = selectedDate === cell.key;
-            const disabled = status === "gray";
+            const disabled = false;
             return (
               <button
                 key={cell.key}
@@ -207,10 +210,10 @@ export function JadwalTersediaPicker({ pengajarId, pengajarNama }: { pengajarId:
             <span className="h-2.5 w-2.5 rounded-full bg-emerald-500" /> Tersedia
           </span>
           <span className="flex items-center gap-1">
-            <span className="h-2.5 w-2.5 rounded-full bg-rose-500" /> Terisi / Penuh
+            <span className="h-2.5 w-2.5 rounded-full bg-rose-500" /> Terisi
           </span>
           <span className="flex items-center gap-1">
-            <span className="h-2.5 w-2.5 rounded-full bg-muted border border-border" /> Tidak tersedia
+            <span className="h-2.5 w-2.5 rounded-full bg-slate-400 border border-slate-500" /> Tidak tersedia / Agenda lain
           </span>
         </div>
         {error && <p className="text-xs text-rose-600 mt-2">{error}</p>}
@@ -264,9 +267,29 @@ export function JadwalTersediaPicker({ pengajarId, pengajarNama }: { pengajarId:
                 })}
               </div>
             ) : (
-              <p className="text-xs text-muted-foreground flex items-center gap-1.5">
-                <XCircle className="h-4 w-4 text-rose-500" /> {booked.length ? "Semua jam pada tanggal ini sudah terisi (Terisi)." : "Tidak ada jam tersedia pada tanggal ini."}
-              </p>
+              <div className="text-xs text-muted-foreground flex flex-col gap-1.5">
+                {booked.length ? (
+                  <p className="flex items-center gap-1.5">
+                    <CheckCircle2 className="h-4 w-4 text-rose-500" /> Semua jam pada tanggal ini sudah terisi (Terisi).
+                  </p>
+                ) : unavailable.length ? (
+                  <div className="flex flex-col gap-1.5">
+                    <p className="flex items-center gap-1.5">
+                      <XCircle className="h-4 w-4 text-slate-500" /> Pengajar tidak tersedia pada tanggal ini ({unavailable.length > 1 ? "ada beberapa agenda lain" : "ada agenda lain"}).
+                    </p>
+                    {unavailable.map((item, index) => (
+                      <div key={`${item.jamMulai}-${item.jamSelesai}-${index}`} className="ml-1 rounded-lg bg-muted/60 px-2.5 py-1.5 text-[11px]">
+                        <span className="font-semibold text-foreground tabular-nums">{item.jamMulai} – {item.jamSelesai}</span>
+                        {item.catatan ? <span className="text-muted-foreground"> · {item.catatan}</span> : <span className="text-muted-foreground"> · Tidak tersedia / agenda lain</span>}
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="flex items-center gap-1.5">
+                    <XCircle className="h-4 w-4 text-slate-500" /> Tidak ada jam tersedia pada tanggal ini.
+                  </p>
+                )}
+              </div>
             )}
             {selectedSlot && (
               <div className="mt-2 rounded-xl border border-emerald-300 bg-emerald-50 p-2.5 flex items-center gap-2 text-[11px] text-foreground">

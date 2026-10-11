@@ -39,6 +39,7 @@ const ADMIN_MENU = [
   { name: "Data Murid", href: "/admin/murid", icon: GraduationCap },
   { name: "Data Pengajar", href: "/admin/pengajar", icon: Users },
   { name: "Kelola Jadwal", href: "/admin/jadwal", icon: Calendar },
+  { name: "Ketersediaan Jadwal", href: "/admin/availability", icon: CalendarCheck2 },
   { name: "Monitoring Absensi", href: "/admin/absensi", icon: CalendarCheck2 },
   { name: "Moderasi Materi", href: "/admin/materi", icon: FolderKanban },
   { name: "Kelola Berita", href: "/admin/berita", icon: FolderKanban },

@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { Calendar, Plus, Loader2, Search, CalendarClock, CheckCircle2, XCircle, RefreshCw } from "lucide-react";
+import { Calendar, Plus, Loader2, Search, CalendarClock, CheckCircle2, XCircle, RefreshCw, Users } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -67,6 +67,7 @@ export default function AdminJadwalPage() {
   const [muridList, setMuridList] = React.useState<SimpleUserOpt[]>([]);
   const [loading, setLoading] = React.useState(true);
   const [filterMode, setFilterMode] = React.useState<string>("ALL");
+  const [filterPengajar, setFilterPengajar] = React.useState<string>("ALL");
   const [calendarView, setCalendarView] = React.useState<"harian" | "mingguan">("mingguan");
   const [selectedDate, setSelectedDate] = React.useState(new Date().toISOString().slice(0, 10));
   const [isRefreshing, setIsRefreshing] = React.useState(false);
@@ -271,7 +272,8 @@ export default function AdminJadwalPage() {
   });
   const filtered = jadwalList.filter((j) => {
     const inPeriod = calendarView === "harian" ? j.tanggal.slice(0, 10) === selectedDate : weekDates.includes(j.tanggal.slice(0, 10));
-    return inPeriod && (filterMode === "ALL" ? true : j.mode === filterMode);
+    const inTeacher = filterPengajar === "ALL" ? true : j.pengajarId === filterPengajar;
+    return inPeriod && inTeacher && (filterMode === "ALL" ? true : j.mode === filterMode);
   });
   const grouped = jadwalList.filter((j) => j.kelompokId).map((j) => j.kelompokId).filter((groupId): groupId is string => Boolean(groupId));
   const seen = new Set<string>();
@@ -281,6 +283,15 @@ export default function AdminJadwalPage() {
     seen.add(j.kelompokId);
     return true;
   });
+  const groupByPengajar = React.useMemo(() => {
+    const groups: { pengajarId: string; pengajar: string; items: APIJadwal[] }[] = [];
+    for (const item of visible) {
+      const existing = groups.find((g) => g.pengajarId === item.pengajarId);
+      if (existing) existing.items.push(item);
+      else groups.push({ pengajarId: item.pengajarId, pengajar: item.pengajar, items: [item] });
+    }
+    return groups.sort((a, b) => a.pengajar.localeCompare(b.pengajar));
+  }, [visible]);
 
   return (
     <div className="space-y-8">
@@ -308,6 +319,22 @@ export default function AdminJadwalPage() {
             {mode === "ALL" ? "Semua" : mode}
           </button>
         ))}
+      </div>
+
+      <div className="flex flex-wrap items-center gap-2">
+        <label className="text-xs font-semibold text-foreground">Filter Pengajar:</label>
+        <select
+          value={filterPengajar}
+          onChange={(e) => setFilterPengajar(e.target.value)}
+          className="h-9 rounded-xl border border-input bg-card px-3 text-xs text-foreground shadow-sm flex-1 min-w-44 max-w-xs"
+        >
+          <option value="ALL">Semua Pengajar</option>
+          {pengajarList.map((p) => (
+            <option key={p.id} value={p.id}>
+              {p.name}
+            </option>
+          ))}
+        </select>
       </div>
 
       {/* Pengajuan Reschedule */}
@@ -384,80 +411,80 @@ export default function AdminJadwalPage() {
         <div className="flex items-center justify-center p-12 text-muted-foreground">
           <Loader2 className="h-6 w-6 animate-spin mr-2" /> Menyiapkan jadwal...
         </div>
+      ) : groupByPengajar.length === 0 ? (
+        <div className="rounded-2xl border border-dashed border-border p-10 text-center">
+          <CalendarClock className="h-10 w-10 text-muted-foreground mx-auto mb-3" />
+          <h3 className="text-sm font-bold text-foreground">Belum ada jadwal pada periode ini</h3>
+          <p className="text-xs text-muted-foreground mt-1">Pilih periode lain, ubah filter pengajar, atau buat jadwal baru.</p>
+        </div>
       ) : (
         <div className="space-y-4">
-          {visible.map((j) => (
-            <Card key={j.id} className="border-border hover:border-primary/40 transition-all shadow-xs">
-              <CardContent className="p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                <div className="space-y-1.5 flex-1">
-                  <div className="flex flex-wrap items-center gap-2">
-                    <Badge variant={j.mode === "ONLINE" ? "default" : "secondary"}>{j.mode.toUpperCase()}</Badge>
-                    <span className="text-xs font-bold text-muted-foreground flex items-center gap-1">
-                      <Calendar className="h-3.5 w-3.5" />
-                      {formatDateIndo(j.tanggal)}
-                    </span>
-                    <span className="text-xs font-semibold text-primary">
-                      {j.jamMulai} – {j.jamSelesai} WIB
-                    </span>
-                  </div>
+          {groupByPengajar.map((group) => (
+            <div key={group.pengajarId} className="rounded-2xl border border-border overflow-hidden">
+              <div className="flex items-center gap-2 bg-primary/5 border-b border-border px-4 py-2.5">
+                <Users className="h-4 w-4 text-primary shrink-0" />
+                <h3 className="text-sm font-bold text-foreground">{group.pengajar}</h3>
+                <Badge variant="secondary" className="text-[10px]">
+                  {group.items.length} sesi
+                </Badge>
+              </div>
+              <div className="divide-y divide-border">
+                {group.items.map((j) => (
+                  <div key={j.id} className="p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 hover:bg-muted/40 transition-all">
+                    <div className="space-y-1.5 flex-1 min-w-0">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <Badge variant={j.mode === "ONLINE" ? "default" : "secondary"}>{j.mode.toUpperCase()}</Badge>
+                        {j.isGroep ? (
+                          <Badge variant="outline" className="text-primary">
+                            Kelas Grup
+                          </Badge>
+                        ) : (
+                          <Badge variant="outline">Kelas Privat</Badge>
+                        )}
+                        <span className="text-xs font-bold text-muted-foreground flex items-center gap-1">
+                          <Calendar className="h-3.5 w-3.5" />
+                          {formatDateIndo(j.tanggal)}
+                        </span>
+                        <span className="text-xs font-semibold text-primary tabular-nums">
+                          {j.jamMulai} – {j.jamSelesai} WIB
+                        </span>
+                      </div>
 
-                  <h3 className="text-base font-bold text-foreground">{j.mataPelajaran}</h3>
+                      <h3 className="text-base font-bold text-foreground">{j.mataPelajaran}</h3>
 
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 text-xs text-muted-foreground pt-1">
-                    <div>
-                      Tutor: <strong className="text-foreground">{j.pengajar}</strong>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs text-muted-foreground">
+                        {j.isGroep ? (
+                          <div>
+                            Peserta ({j.kelompokMurid?.length || j.leden?.length || 0}):{" "}
+                            <strong className="text-foreground">{j.kelompokMurid?.join(", ") || j.leden?.map((lid) => lid.murid).join(", ") || j.murid}</strong>
+                          </div>
+                        ) : (
+                          <div>
+                            Murid: <strong className="text-foreground">{j.murid}</strong>
+                          </div>
+                        )}
+                        <div>Tautan / Lokasi: {renderRuanganLink(j.ruangan)}</div>
+                        {j.kelompokNama && (
+                          <div className="text-primary font-semibold sm:col-span-2">
+                            Kelompok: {j.kelompokNama} · {j.kelompokMurid?.join(", ") || "—"}
+                          </div>
+                        )}
+                        {j.catatan && <div className="sm:col-span-2 italic">“{j.catatan}”</div>}
+                      </div>
                     </div>
-                    {j.isGroep ? (
-                      <div>
-                        Leden ({j.kelompokMurid?.length || j.leden?.length || 0}):
-                        <strong className="text-foreground">{j.kelompokMurid?.join(", ") || j.leden?.map((lid) => lid.murid).join(", ") || j.murid}</strong>
-                      </div>
-                    ) : (
-                      <div>
-                        Murid: <strong className="text-foreground">{j.murid}</strong>
-                      </div>
-                    )}
-                    <div>
-                      Ruang: {renderRuanganLink(j.ruangan)}
-                    </div>
-                    {j.kelompokNama && (
-                      <div className="text-primary font-semibold sm:col-span-3">
-                        Kelompok: {j.kelompokNama} · {j.kelompokMurid?.join(", ") || j.leden?.map((lid) => lid.murid).join(", ") || ""}
-                      </div>
-                    )}
-                  </div>
-                </div>
 
-                <div className="flex items-center justify-end gap-2 shrink-0 border-t sm:border-t-0 pt-3 sm:pt-0 border-border">
-                  <Button variant="outline" size="sm" onClick={() => handleOpenEdit(j)} className="text-xs">
-                    Edit
-                  </Button>
-                  <Button
-                    variant="secondary"
-                    size="sm"
-                    onClick={async () => {
-                      // trigger start: set startedAt to now and create initial absensi for murid & pengajar
-                      try {
-                        const now = new Date().toISOString();
-                        await apiFetch(`/api/admin/jadwal/${j.id}`, { method: "PUT", body: JSON.stringify({ ...j, startedAt: now }) });
-                        // create absensi for both pengajar and murid via portal absensi endpoint (server will verify)
-                        await apiFetch(`/api/absensi`, { method: "POST", body: JSON.stringify({ action: "start", jadwalId: j.id, location: { latitude: 0, longitude: 0, accuracy: 0 } }) });
-                        toast("Sesi dimulai dan absensi awal dicatat.", "success");
-                        fetchAllData();
-                      } catch (e) {
-                        toast(e instanceof Error ? e.message : "Gagal memulai sesi.", "error");
-                      }
-                    }}
-                    className="text-xs"
-                  >
-                    Mulai
-                  </Button>
-                  <Button variant="ghost" size="sm" onClick={() => handleDelete(j.id)} className="text-xs text-rose-600 hover:bg-rose-50">
-                    Hapus
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
+                    <div className="flex items-center justify-end gap-2 shrink-0 border-t sm:border-t-0 pt-3 sm:pt-0 border-border">
+                      <Button variant="outline" size="sm" onClick={() => handleOpenEdit(j)} className="text-xs">
+                        Edit
+                      </Button>
+                      <Button variant="ghost" size="sm" onClick={() => handleDelete(j.id)} className="text-xs text-rose-600 hover:bg-rose-50">
+                        Hapus
+                      </Button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
           ))}
         </div>
       )}

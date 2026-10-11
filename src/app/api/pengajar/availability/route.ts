@@ -25,6 +25,7 @@ function normalizeHari(value: string | null | undefined): string | null {
 function serializeRule(rule: {
   id: string;
   jenis: string;
+  status: string;
   hari: string | null;
   tanggal: Date | null;
   jamMulai: string;
@@ -37,6 +38,7 @@ function serializeRule(rule: {
   return {
     id: rule.id,
     jenis: rule.jenis.toUpperCase() === "SPECIFIK" ? "SPECIFIK" : "RUTINE",
+    status: rule.status === "TIDAK_TERSEDIA" ? "TIDAK_TERSEDIA" : "TERSEDIA",
     hari: rule.hari,
     tanggal: rule.tanggal ? rule.tanggal.toISOString() : null,
     jamMulai: rule.jamMulai,
@@ -66,6 +68,7 @@ export async function POST(req: Request) {
   if (!pengajar) return NextResponse.json({ ok: false, message: "Unauthorized" }, { status: 401 });
   const body = (await req.json()) as Record<string, unknown>;
   const jenis = String(body.jenis || "RUTINE").toUpperCase() === "SPECIFIK" ? "SPECIFIK" : "RUTINE";
+  const status = String(body.status || "TERSEDIA").toUpperCase() === "TIDAK_TERSEDIA" ? "TIDAK_TERSEDIA" : "TERSEDIA";
   const jamMulai = String(body.jamMulai || "");
   const jamSelesai = String(body.jamSelesai || "");
   if (!/^\d{2}:\d{2}$/.test(jamMulai) || !/^\d{2}:\d{2}$/.test(jamSelesai) || jamMulai >= jamSelesai) {
@@ -76,7 +79,7 @@ export async function POST(req: Request) {
   const jamMulaiNormalized = String(body.jamMulai || "").trim();
   const jamSelesaiNormalized = String(body.jamSelesai || "").trim();
   let bentrok = false;
-  if (tanggal) {
+  if (tanggal && status === "TERSEDIA") {
     bentrok = await hasTeacherConflict(pengajar.id, toDateKey(tanggal), jamMulaiNormalized, jamSelesaiNormalized);
   }
   if (bentrok) {
@@ -88,6 +91,7 @@ export async function POST(req: Request) {
     data: {
       pengajarId: pengajar.id,
       jenis,
+      status,
       hari,
       tanggal,
       jamMulai,

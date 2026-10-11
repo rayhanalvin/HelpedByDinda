@@ -35,6 +35,7 @@ type AdminAbsensiItem = {
   kelompokId?: string | null;
   kelompokNama?: string | null;
   jumlahLeden?: number;
+  anggotaKelompok?: { muridId: string; muridNama: string; status: string | null }[];
 };
 
 function mapsUrl(location: { latitude: number; longitude: number } | null) {
@@ -54,7 +55,7 @@ function SessionCard({ session }: { session: AdminAbsensiItem }) {
               <h2 className="font-heading font-bold">{session.nama}</h2>
               <p className="text-sm text-muted-foreground">
                 {session.mataPelajaran} · {session.pengajar} · {session.mode}
-                {session.kelompokNama ? ` · Groep: ${session.kelompokNama} (${session.jumlahLeden || 1} leden)` : ""}
+                {session.kelompokNama ? ` · Kelas Grup: ${session.kelompokNama} (${session.jumlahLeden || 1} anggota)` : " · Kelas Privat"}
               </p>
             </div>
           </div>
@@ -82,6 +83,21 @@ function SessionCard({ session }: { session: AdminAbsensiItem }) {
         </div>
         <div className="flex flex-wrap gap-2 border-t border-border pt-3">
           {session.catatan && <p className="w-full text-sm text-muted-foreground">Catatan: {session.catatan}</p>}
+          {session.anggotaKelompok && session.anggotaKelompok.length > 0 && (
+            <div className="w-full overflow-x-auto rounded-xl border border-border bg-muted/30 p-3">
+              <p className="mb-2 text-xs font-bold text-foreground">Kehadiran Anggota Kelas Grup</p>
+              <div className="flex flex-wrap gap-2">
+                {session.anggotaKelompok.map((member) => (
+                  <span key={member.muridId} className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-card px-2.5 py-1.5 text-xs">
+                    <span className="font-semibold text-foreground">{member.muridNama}</span>
+                    <Badge variant={member.status === "HADIR" ? "success" : member.status === "SAKIT" ? "destructive" : member.status === "IZIN" ? "secondary" : "warning"}>
+                      {member.status || "Belum diisi"}
+                    </Badge>
+                  </span>
+                ))}
+              </div>
+            </div>
+          )}
           {session.buktiData && (
             <a href={session.buktiData} target="_blank" rel="noreferrer" className="inline-flex items-center gap-2 rounded-lg border border-primary/20 px-3 py-2 text-xs font-semibold text-primary hover:bg-primary/5">
               <img src={session.buktiData} alt={session.buktiNama || "Bukti absensi"} className="h-12 w-12 rounded-md object-cover" />
@@ -119,6 +135,7 @@ export default function AdminAbsensiPage() {
   const [filterRole, setFilterRole] = React.useState<string | null>(null);
   const [filterFrom, setFilterFrom] = React.useState<string | null>(null);
   const [filterTo, setFilterTo] = React.useState<string | null>(null);
+  const [filterPengajar, setFilterPengajar] = React.useState<string>("ALL");
 
   const loadSessions = React.useCallback(async () => {
     try {
@@ -148,9 +165,11 @@ export default function AdminAbsensiPage() {
   };
 
   const matches = (value: string) => value.toLowerCase().includes(query.toLowerCase());
-  const pengajarSessions = sessions.filter((item) => item.actorRole === "PENGAJAR" && (matches(item.pengajar) || matches(item.nama)));
-  const muridSessions = sessions.filter((item) => item.actorRole === "MURID" && (matches(item.murid) || matches(item.nama)));
+  const teacherFiltered = sessions.filter((item) => filterPengajar === "ALL" || item.pengajar === filterPengajar);
+  const pengajarSessions = teacherFiltered.filter((item) => item.actorRole === "PENGAJAR" && (matches(item.pengajar) || matches(item.nama)));
+  const muridSessions = teacherFiltered.filter((item) => item.actorRole === "MURID" && (matches(item.murid) || matches(item.nama)));
   const allSessions = [...pengajarSessions, ...muridSessions];
+  const pengajarOptions = React.useMemo(() => Array.from(new Set(sessions.map((item) => item.pengajar).filter(Boolean))).sort(), [sessions]);
 
   const renderSection = (title: string, data: AdminAbsensiItem[]) => (
     <section>
@@ -174,6 +193,15 @@ export default function AdminAbsensiPage() {
   return (
     <main className="space-y-7">
       <div className="print-hidden flex flex-wrap items-center gap-3">
+        <label className="text-xs">Pengajar:</label>
+        <select value={filterPengajar} onChange={(e) => setFilterPengajar(e.target.value)} className="rounded-lg border px-2 py-1">
+          <option value="ALL">Semua Pengajar</option>
+          {pengajarOptions.map((name) => (
+            <option key={name} value={name}>
+              {name}
+            </option>
+          ))}
+        </select>
         <label className="text-xs">Filter role:</label>
         <select value={filterRole ?? ""} onChange={(e) => setFilterRole(e.target.value || null)} className="rounded-lg border px-2 py-1">
           <option value="">Semua</option>

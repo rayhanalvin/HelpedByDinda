@@ -11,6 +11,7 @@
     "db:generate": "prisma generate",
     "db:seed": "tsx prisma/seed.ts",
     "db:revisi": "tsx prisma/revisi-jadwal-murid.ts",
+    "db:availability-status": "tsx prisma/add-availability-status.ts",
     "cleanup:users": "tsx prisma/cleanup-pengajar-murid.ts",
     "cleanup:users:dry": "tsx prisma/cleanup-pengajar-murid.ts --dry-run",
     "cleanup:spp": "tsx prisma/cleanup-spp-invoice.ts",

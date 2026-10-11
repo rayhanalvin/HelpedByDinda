@@ -182,7 +182,7 @@ export default function PengajarAbsenPage() {
     const entries = (groepStatus[schedule.kelompokId] || []);
     const payload = Object.entries(entries).map(([muridId, status]) => ({ muridId, status }));
     if (!payload.length) {
-      toast("Belum ada lid van de groep om absensi in te vullen.", "error");
+      toast("Belum ada anggota kelompok untuk diisi absensinya.", "error");
       return;
     }
     setSavingGroep(true);
@@ -191,10 +191,10 @@ export default function PengajarAbsenPage() {
         method: "POST",
         body: JSON.stringify({ action: "group-attendance", jadwalId: schedule.jadwalId, entries: payload }),
       });
-      toast("Absensi groep succesvol opgeslagen en gesynchroniseerd naar admin.", "success");
+      toast("Absensi kelompok berhasil disimpan dan tersinkron ke admin.", "success");
       await loadAttendance();
     } catch (error) {
-      toast(error instanceof Error ? error.message : "Gagal opslaan absensi groep.", "error");
+      toast(error instanceof Error ? error.message : "Gagal menyimpan absensi kelompok.", "error");
     } finally {
       setSavingGroep(false);
     }
@@ -222,10 +222,12 @@ export default function PengajarAbsenPage() {
           <CardDescription>
             {schedule?.kelompokNama ? (
               <>
-                Kelompok: <span className="font-bold text-foreground">{schedule.kelompokNama}</span>
+                Sesi Belajar Grup bersama <span className="font-bold text-foreground">{schedule.pengajar}</span> · Kelompok: <span className="font-bold text-foreground">{schedule.kelompokNama}</span>
               </>
             ) : (
-              <>Murid: <span className="font-bold text-foreground">{schedule?.murid || "—"}</span></>
+              <>
+                Sesi Belajar Privat bersama <span className="font-bold text-foreground">{schedule?.pengajar || "—"}</span> · Murid: <span className="font-bold text-foreground">{schedule?.murid || "—"}</span>
+              </>
             )}{" "}• Mode: <span className="font-bold text-primary uppercase">{schedule?.mode || "—"}</span>
           </CardDescription>
           {schedule?.participantAttendance && ["IZIN", "SAKIT"].includes(schedule.participantAttendance.status) && (
@@ -297,8 +299,8 @@ export default function PengajarAbsenPage() {
           )}
           {schedule?.kelompokId && Object.keys(groepStatus[schedule.kelompokId] || {}).length > 0 && (
             <div className="rounded-2xl border border-border bg-muted/20 p-4 space-y-3">
-              <p className="text-xs font-bold text-foreground">Absensi Leden Groep — {schedule.kelompokNama || "Sesi Groep"}</p>
-              <p className="text-[11px] text-muted-foreground">Stel per lid de status in (Hadir, Izin, Sakit, Alpa). Eén keer &quot;Simpan Absensi&quot; slaat de hele groep op.</p>
+              <p className="text-xs font-bold text-foreground">Absensi Anggota Kelompok — {schedule.kelompokNama || "Sesi Belajar Grup"}</p>
+              <p className="text-[11px] text-muted-foreground">Atur status kehadiran setiap anggota (Hadir, Izin, Sakit, Alpa). Sekali simpan, absensi seluruh kelompok tercatat dalam satu sesi mengajar.</p>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
                 {Object.entries(groepStatus[schedule.kelompokId] || {}).map(([muridId, status]) => {
                   const leden = schedule.leden?.filter((lid) => lid.muridId === muridId);
@@ -351,7 +353,10 @@ export default function PengajarAbsenPage() {
                 <tr>
                   <th className="py-3 px-4">Tanggal</th>
                   <th className="py-3 px-4">Mata Pelajaran</th>
-                  <th className="py-3 px-4">Waktu Presensi</th>
+                  <th className="py-3 px-4">Murid / Kelompok</th>
+                  <th className="py-3 px-4">Jenis Kelas</th>
+                  <th className="py-3 px-4">Metode</th>
+                  <th className="py-3 px-4">Waktu</th>
                   <th className="py-3 px-4">Status</th>
                   <th className="py-3 px-4">Catatan</th>
                 </tr>
@@ -361,7 +366,10 @@ export default function PengajarAbsenPage() {
                   <tr key={item.id} className="hover:bg-muted/30 transition-colors">
                     <td className="py-3.5 px-4 font-semibold text-foreground">{formatDateIndo(item.tanggal)}</td>
                     <td className="py-3.5 px-4 font-medium text-foreground">{item.mataPelajaran}</td>
-                    <td className="py-3.5 px-4 text-xs text-muted-foreground">{item.attendance ? new Date(item.attendance.waktuAbsen).toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" }) : "—"} WIB</td>
+                    <td className="py-3.5 px-4 text-xs text-muted-foreground">{item.kelompokNama || item.murid || "—"}</td>
+                    <td className="py-3.5 px-4 text-xs text-muted-foreground">{item.kelompokId ? "Kelas Grup" : "Kelas Privat"}</td>
+                    <td className="py-3.5 px-4 text-xs text-muted-foreground uppercase">{item.mode}</td>
+                    <td className="py-3.5 px-4 text-xs text-muted-foreground">{item.jamMulai} – {item.jamSelesai} WIB</td>
                     <td className="py-3.5 px-4">
                       <Badge variant={item.attendance && item.attendance.status === "HADIR" ? "success" : "warning"}>{item.attendance ? item.attendance.status : item.status}</Badge>
                     </td>
@@ -380,6 +388,9 @@ export default function PengajarAbsenPage() {
                   <Badge variant={item.attendance && item.attendance.status === "HADIR" ? "success" : "warning"}>{item.attendance ? item.attendance.status : item.status}</Badge>
                 </div>
                 <h4 className="font-bold text-sm text-foreground">{item.mataPelajaran}</h4>
+                <p className="text-xs text-muted-foreground">
+                  {item.kelompokNama || item.murid || "—"} · {item.kelompokId ? "Kelas Grup" : "Kelas Privat"} · <span className="uppercase">{item.mode}</span>
+                </p>
                 <div className="flex items-center justify-between text-xs pt-1 border-t border-border text-muted-foreground">
                   <span>{item.attendance ? new Date(item.attendance.waktuAbsen).toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" }) : "—"} WIB</span>
                   <span>{item.attendance?.catatan || item.catatan || "—"}</span>

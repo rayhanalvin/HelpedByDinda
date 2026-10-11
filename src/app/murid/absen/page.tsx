@@ -16,6 +16,8 @@ type ScheduleAttendance = {
   id: string;
   jadwalId: string;
   userId: string;
+  kelompokId?: string | null;
+  kelompokNama?: string | null;
   mataPelajaran: string;
   tanggal: string;
   jamMulai: string;
@@ -164,7 +166,17 @@ export default function MuridAbsenPage() {
           </div>
           <CardTitle className="text-xl sm:text-2xl mt-2 text-foreground">{schedule ? schedule.mataPelajaran : "Tidak ada jadwal aktif"}</CardTitle>
           <CardDescription>
-            Pengajar: <span className="font-bold text-foreground">{schedule?.pengajar || "—"}</span> • Mode Kelas: <span className="font-bold text-primary uppercase">{schedule?.mode || "—"}</span>
+            {schedule?.kelompokId ? (
+              <>
+                Sesi Belajar Grup bersama <span className="font-bold text-foreground">{schedule?.pengajar || "—"}</span>
+                {schedule.kelompokNama ? ` · Kelompok: ${schedule.kelompokNama}` : ""} • Mode Kelas: <span className="font-bold text-primary uppercase">{schedule?.mode || "—"}</span>
+              </>
+            ) : (
+              <>
+                Sesi Belajar Privat bersama <span className="font-bold text-foreground">{schedule?.pengajar || "—"}</span> • Mode Kelas:{" "}
+                <span className="font-bold text-primary uppercase">{schedule?.mode || "—"}</span>
+              </>
+            )}
           </CardDescription>
           {schedule?.participantAttendance && ["IZIN", "SAKIT"].includes(schedule.participantAttendance.status) && (
             <div className="mt-3 rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">
@@ -255,8 +267,11 @@ export default function MuridAbsenPage() {
             <table className="w-full text-left text-sm">
               <thead className="border-b border-border text-xs uppercase font-semibold text-muted-foreground bg-muted/30">
                 <tr>
-                  <th className="py-3 px-4">Tanggal & Waktu</th>
+                  <th className="py-3 px-4">Tanggal</th>
                   <th className="py-3 px-4">Mata Pelajaran</th>
+                  <th className="py-3 px-4">Pengajar</th>
+                  <th className="py-3 px-4">Jenis Kelas</th>
+                  <th className="py-3 px-4">Metode</th>
                   <th className="py-3 px-4">Status Kehadiran</th>
                   <th className="py-3 px-4">Catatan</th>
                 </tr>
@@ -266,9 +281,12 @@ export default function MuridAbsenPage() {
                   <tr key={item.id} className="hover:bg-muted/30 transition-colors">
                     <td className="py-3.5 px-4">
                       <p className="font-semibold text-foreground">{formatDateIndo(item.tanggal)}</p>
-                      <p className="text-xs text-muted-foreground">{item.attendance ? new Date(item.attendance.waktuAbsen).toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" }) : "—"} WIB</p>
+                      <p className="text-xs text-muted-foreground">{item.jamMulai} – {item.jamSelesai} WIB</p>
                     </td>
                     <td className="py-3.5 px-4 font-medium text-foreground">{item.mataPelajaran}</td>
+                    <td className="py-3.5 px-4 font-medium text-foreground">{item.pengajar}</td>
+                    <td className="py-3.5 px-4 text-xs text-muted-foreground">{item.kelompokId ? "Kelas Grup" : "Kelas Privat"}</td>
+                    <td className="py-3.5 px-4 text-xs text-muted-foreground uppercase">{item.mode}</td>
                     <td className="py-3.5 px-4">
                       <Badge variant={item.attendance && item.attendance.status === "HADIR" ? "success" : "warning"}>{item.attendance ? item.attendance.status : item.status}</Badge>
                     </td>
@@ -287,6 +305,9 @@ export default function MuridAbsenPage() {
                   <Badge variant={item.attendance && item.attendance.status === "HADIR" ? "success" : "warning"}>{item.attendance ? item.attendance.status : item.status}</Badge>
                 </div>
                 <h4 className="font-bold text-sm text-foreground">{item.mataPelajaran}</h4>
+                <p className="text-xs text-muted-foreground">
+                  {item.pengajar} · {item.kelompokId ? "Kelas Grup" : "Kelas Privat"} · <span className="uppercase">{item.mode}</span>
+                </p>
                 <div className="flex items-center justify-between text-xs pt-1 border-t border-border text-muted-foreground">
                   <span>{item.attendance ? new Date(item.attendance.waktuAbsen).toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" }) : "—"} WIB</span>
                   <span>{item.attendance?.catatan || item.catatan || "—"}</span>

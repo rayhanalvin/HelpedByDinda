@@ -33,9 +33,36 @@ export async function GET(req: Request) {
   const filtered = role ? absensi.filter((a) => (role === "PENGAJAR" ? a.userId === a.jadwal.pengajar.userId : a.userId !== a.jadwal.pengajar.userId)) : absensi;
   const kelompokIds = Array.from(new Set(filtered.map((item) => item.jadwal.kelompokId).filter((id): id is string => Boolean(id))));
   const groupCounts = new Map<string, number>();
+  const groupMembers = new Map<string, { muridId: string; muridNama: string; status: string | null }[]>();
   if (kelompokIds.length) {
     const groups = await prisma.jadwal.groupBy({ by: ["kelompokId"], where: { kelompokId: { in: kelompokIds } }, _count: { _all: true } });
     for (const group of groups) groupCounts.set(group.kelompokId as string, group._count._all);
+
+    const groupSchedules = await prisma.jadwal.findMany({
+      where: { kelompokId: { in: kelompokIds } },
+      select: {
+        id: true,
+        kelompokId: true,
+        muridId: true,
+        murid: { select: { user: { select: { id: true, name: true } } } },
+      },
+    });
+    const memberAbsensi = await prisma.absensi.findMany({
+      where: { jadwalId: { in: groupSchedules.map((item) => item.id) } },
+      select: { jadwalId: true, userId: true, status: true },
+    });
+    const statusByMember = new Map(memberAbsensi.map((row) => [`${row.jadwalId}:${row.userId}`, row.status]));
+    for (const kelompokId of kelompokIds) {
+      const members = groupSchedules.filter((item) => item.kelompokId === kelompokId);
+      groupMembers.set(
+        kelompokId,
+        members.map((member) => ({
+          muridId: member.muridId,
+          muridNama: member.murid.user.name,
+          status: statusByMember.get(`${member.id}:${member.murid.user.id}`) || null,
+        })),
+      );
+    }
   }
 
   return NextResponse.json(
@@ -68,6 +95,7 @@ export async function GET(req: Request) {
         kelompokId: item.jadwal.kelompokId,
         kelompokNama: item.jadwal.kelompokNama,
         jumlahLeden: item.jadwal.kelompokId ? groupCounts.get(item.jadwal.kelompokId) || 1 : 1,
+        anggotaKelompok: item.jadwal.kelompokId ? groupMembers.get(item.jadwal.kelompokId) || [] : [],
       })),
     },
     { headers: { "Cache-Control": "no-store, no-cache, must-revalidate" } },

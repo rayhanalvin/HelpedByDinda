@@ -6,6 +6,7 @@ export type AvailabilityRule = {
   id: string;
   pengajarId: string;
   jenis: "RUTINE" | "SPECIFIK";
+  status: "TERSEDIA" | "TIDAK_TERSEDIA";
   hari?: string | null;
   tanggal?: Date | null;
   jamMulai: string;
@@ -53,6 +54,7 @@ export async function getAvailabilityRules(pengajarId: string): Promise<Availabi
     id: rule.id,
     pengajarId: rule.pengajarId,
     jenis: rule.jenis as "RUTINE" | "SPECIFIK",
+    status: (rule.status === "TIDAK_TERSEDIA" ? "TIDAK_TERSEDIA" : "TERSEDIA") as "TERSEDIA" | "TIDAK_TERSEDIA",
     hari: rule.hari,
     tanggal: rule.tanggal,
     jamMulai: rule.jamMulai,
@@ -71,10 +73,19 @@ export function ruleAppliesOn(rule: AvailabilityRule, date: Date): boolean {
   return rule.hari === DAY_NAMES[date.getDay()];
 }
 
+/** True when the teacher declared the whole date unavailable (agenda lain / tidak tersedia). */
+export async function isDateBlocked(pengajarId: string, date: Date): Promise<boolean> {
+  const rules = await getAvailabilityRules(pengajarId);
+  return rules.some((rule) => rule.status === "TIDAK_TERSEDIA" && ruleAppliesOn(rule, date));
+}
+
 /** Returns the free time ranges for a teacher on a specific date, with booked jadwal carved out. */
 export async function getAvailableRangesForDate(pengajarId: string, date: Date): Promise<FreeRange[]> {
   const key = dateKey(date);
   const rules = await getAvailabilityRules(pengajarId);
+  const effectiveRules = rules.filter((rule) => ruleAppliesOn(rule, date));
+  const blockedDates = effectiveRules.some((rule) => rule.status === "TIDAK_TERSEDIA");
+  if (blockedDates) return [];
   const booked = await prisma.jadwal.findMany({
     where: { pengajarId, tanggal: utcDayRange(key), status: { notIn: ["CANCELED", "CANCELLED"] } },
     select: { jamMulai: true, jamSelesai: true },
@@ -84,8 +95,7 @@ export async function getAvailableRangesForDate(pengajarId: string, date: Date):
     .sort((a, b) => a.start.localeCompare(b.start));
 
   const ranges: FreeRange[] = [];
-  for (const rule of rules) {
-    if (!ruleAppliesOn(rule, date)) continue;
+  for (const rule of effectiveRules) {
     let cursor = rule.jamMulai;
     for (const bookedItem of bookedTimes) {
       if (!overlaps(cursor, rule.jamSelesai, bookedItem.start, bookedItem.end)) continue;
@@ -118,6 +128,8 @@ export async function isSlotCovered(pengajarId: string, tanggalKey: string, jamM
     // No availability rules configured → teacher is considered open (legacy behaviour).
     return true;
   }
+  const blockedByUnavailable = rules.some((rule) => rule.status === "TIDAK_TERSEDIA" && ruleAppliesOn(rule, keyDate) && overlaps(jamMulai, jamSelesai, rule.jamMulai, rule.jamSelesai));
+  if (blockedByUnavailable) return false;
   return rules.some((rule) => ruleAppliesOn(rule, keyDate) && overlaps(jamMulai, jamSelesai, rule.jamMulai, rule.jamSelesai));
 }
 

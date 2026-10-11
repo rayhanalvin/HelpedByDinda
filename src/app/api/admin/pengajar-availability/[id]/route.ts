@@ -10,6 +10,7 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
   if (!rule) return NextResponse.json({ ok: false, message: "Rule jadwal tidak ditemukan." }, { status: 404 });
   const body = (await req.json()) as Record<string, unknown>;
   const jenis = String(body.jenis || rule.jenis).toUpperCase() === "SPECIFIK" ? "SPECIFIK" : "RUTINE";
+  const status = String(body.status || rule.status).toUpperCase() === "TIDAK_TERSEDIA" ? "TIDAK_TERSEDIA" : "TERSEDIA";
   const jamMulai = String(body.jamMulai || rule.jamMulai);
   const jamSelesai = String(body.jamSelesai || rule.jamSelesai);
   if (jamMulai >= jamSelesai) return NextResponse.json({ ok: false, message: "Jam mulai harus sebelum jam selesai." }, { status: 400 });
@@ -21,6 +22,7 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
     where: { id },
     data: {
       jenis,
+      status,
       hari,
       tanggal,
       jamMulai,

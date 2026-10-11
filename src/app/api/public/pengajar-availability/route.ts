@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
-import { getAvailableRangesForDate, getAvailabilityRules, dateKey, toDateKey, utcDayRange } from "@/lib/jadwal-availability";
+import { getAvailableRangesForDate, getAvailabilityRules, dateKey, toDateKey, utcDayRange, ruleAppliesOn } from "@/lib/jadwal-availability";
 
 export async function GET(req: Request) {
   const url = new URL(req.url);
@@ -59,7 +59,12 @@ export async function GET(req: Request) {
       select: { id: true, jamMulai: true, jamSelesai: true },
     });
     if (!ranges.length) {
-      statusByDate.set(cell.key, "gray");
+      if (dayJadwal.length) {
+        statusByDate.set(cell.key, "red");
+        fullyBookedDates.push(cell.key);
+      } else {
+        statusByDate.set(cell.key, "gray");
+      }
     } else {
       const minutesCovered = ranges.reduce((sum, range) => {
         const [sh, sm] = range.start.split(":").map(Number);
@@ -86,6 +91,9 @@ export async function GET(req: Request) {
     where: { pengajarId, tanggal: utcDayRange(targetKey), status: { notIn: ["CANCELED", "CANCELLED"] } },
     select: { jamMulai: true, jamSelesai: true, mataPelajaran: true },
   });
+  const unavailableRules = rules
+    .filter((rule) => rule.status === "TIDAK_TERSEDIA" && ruleAppliesOn(rule, target))
+    .map((rule) => ({ jamMulai: rule.jamMulai, jamSelesai: rule.jamSelesai, catatan: rule.catatan, ruangan: rule.ruangan }));
   const monthLabel = new Intl.DateTimeFormat("id-ID", { month: "long", year: "numeric", timeZone: "UTC" }).format(new Date(Date.UTC(year, month, 1)));
 
   return NextResponse.json(
@@ -104,6 +112,7 @@ export async function GET(req: Request) {
         rules: rules.map((rule) => ({ ...rule, tanggal: rule.tanggal ? rule.tanggal.toISOString() : null })),
         ranges,
         booked,
+        unavailable: unavailableRules,
       },
     },
     { headers: { "Cache-Control": "no-store", "Access-Control-Allow-Origin": "*" } },
