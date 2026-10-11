@@ -85,7 +85,6 @@ export function ImageUploader({ label = "Gambar", value, onChange, placeholder =
 
       {showPreview && (
         <div className="group relative overflow-hidden rounded-xl border border-border bg-muted/30">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src={value} alt="Preview" className="max-h-48 w-full object-cover" onError={(e) => ((e.target as HTMLImageElement).style.opacity = "0.3")} />
         </div>
       )}

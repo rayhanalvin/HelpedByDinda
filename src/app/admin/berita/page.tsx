@@ -304,7 +304,7 @@ export default function AdminBeritaPage() {
                       className="gap-2"
                     >
                       {item.isPublished ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                      {item.isPublished ? "Draft" : "Publish"}
+                      {item.isPublished ? "Jadikan Draft" : "Terbitkan"}
                     </Button>
                     <Button variant="ghost" size="sm" onClick={() => handleDelete(item.id)} className="gap-2 text-rose-600 hover:bg-rose-50 hover:text-rose-700">
                       <Trash2 className="h-4 w-4" /> Hapus
@@ -353,7 +353,7 @@ export default function AdminBeritaPage() {
                       className="gap-2"
                     >
                       {item.isPublished ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                      {item.isPublished ? "Draft" : "Publish"}
+                      {item.isPublished ? "Jadikan Draft" : "Terbitkan"}
                     </Button>
                     <Button variant="ghost" size="sm" onClick={() => handleDeletePortal(item.id)} className="gap-2 text-rose-600 hover:bg-rose-50 hover:text-rose-700">
                       <Trash2 className="h-4 w-4" /> Hapus

@@ -13,7 +13,7 @@ function hideEditorHint<T extends { isi: string }>(content: T): T {
 }
 
 const FOUNDER_NAME = "Dinda Rizky Febriyanti";
-const FOUNDER_TITLE = "Founder & Academic Director";
+const FOUNDER_TITLE = "Pendiri & Direktur Akademik";
 
 const bannerFallbacks = new Map<string, { judul: string; ringkasan: string; isi: string }>([
   [

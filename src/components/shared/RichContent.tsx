@@ -87,7 +87,6 @@ export function RichContent({ content, className }: { content: string; className
           case "image":
             return (
               <figure key={block.key} className="my-4 overflow-hidden rounded-2xl border border-border bg-muted/20">
-                {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img src={block.src} alt={block.alt} className="w-full max-h-96 object-cover" loading="lazy" />
               </figure>
             );

@@ -34,7 +34,7 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
 
   const defaultBannerTitle = isRegister ? "Mulai Perjalanan Belajar yang Lebih Terarah" : "Selamat Datang di Ruang Belajar Modern";
   const defaultBannerCreator = "Dinda Rizky Febriyanti";
-  const defaultBannerCreatorTitle = "Founder & Academic Director";
+  const defaultBannerCreatorTitle = "Pendiri & Direktur Akademik";
   const defaultBannerCreatorImage = "/helpedd.jpeg";
   const defaultSubTitle = isRegister ? "Bangun kebiasaan belajar bersama kami" : "Belajar lebih terarah, tumbuh lebih percaya diri";
 

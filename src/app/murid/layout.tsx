@@ -203,7 +203,7 @@ export default function MuridLayout({ children }: { children: React.ReactNode })
                 <Link href="/murid/profil" className="px-3 py-2 text-xs font-medium text-muted-foreground hover:text-foreground hover:bg-muted rounded-lg">
                   Profil Saya
                 </Link>
-                <LogoutButton label="Logout" size="sm" className="w-full justify-start text-xs text-muted-foreground hover:text-destructive hover:bg-rose-50" />
+                <LogoutButton label="Keluar" size="sm" className="w-full justify-start text-xs text-muted-foreground hover:text-destructive hover:bg-rose-50" />
               </div>
             </div>
           </div>

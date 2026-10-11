@@ -540,6 +540,35 @@ model PortalKonten {
   @@map("portal_konten")
 }
 
+model TentangSection {
+  id          String   @id @default(cuid())
+  slug        String   @unique
+  kategori    String   @default("lainnya")
+  judul       String
+  ringkasan   String?
+  isi         String
+  imageUrl    String?
+  isPublished Boolean  @default(true)
+  urutan      Int      @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([kategori])
+  @@map("tentang_sections")
+}
+
+model TentangStatistik {
+  id        String   @id @default(cuid())
+  label     String
+  nilai     String
+  ikon      String   @default("GraduationCap")
+  urutan    Int      @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("tentang_statistik")
+}
+
 model Program {
   id          String   @id @default(cuid())
   code        String   @unique

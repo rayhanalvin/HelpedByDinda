@@ -15,6 +15,7 @@ import {
   CreditCard,
   Coins,
   Send,
+  Info,
   Settings,
   Menu,
   X,
@@ -43,12 +44,13 @@ const ADMIN_MENU = [
   { name: "Monitoring Absensi", href: "/admin/absensi", icon: CalendarCheck2 },
   { name: "Moderasi Materi", href: "/admin/materi", icon: FolderKanban },
   { name: "Kelola Berita", href: "/admin/berita", icon: FolderKanban },
+  { name: "Kelola Tentang Kami", href: "/admin/tentang", icon: Info },
   { name: "Kelola Program", href: "/admin/program", icon: Sparkles },
   { name: "Kelola Quiz", href: "/admin/quiz", icon: ClipboardCheck },
   { name: "Katalog Ujian", href: "/admin/katalog-ujian", icon: BellRing },
   { name: "Tracking Pembayaran", href: "/admin/pembayaran", icon: CreditCard },
   { name: "Rekap Fee Pengajar", href: "/admin/fee", icon: Coins },
-  { name: "Finance", href: "/admin/finance", icon: WalletCards },
+  { name: "Keuangan", href: "/admin/finance", icon: WalletCards },
   { name: "Monitoring Rapot", href: "/admin/rapot", icon: ClipboardList },
   { name: "Pusat Pengingat", href: "/admin/pengingat", icon: Send },
   { name: "Pengaturan Sistem", href: "/admin/pengaturan", icon: Settings },
@@ -105,7 +107,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           <BrandLogo compact className="" showWordmark={false} />
           <div>
             <span className="font-extrabold text-foreground tracking-tight block leading-tight text-base">{site.name}</span>
-            <span className="text-[10px] font-bold text-primary tracking-wider uppercase block">Super Admin</span>
+            <span className="text-[10px] font-bold text-primary tracking-wider uppercase block">Administrator</span>
           </div>
         </div>
 
@@ -114,7 +116,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           <Image src={avatarUrl} alt={adminName} width={36} height={36} unoptimized className="h-9 w-9 rounded-xl object-cover border border-primary/20" />
           <div className="min-w-0 flex-1">
             <p className="text-xs font-bold text-foreground truncate">{adminName}</p>
-            <p className="text-[10px] text-muted-foreground truncate">Founder & Superadmin</p>
+            <p className="text-[10px] text-muted-foreground truncate">Pendiri & Administrator</p>
           </div>
         </div>
 
@@ -158,7 +160,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                 <ShieldCheck className="h-3.5 w-3.5 text-primary" />
                 Panel Administrator
               </Badge>
-              <span className="text-xs text-muted-foreground">Sistem Berjalan Normal</span>
+              <span className="text-xs text-muted-foreground">Sistem berjalan normal</span>
             </div>
           </div>
 
@@ -167,7 +169,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
               <Image src={avatarUrl} alt={adminName} width={32} height={32} unoptimized className="h-8 w-8 rounded-lg object-cover border border-border cursor-pointer" />
               <div className="absolute right-0 top-10 z-40 hidden min-w-44 flex-col gap-1 rounded-xl border border-border bg-card p-2 shadow-xl group-hover:flex group-focus-within:flex">
                 <p className="px-1.5 py-1 text-xs font-bold text-foreground truncate">{adminName}</p>
-                <LogoutButton label="Logout" size="sm" className="w-full justify-start text-xs text-muted-foreground hover:text-destructive hover:bg-rose-50" />
+                <LogoutButton label="Keluar" size="sm" className="w-full justify-start text-xs text-muted-foreground hover:text-destructive hover:bg-rose-50" />
               </div>
             </div>
           </div>
@@ -196,7 +198,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
               <Image src={avatarUrl} alt={adminName} width={36} height={36} unoptimized className="h-9 w-9 rounded-lg object-cover" />
               <div className="min-w-0">
                 <p className="text-xs font-bold truncate">{adminName}</p>
-                <p className="text-[10px] text-muted-foreground">Admin Bimbel</p>
+                <p className="text-[10px] text-muted-foreground">Administrator Bimbel</p>
               </div>
             </div>
 
