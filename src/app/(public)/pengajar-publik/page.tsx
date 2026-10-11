@@ -1,12 +1,10 @@
 import Link from "next/link";
-import { CheckCircle, GraduationCap, Award, ArrowRight } from "lucide-react";
+import { ArrowRight, BookOpen, GraduationCap, ShieldCheck } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Card, CardContent } from "@/components/ui/card";
 import { prisma } from "@/lib/db";
 import { getPortalContent } from "@/lib/portal-content";
-import { JadwalTersediaPicker } from "@/components/shared/JadwalTersediaPicker";
-import { RatingUlasanPengajar } from "@/components/shared/RatingUlasanPengajar";
+import { ProfilPengajarCard } from "@/components/shared/ProfilPengajarCard";
 
 export const dynamic = "force-dynamic";
 
@@ -44,46 +42,44 @@ export default async function PengajarPublikPage() {
         </p>
       </section>
 
+      {/* Feature highlights */}
+      <section className="container mx-auto max-w-5xl px-4 sm:px-6">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+          <div className="flex items-start gap-3 rounded-2xl border border-border bg-card p-4">
+            <div className="grid size-10 shrink-0 place-items-center rounded-xl bg-primary/10 text-primary">
+              <ShieldCheck className="h-5 w-5" />
+            </div>
+            <div>
+              <p className="text-sm font-bold text-foreground">Kurasi Ketat</p>
+              <p className="mt-0.5 text-xs text-muted-foreground leading-relaxed">Setiap pengajar melalui seleksi akademik dan kualitas mengajar.</p>
+            </div>
+          </div>
+          <div className="flex items-start gap-3 rounded-2xl border border-border bg-card p-4">
+            <div className="grid size-10 shrink-0 place-items-center rounded-xl bg-primary/10 text-primary">
+              <GraduationCap className="h-5 w-5" />
+            </div>
+            <div>
+              <p className="text-sm font-bold text-foreground">Lulusan PTN Ternama</p>
+              <p className="mt-0.5 text-xs text-muted-foreground leading-relaxed">Latar belakang pendidikan unggulan dengan pedagogik yang empatik.</p>
+            </div>
+          </div>
+          <div className="flex items-start gap-3 rounded-2xl border border-border bg-card p-4">
+            <div className="grid size-10 shrink-0 place-items-center rounded-xl bg-primary/10 text-primary">
+              <BookOpen className="h-5 w-5" />
+            </div>
+            <div>
+              <p className="text-sm font-bold text-foreground">Metode Fleksibel</p>
+              <p className="mt-0.5 text-xs text-muted-foreground leading-relaxed">Bimbingan daring maupun tatap muka sesuai kebutuhan murid.</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
       {/* Teachers Grid */}
       <section className="container mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 gap-6 sm:gap-8">
+        <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-2 sm:gap-8">
           {pengajar.map((tutor) => (
-            <Card key={tutor.id} className="overflow-hidden hover:shadow-lg transition-all border-border flex flex-col">
-              <CardContent className="p-5 sm:p-8 flex flex-col md:flex-row gap-5 sm:gap-6 items-start">
-                <div className="h-24 w-24 sm:h-28 sm:w-28 md:h-36 md:w-36 rounded-2xl overflow-hidden border-2 border-primary/20 shrink-0 mx-auto md:mx-0 shadow-sm">
-                  <img src={tutor.avatarUrl || "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&auto=format&fit=crop&q=80"} alt={tutor.name} className="h-full w-full object-cover" />
-                </div>
-
-                <div className="flex-1 space-y-3 min-w-0">
-                  <div className="flex flex-wrap items-center justify-between gap-2">
-                    <Badge variant="success" className="gap-1">
-                      <CheckCircle className="h-3 w-3" /> Tutor Terverifikasi
-                    </Badge>
-                  </div>
-
-                  <div>
-                    <h3 className="text-lg sm:text-xl font-bold text-foreground truncate" title={tutor.name}>
-                      {tutor.name}
-                    </h3>
-                    <p className="text-sm font-semibold text-primary truncate">{tutor.spesialisasi}</p>
-                  </div>
-
-                  <p className="text-xs sm:text-sm text-muted-foreground leading-relaxed">{tutor.bio || "Pengajar Helped By Dinda yang siap mendampingi proses belajar murid."}</p>
-
-                  <div className="pt-2 flex flex-wrap gap-2 text-xs">
-                    <span className="rounded-lg bg-secondary px-2.5 py-1 text-secondary-foreground font-medium">Aktif Mengajar</span>
-                    <span className="rounded-lg bg-muted px-2.5 py-1 text-muted-foreground font-medium">Bimbel Online & Offline</span>
-                  </div>
-
-                  <div className="pt-3 border-t border-border/60">
-                    <RatingUlasanPengajar pengajarId={tutor.id} pengajarNama={tutor.name} />
-                    <div className="mt-4">
-                    <JadwalTersediaPicker pengajarId={tutor.id} pengajarNama={tutor.name} />
-                    </div>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
+            <ProfilPengajarCard key={tutor.id} tutor={tutor} />
           ))}
         </div>
       </section>

@@ -569,6 +569,26 @@ model TentangStatistik {
   @@map("tentang_statistik")
 }
 
+model HomeSection {
+  id          String   @id @default(cuid())
+  slug        String   @unique
+  kategori    String   @default("hero")
+  judul       String
+  ringkasan   String?
+  isi         String
+  imageUrl    String?
+  ikon        String?
+  tombolTeks   String?
+  tombolLink   String?
+  isActive    Boolean  @default(true)
+  urutan      Int      @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([kategori])
+  @@map("home_sections")
+}
+
 model Program {
   id          String   @id @default(cuid())
   code        String   @unique

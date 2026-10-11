@@ -21,6 +21,9 @@ import {
   ChevronUp,
   ChevronDown,
   User,
+  Home as HomeIcon,
+  ToggleLeft,
+  ToggleRight,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -30,6 +33,7 @@ import { Modal } from "@/components/ui/modal";
 import { useToast } from "@/components/ui/toast";
 import { apiFetch } from "@/lib/api";
 import { PORTAL_CATEGORIES } from "@/lib/portal-categories";
+import { HOME_KATEGORI, HOME_IKON } from "@/lib/home-constants";
 import { ImageUploader } from "@/components/shared/ImageUploader";
 import { RichContent } from "@/components/shared/RichContent";
 import { cn } from "@/lib/utils";
@@ -90,10 +94,40 @@ type PortalRow = {
   urutan: number;
 };
 
+type HomeRow = {
+  id: string;
+  slug: string;
+  kategori: string;
+  judul: string;
+  ringkasan: string | null;
+  isi: string;
+  imageUrl: string | null;
+  ikon: string | null;
+  tombolTeks: string | null;
+  tombolLink: string | null;
+  isActive: boolean;
+  urutan: number;
+};
+
+type HomeForm = {
+  slug: string;
+  kategori: string;
+  judul: string;
+  ringkasan: string;
+  isi: string;
+  imageUrl: string;
+  ikon: string;
+  tombolTeks: string;
+  tombolLink: string;
+  isActive: boolean;
+  urutan: number;
+};
+
 const TABS = [
   { key: "berita", label: "Berita", icon: Newspaper, hint: "Artikel dan update publik" },
   { key: "tentang", label: "Tentang Kami", icon: Info, hint: "Bagian halaman Tentang Kami" },
   { key: "statistik", label: "Statistik", icon: LayoutGrid, hint: "Kartu angka di Tentang Kami" },
+  { key: "beranda", label: "Beranda", icon: HomeIcon, hint: "Bagian halaman Beranda" },
   { key: "program", label: "Program Belajar", icon: BookOpen, hint: "Pengantar halaman Program" },
   { key: "banner", label: "Banner", icon: Megaphone, hint: "Banner login & register" },
   { key: "halaman", label: "Halaman Lain", icon: LayoutGrid, hint: "Beranda, Pengajar, Kontak" },
@@ -155,6 +189,20 @@ const emptyPortal: PortalForm = {
   urutan: 0,
 };
 
+const emptyHome: HomeForm = {
+  slug: "",
+  kategori: "hero",
+  judul: "",
+  ringkasan: "",
+  isi: "",
+  imageUrl: "",
+  ikon: "Sparkles",
+  tombolTeks: "",
+  tombolLink: "",
+  isActive: true,
+  urutan: 0,
+};
+
 function slugify(value: string) {
   return value
     .trim()
@@ -172,6 +220,7 @@ export default function AdminBeritaPage() {
   const [sections, setSections] = React.useState<TentangRow[]>([]);
   const [statistik, setStatistik] = React.useState<StatistikRow[]>([]);
   const [portalItems, setPortalItems] = React.useState<PortalRow[]>([]);
+  const [homeSections, setHomeSections] = React.useState<HomeRow[]>([]);
   const [query, setQuery] = React.useState("");
   const [isModalOpen, setIsModalOpen] = React.useState(false);
   const [isPreviewOpen, setIsPreviewOpen] = React.useState(false);
@@ -182,19 +231,22 @@ export default function AdminBeritaPage() {
   const [tentangForm, setTentangForm] = React.useState<TentangForm>(emptyTentang);
   const [statistikForm, setStatistikForm] = React.useState<StatistikRow>(emptyStatistik);
   const [portalForm, setPortalForm] = React.useState<PortalForm>(emptyPortal);
+  const [homeForm, setHomeForm] = React.useState<HomeForm>(emptyHome);
 
   const loadData = React.useCallback(async () => {
     try {
-      const [beritaResult, sectionsResult, statistikResult, portalResult] = await Promise.all([
+      const [beritaResult, sectionsResult, statistikResult, portalResult, homeResult] = await Promise.all([
         apiFetch<{ ok: boolean; data: BeritaRow[] }>("/api/admin/berita"),
         apiFetch<{ ok: boolean; data: TentangRow[] }>("/api/admin/tentang/sections"),
         apiFetch<{ ok: boolean; data: StatistikRow[] }>("/api/admin/tentang/statistik"),
         apiFetch<{ ok: boolean; data: PortalRow[] }>("/api/admin/portal"),
+        apiFetch<{ ok: boolean; data: HomeRow[] }>("/api/admin/home/sections"),
       ]);
       setBerita(beritaResult.data || []);
       setSections(sectionsResult.data || []);
       setStatistik(statistikResult.data || []);
       setPortalItems(portalResult.data || []);
+      setHomeSections(homeResult.data || []);
     } catch (error) {
       toast(error instanceof Error ? error.message : "Gagal memuat konten.", "error");
     } finally {
@@ -284,6 +336,32 @@ export default function AdminBeritaPage() {
       urutan: item.urutan,
     });
     setActiveTab(item.kategori === "Program Belajar" ? "program" : item.kategori === "Beranda" || item.kategori === "Daftar Pengajar" || item.kategori === "Kontak" ? "halaman" : "halaman");
+    setIsModalOpen(true);
+  };
+
+  const openAddHome = () => {
+    setEditingId(null);
+    setHomeForm({ ...emptyHome });
+    setActiveTab("beranda");
+    setIsModalOpen(true);
+  };
+
+  const openEditHome = (item: HomeRow) => {
+    setEditingId(item.id);
+    setHomeForm({
+      slug: item.slug,
+      kategori: item.kategori,
+      judul: item.judul,
+      ringkasan: item.ringkasan || "",
+      isi: item.isi,
+      imageUrl: item.imageUrl || "",
+      ikon: item.ikon || "",
+      tombolTeks: item.tombolTeks || "",
+      tombolLink: item.tombolLink || "",
+      isActive: item.isActive,
+      urutan: item.urutan,
+    });
+    setActiveTab("beranda");
     setIsModalOpen(true);
   };
 
@@ -392,9 +470,37 @@ export default function AdminBeritaPage() {
     }
   };
 
+  const handleSaveHome = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      const payload = {
+        ...homeForm,
+        slug: homeForm.slug || slugify(homeForm.judul),
+      };
+      if (editingId) {
+        const result = await apiFetch<{ ok: boolean; data: HomeRow }>(`/api/admin/home/sections/${editingId}`, {
+          method: "PUT",
+          body: JSON.stringify(payload),
+        });
+        setHomeSections((current) => current.map((item) => (item.id === editingId ? result.data : item)));
+        toast("Bagian Beranda berhasil diperbarui.", "success");
+      } else {
+        const result = await apiFetch<{ ok: boolean; data: HomeRow }>("/api/admin/home/sections", {
+          method: "POST",
+          body: JSON.stringify(payload),
+        });
+        setHomeSections((current) => [...current, result.data]);
+        toast("Bagian Beranda berhasil ditambahkan.", "success");
+      }
+      closeModal();
+    } catch (error) {
+      toast(error instanceof Error ? error.message : "Gagal menyimpan bagian Beranda.", "error");
+    }
+  };
+
   // ---------- Delete / publish ----------
-  const handleDelete = async (source: "berita" | "tentang" | "statistik" | "portal", id: string) => {
-    const label = source === "berita" ? "berita" : source === "tentang" ? "bagian Tentang Kami" : source === "statistik" ? "statistik" : "konten halaman";
+  const handleDelete = async (source: "berita" | "tentang" | "statistik" | "portal" | "home", id: string) => {
+    const label = source === "berita" ? "berita" : source === "tentang" ? "bagian Tentang Kami" : source === "statistik" ? "statistik" : source === "home" ? "bagian Beranda" : "konten halaman";
     if (!confirm(`Hapus ${label} ini dari halaman publik?`)) return;
     try {
       const endpoint =
@@ -404,11 +510,14 @@ export default function AdminBeritaPage() {
             ? `/api/admin/tentang/sections/${id}`
             : source === "statistik"
               ? `/api/admin/tentang/statistik/${id}`
+              : source === "home"
+                ? `/api/admin/home/sections/${id}`
               : `/api/admin/portal/${id}`;
       await apiFetch(endpoint, { method: "DELETE" });
       if (source === "berita") setBerita((current) => current.filter((item) => item.id !== id));
       if (source === "tentang") setSections((current) => current.filter((item) => item.id !== id));
       if (source === "statistik") setStatistik((current) => current.filter((item) => item.id !== id));
+      if (source === "home") setHomeSections((current) => current.filter((item) => item.id !== id));
       if (source === "portal") setPortalItems((current) => current.filter((item) => item.id !== id));
       toast(`${label.charAt(0).toUpperCase() + label.slice(1)} berhasil dihapus.`, "info");
     } catch (error) {
@@ -416,35 +525,47 @@ export default function AdminBeritaPage() {
     }
   };
 
-  const togglePublish = async (source: "berita" | "tentang" | "portal", item: BeritaRow | TentangRow | PortalRow) => {
+  const togglePublish = async (source: "berita" | "tentang" | "portal" | "home", item: BeritaRow | TentangRow | PortalRow | HomeRow) => {
     try {
-      let result: { ok: boolean; data: BeritaRow | TentangRow | PortalRow };
       if (source === "berita") {
-        result = await apiFetch<{ ok: boolean; data: BeritaRow }>(`/api/admin/berita/${item.id}`, {
+        const beritaItem = item as BeritaRow;
+        const result = await apiFetch<{ ok: boolean; data: BeritaRow }>(`/api/admin/berita/${item.id}`, {
           method: "PUT",
-          body: JSON.stringify({ ...item, isPublished: !item.isPublished, slug: item.slug }),
+          body: JSON.stringify({ ...beritaItem, isPublished: !beritaItem.isPublished, slug: beritaItem.slug }),
         });
         setBerita((current) => current.map((entry) => (entry.id === item.id ? (result.data as BeritaRow) : entry)));
+        toast(`Konten ${result.data.isPublished ? "dipublikasikan" : "disimpan sebagai draft"}.`, "success");
       } else if (source === "tentang") {
-        result = await apiFetch<{ ok: boolean; data: TentangRow }>(`/api/admin/tentang/sections/${item.id}`, {
+        const tentangItem = item as TentangRow;
+        const result = await apiFetch<{ ok: boolean; data: TentangRow }>(`/api/admin/tentang/sections/${item.id}`, {
           method: "PUT",
-          body: JSON.stringify({ ...item, isPublished: !item.isPublished, slug: item.slug }),
+          body: JSON.stringify({ ...tentangItem, isPublished: !tentangItem.isPublished, slug: tentangItem.slug }),
         });
         setSections((current) => current.map((entry) => (entry.id === item.id ? (result.data as TentangRow) : entry)));
-      } else {
-        result = await apiFetch<{ ok: boolean; data: PortalRow }>(`/api/admin/portal/${item.id}`, {
+        toast(`Konten ${result.data.isPublished ? "dipublikasikan" : "disimpan sebagai draft"}.`, "success");
+      } else if (source === "home") {
+        const homeItem = item as HomeRow;
+        const result = await apiFetch<{ ok: boolean; data: HomeRow }>(`/api/admin/home/sections/${item.id}`, {
           method: "PUT",
-          body: JSON.stringify({ ...item, isPublished: !item.isPublished }),
+          body: JSON.stringify({ ...homeItem, isActive: !homeItem.isActive }),
+        });
+        setHomeSections((current) => current.map((entry) => (entry.id === item.id ? (result.data as HomeRow) : entry)));
+        toast(`Bagian Beranda ${result.data.isActive ? "diaktifkan" : "dinonaktifkan"}.`, "success");
+      } else {
+        const portalItem = item as PortalRow;
+        const result = await apiFetch<{ ok: boolean; data: PortalRow }>(`/api/admin/portal/${item.id}`, {
+          method: "PUT",
+          body: JSON.stringify({ ...portalItem, isPublished: !portalItem.isPublished }),
         });
         setPortalItems((current) => current.map((entry) => (entry.id === item.id ? (result.data as PortalRow) : entry)));
+        toast(`Konten ${result.data.isPublished ? "dipublikasikan" : "disimpan sebagai draft"}.`, "success");
       }
-      toast(`Konten ${result.data.isPublished ? "dipublikasikan" : "disimpan sebagai draft"}.`, "success");
     } catch (error) {
       toast(error instanceof Error ? error.message : "Gagal mengubah status publikasi.", "error");
     }
   };
 
-  const moveItem = async (source: "tentang" | "statistik", index: number, direction: -1 | 1) => {
+  const moveItem = async (source: "tentang" | "statistik" | "home", index: number, direction: -1 | 1) => {
     if (source === "tentang") {
       const target = index + direction;
       if (target < 0 || target >= sections.length) return;
@@ -460,6 +581,28 @@ export default function AdminBeritaPage() {
           });
         }
         toast("Urutan bagian berhasil disimpan.", "success");
+      } catch (error) {
+        toast(error instanceof Error ? error.message : "Gagal menyimpan urutan.", "error");
+        loadData();
+      }
+      return;
+    }
+
+    if (source === "home") {
+      const target = index + direction;
+      if (target < 0 || target >= homeSections.length) return;
+      const next = [...homeSections];
+      const [moved] = next.splice(index, 1);
+      next.splice(target, 0, moved);
+      setHomeSections(next);
+      try {
+        for (let i = 0; i < next.length; i++) {
+          await apiFetch(`/api/admin/home/sections/${next[i].id}`, {
+            method: "PUT",
+            body: JSON.stringify({ ...next[i], urutan: i + 1 }),
+          });
+        }
+        toast("Urutan bagian Beranda berhasil disimpan.", "success");
       } catch (error) {
         toast(error instanceof Error ? error.message : "Gagal menyimpan urutan.", "error");
         loadData();
@@ -493,6 +636,7 @@ export default function AdminBeritaPage() {
   const filteredSections = sections.filter((item) => item.judul.toLowerCase().includes(queryLower) || item.kategori.toLowerCase().includes(queryLower));
   const sortedSections = [...filteredSections].sort((a, b) => a.urutan - b.urutan);
   const sortedStatistik = [...statistik].sort((a, b) => a.urutan - b.urutan);
+  const sortedHome = [...homeSections].sort((a, b) => a.urutan - b.urutan).filter((item) => item.judul.toLowerCase().includes(queryLower));
 
   const programItems = portalItems
     .filter((item) => item.kategori === "Program Belajar")
@@ -509,6 +653,22 @@ export default function AdminBeritaPage() {
   const currentTabConfig = TABS.find((tab) => tab.key === activeTab)!;
 
   const renderPreview = () => {
+    if (activeTab === "beranda") {
+      return (
+        <div className="space-y-4 text-foreground">
+          <h3 className="text-2xl font-extrabold">{homeForm.judul || "Judul Bagian"}</h3>
+          {homeForm.ringkasan && <p className="text-sm text-muted-foreground">{homeForm.ringkasan}</p>}
+          {homeForm.imageUrl && <img src={homeForm.imageUrl} alt="Pratinjau" className="max-h-72 w-full rounded-2xl border border-border object-cover" />}
+          <RichContent content={homeForm.isi} className="text-sm sm:text-base" />
+          {homeForm.tombolTeks && (
+            <div className="inline-flex items-center gap-2 rounded-xl bg-primary px-4 py-2.5 text-sm font-bold text-white">
+              {homeForm.tombolTeks}
+              {homeForm.tombolLink && <span className="text-white/70">({homeForm.tombolLink})</span>}
+            </div>
+          )}
+        </div>
+      );
+    }
     if (activeTab === "tentang" || activeTab === "halaman") {
       return (
         <div className="space-y-4 text-foreground">
@@ -586,6 +746,11 @@ export default function AdminBeritaPage() {
               <Plus className="h-4 w-4" /> Tambah Statistik
             </Button>
           )}
+          {activeTab === "beranda" && (
+            <Button onClick={openAddHome} variant="accent" className="font-bold gap-2">
+              <Plus className="h-4 w-4" /> Tambah Bagian Beranda
+            </Button>
+          )}
           {activeTab === "berita" && (
             <Button onClick={openAddBerita} variant="accent" className="font-bold gap-2">
               <Plus className="h-4 w-4" /> Tambah Berita
@@ -602,6 +767,7 @@ export default function AdminBeritaPage() {
             berita: berita.length,
             tentang: sections.length,
             statistik: statistik.length,
+            beranda: homeSections.length,
             program: programItems.length,
             banner: bannerItems.length,
             halaman: halamanItems.length,
@@ -813,6 +979,66 @@ export default function AdminBeritaPage() {
               </div>
             ))}
 
+          {/* ===== TAB BERANDA ===== */}
+          {activeTab === "beranda" &&
+            (sortedHome.length === 0 ? (
+              <EmptyState message={emptyMessage("bagian Beranda")} />
+            ) : (
+              sortedHome.map((item, index) => (
+                <Card key={item.id}>
+                  <CardContent className="p-5">
+                    <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+                      <div className="flex items-start gap-4 min-w-0">
+                        <div className="grid size-14 shrink-0 place-items-center overflow-hidden rounded-2xl border border-primary/20 bg-primary/5 text-primary">
+                          {item.imageUrl ? <img src={item.imageUrl} alt={item.judul} className="h-full w-full object-cover" /> : <HomeIcon className="h-6 w-6" />}
+                        </div>
+                        <div className="min-w-0">
+                          <div className="flex flex-wrap items-center gap-2">
+                            <Badge variant="default">{HOME_KATEGORI.find((k) => k.value === item.kategori)?.label || item.kategori}</Badge>
+                            <Badge variant={item.isActive ? "success" : "secondary"}>{item.isActive ? "Aktif" : "Nonaktif"}</Badge>
+                          </div>
+                          <h2 className="mt-2 text-lg font-bold text-foreground">{item.judul}</h2>
+                          {item.ringkasan && <p className="mt-1 max-w-2xl text-sm text-muted-foreground line-clamp-2">{item.ringkasan}</p>}
+                        </div>
+                      </div>
+                      <div className="flex shrink-0 items-center gap-2">
+                        <div className="flex flex-col gap-0.5">
+                          <button
+                            type="button"
+                            onClick={() => moveItem("home", index, -1)}
+                            disabled={index === 0}
+                            className="rounded-md p-1 text-muted-foreground hover:bg-muted hover:text-foreground disabled:opacity-30"
+                            title="Pindah ke atas"
+                          >
+                            <ChevronUp className="h-4 w-4" />
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => moveItem("home", index, 1)}
+                            disabled={index === sortedHome.length - 1}
+                            className="rounded-md p-1 text-muted-foreground hover:bg-muted hover:text-foreground disabled:opacity-30"
+                            title="Pindah ke bawah"
+                          >
+                            <ChevronDown className="h-4 w-4" />
+                          </button>
+                        </div>
+                        <Button variant="outline" size="sm" onClick={() => openEditHome(item)} className="gap-2">
+                          <Pencil className="h-4 w-4" /> Edit
+                        </Button>
+                        <Button variant="outline" size="sm" onClick={() => togglePublish("home", item)} className="gap-2">
+                          {item.isActive ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                          {item.isActive ? "Nonaktifkan" : "Aktifkan"}
+                        </Button>
+                        <Button variant="ghost" size="sm" onClick={() => handleDelete("home", item.id)} className="gap-2 text-rose-600 hover:bg-rose-50 hover:text-rose-700">
+                          <Trash2 className="h-4 w-4" /> Hapus
+                        </Button>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))
+            ))}
+
           {/* ===== TAB PROGRAM BELAJAR ===== */}
           {activeTab === "program" &&
             (programItems.length === 0 ? (
@@ -862,6 +1088,10 @@ export default function AdminBeritaPage() {
                 ? editingId
                   ? "Edit Kartu Statistik"
                   : "Tambah Kartu Statistik"
+                : activeTab === "beranda"
+                  ? editingId
+                    ? "Edit Bagian Beranda"
+                    : "Tambah Bagian Beranda"
                 : editingId
                   ? "Edit Konten Halaman"
                   : "Tambah Konten Halaman"
@@ -998,6 +1228,97 @@ export default function AdminBeritaPage() {
             {isPreviewOpen && (
               <div className="rounded-2xl border border-border bg-muted/20 p-5">
                 <p className="mb-4 text-xs font-bold uppercase tracking-wider text-muted-foreground">Pratinjau Kartu</p>
+                {renderPreview()}
+              </div>
+            )}
+          </form>
+        ) : activeTab === "beranda" ? (
+          <form onSubmit={handleSaveHome} className="space-y-4">
+            <div className="grid gap-3 sm:grid-cols-2">
+              <Field label="Bagian / Kategori Beranda">
+                <select
+                  className="flex h-11 w-full rounded-xl border border-input bg-card px-3 py-2 text-sm text-foreground"
+                  value={homeForm.kategori}
+                  onChange={(e) => setHomeForm({ ...homeForm, kategori: e.target.value })}
+                >
+                  {HOME_KATEGORI.map((item) => (
+                    <option key={item.value} value={item.value}>
+                      {item.label}
+                    </option>
+                  ))}
+                </select>
+              </Field>
+              <Field label="Ikon Bagian">
+                <select
+                  className="flex h-11 w-full rounded-xl border border-input bg-card px-3 py-2 text-sm text-foreground"
+                  value={homeForm.ikon}
+                  onChange={(e) => setHomeForm({ ...homeForm, ikon: e.target.value })}
+                >
+                  {HOME_IKON.map((ikon) => (
+                    <option key={ikon} value={ikon}>
+                      {ikon}
+                    </option>
+                  ))}
+                </select>
+              </Field>
+            </div>
+            <div className="grid gap-3 sm:grid-cols-2">
+              <Field label="Judul Bagian">
+                <Input required value={homeForm.judul} onChange={(e) => setHomeForm({ ...homeForm, judul: e.target.value, slug: homeForm.slug || slugify(e.target.value) })} placeholder="contoh: Keunggulan Kami" />
+              </Field>
+              <Field label="Slug URL (opsional)">
+                <Input value={homeForm.slug} onChange={(e) => setHomeForm({ ...homeForm, slug: e.target.value })} placeholder="otomatis dari judul" />
+              </Field>
+            </div>
+            <Field label="Ringkasan Singkat">
+              <Input value={homeForm.ringkasan} onChange={(e) => setHomeForm({ ...homeForm, ringkasan: e.target.value })} placeholder="Deskripsi singkat di bawah judul" />
+            </Field>
+            <EditorToolbar value={homeForm.isi} onChange={(isi) => setHomeForm({ ...homeForm, isi })} placeholder="Tulis isi bagian Beranda di sini..." />
+
+            <div className="rounded-xl border border-border bg-muted/30 p-4 space-y-4">
+              <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Format Isi yang Didukung</p>
+              <div className="grid gap-3 text-xs text-muted-foreground sm:grid-cols-2">
+                <div className="rounded-lg border border-border bg-card p-3">
+                  <p className="font-bold text-foreground">Statistik Beranda</p>
+                  <p className="mt-1">Setiap baris: <code className="font-mono">Angka|Keterangan|NamaIkon</code></p>
+                  <p className="mt-1"><code className="font-mono">100%|Absensi Digital Akurat|CalendarCheck</code></p>
+                </div>
+                <div className="rounded-lg border border-border bg-card p-3">
+                  <p className="font-bold text-foreground">Keunggulan Kami</p>
+                  <p className="mt-1">Setiap baris: <code className="font-mono">Judul|Deskripsi|NamaIkon</code></p>
+                  <p className="mt-1"><code className="font-mono">Absensi Digital Realtime|Deskripsi di sini|CalendarCheck</code></p>
+                </div>
+              </div>
+            </div>
+
+            <div className="grid gap-3 sm:grid-cols-2">
+              <Field label="Teks Tombol (opsional)">
+                <Input value={homeForm.tombolTeks} onChange={(e) => setHomeForm({ ...homeForm, tombolTeks: e.target.value })} placeholder="contoh: Daftar Murid Baru" />
+              </Field>
+              <Field label="Tautan Tombol (opsional)">
+                <Input value={homeForm.tombolLink} onChange={(e) => setHomeForm({ ...homeForm, tombolLink: e.target.value })} placeholder="contoh: /register" />
+              </Field>
+            </div>
+            <ImageUploader label="Gambar Bagian (opsional)" value={homeForm.imageUrl} onChange={(url) => setHomeForm({ ...homeForm, imageUrl: url })} placeholder="Upload atau tempel URL gambar" compact />
+            <div className="grid grid-cols-2 gap-3">
+              <Field label="Urutan">
+                <Input type="number" value={homeForm.urutan} onChange={(e) => setHomeForm({ ...homeForm, urutan: Number(e.target.value) })} />
+              </Field>
+              <Field label="Status Bagian">
+                <PublishToggle published={homeForm.isActive} onChange={(v) => setHomeForm({ ...homeForm, isActive: v })} />
+              </Field>
+            </div>
+            <div className="flex justify-end gap-2 pt-2">
+              <Button type="button" variant="outline" onClick={() => setIsPreviewOpen(!isPreviewOpen)} className="gap-2">
+                <PreviewIcon className="h-4 w-4" /> {isPreviewOpen ? "Tutup Pratinjau" : "Pratinjau"}
+              </Button>
+              <Button type="submit" variant="accent">
+                {editingId ? "Simpan Perubahan" : "Buat Bagian Beranda"}
+              </Button>
+            </div>
+            {isPreviewOpen && (
+              <div className="rounded-2xl border border-border bg-muted/20 p-5">
+                <p className="mb-4 text-xs font-bold uppercase tracking-wider text-muted-foreground">Pratinjau Bagian Beranda</p>
                 {renderPreview()}
               </div>
             )}
