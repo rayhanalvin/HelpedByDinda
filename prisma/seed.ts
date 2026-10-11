@@ -141,6 +141,41 @@ async function main() {
     });
   }
 
+  const banners = [
+    {
+      kategori: "Beranda",
+      slug: "login-banner",
+      judul: "Bimbingan Belajar Modern dan Terarah",
+      ringkasan: "Dinda Rizky Febriyanti||Pendiri & Direktur Akademik||Bimbingan Belajar Modern dan Terarah",
+      isi: [
+        "Jadwal mengajar dan absensi digital 100% transparan",
+        "Akses materi video Bunny Stream dan modul latihan PDF",
+        "Pembayaran praktis langsung otomatis via Midtrans Snap",
+      ].join("\n"),
+      urutan: 6,
+    },
+    {
+      kategori: "Beranda",
+      slug: "register-banner",
+      judul: "Mulai Perjalanan Belajar yang Lebih Terarah",
+      ringkasan: "Dinda Rizky Febriyanti||Pendiri & Direktur Akademik||Bangun kebiasaan belajar bersama kami",
+      isi: [
+        "Jadwal mengajar dan absensi digital 100% transparan",
+        "Akses materi video Bunny Stream dan modul latihan PDF",
+        "Pembayaran praktis langsung otomatis via Midtrans Snap",
+      ].join("\n"),
+      urutan: 7,
+    },
+  ];
+
+  for (const banner of banners) {
+    await prisma.portalKonten.upsert({
+      where: { slug: banner.slug },
+      update: {},
+      create: banner,
+    });
+  }
+
   const tentangSections = [
     {
       slug: "tentang-helped-by-dinda",

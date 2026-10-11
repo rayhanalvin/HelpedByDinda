@@ -64,24 +64,47 @@ export default function ProgramPage() {
   };
 
   return (
-    <div className="flex flex-col gap-12 py-12 pb-24">
-      {/* Header */}
-      <section className="container mx-auto max-w-5xl px-4 sm:px-6 text-center">
-        <Badge variant="default" className="mb-3">
-          Katalog Program Resmi
-        </Badge>
-        <h1 className="text-4xl sm:text-5xl font-extrabold tracking-tight text-foreground">{portalContent?.judul || "Pilihan Program Belajar Sesuai Kebutuhanmu"}</h1>
-        <p className="mt-4 text-base sm:text-lg text-muted-foreground max-w-2xl mx-auto leading-relaxed whitespace-pre-line">
-          {portalContent?.ringkasan || "Semua program dilengkapi dengan akses portal murid digital: absensi kehadiran terverifikasi, video materi tanpa jeda iklan, dan pembayaran Midtrans praktis."}
-        </p>
+    <div className="flex flex-col gap-12 pb-24">
+      {/* Header hero */}
+      <section className="relative overflow-hidden rounded-4xl bg-linear-to-br from-primary via-primary/90 to-purple-800 px-6 py-12 text-center text-white shadow-xl sm:px-12 sm:py-16 mt-6">
+        <div className="absolute -right-24 -top-24 size-80 rounded-full bg-white/10 blur-3xl" aria-hidden />
+        <div className="absolute -bottom-32 -left-20 size-80 rounded-full bg-accent/20 blur-3xl" aria-hidden />
+        <div className="container relative mx-auto max-w-4xl">
+          <p className="mx-auto inline-flex items-center gap-1.5 rounded-full border border-white/20 bg-white/10 px-4 py-1.5 text-xs font-bold uppercase tracking-wider backdrop-blur-sm">
+            <Sparkles className="h-3.5 w-3.5" /> Katalog Program Resmi
+          </p>
+          <h1 className="mx-auto mt-5 text-3xl font-extrabold leading-tight tracking-tight sm:text-5xl">
+            {portalContent?.judul || "Pilihan Program Belajar Sesuai Kebutuhanmu"}
+          </h1>
+          <p className="mx-auto mt-4 max-w-2xl text-sm leading-relaxed text-white/85 sm:text-base whitespace-pre-line">
+            {portalContent?.ringkasan ||
+              "Semua program dilengkapi dengan akses portal murid digital: absensi kehadiran terverifikasi, video materi tanpa jeda iklan, dan pembayaran Midtrans praktis."}
+          </p>
+          <div className="mt-8 flex flex-wrap items-center justify-center gap-4">
+            <div className="rounded-2xl border border-white/20 bg-white/10 px-5 py-3 backdrop-blur-sm">
+              <p className="text-2xl font-extrabold tabular-nums">{programs.length}</p>
+              <p className="text-[11px] font-semibold uppercase tracking-wider text-white/80">Program Tersedia</p>
+            </div>
+            <div className="rounded-2xl border border-white/20 bg-white/10 px-5 py-3 backdrop-blur-sm">
+              <p className="text-2xl font-extrabold tabular-nums">{programCategories.length}</p>
+              <p className="text-[11px] font-semibold uppercase tracking-wider text-white/80">Jenjang Pendidikan</p>
+            </div>
+          </div>
+        </div>
+      </section>
 
-        {/* Tab Filters */}
-        <div className="mt-8 flex flex-wrap items-center justify-center gap-2">
+      {/* Tab Filters */}
+      <section className="container mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+        <div className="flex flex-wrap items-center justify-center gap-2 rounded-2xl border border-border bg-card p-2">
           {["SEMUA", ...programCategories].map((tab) => (
             <button
               key={tab}
+              type="button"
               onClick={() => setActiveTab(tab)}
-              className={cn("rounded-xl px-5 py-2.5 text-sm font-semibold transition-all cursor-pointer", activeTab === tab ? "bg-primary text-white shadow-sm" : "bg-muted text-muted-foreground hover:bg-border")}
+              className={cn(
+                "rounded-xl px-5 py-2.5 text-sm font-semibold transition-all cursor-pointer",
+                activeTab === tab ? "bg-primary text-white shadow-sm" : "text-muted-foreground hover:bg-muted"
+              )}
             >
               {tab === "SEMUA" ? "Semua Program" : `Tingkat ${tab}`}
             </button>
@@ -91,57 +114,64 @@ export default function ProgramPage() {
 
       {/* Program Cards Grid */}
       <section className="container mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+        <div className="grid grid-cols-1 gap-8 md:grid-cols-2">
+          {visiblePrograms.length === 0 && (
+            <div className="col-span-full rounded-3xl border border-dashed border-border bg-muted/30 p-12 text-center text-sm text-muted-foreground">
+              Belum ada program yang dipublikasikan untuk kategori ini.
+            </div>
+          )}
           {visiblePrograms.map((program) => (
-            <div key={program.id} className={cn("rounded-3xl border bg-card p-6 sm:p-8 flex flex-col justify-between transition-all hover:shadow-lg relative", program.popular ? "border-primary/50 shadow-sm" : "border-border")}>
+            <div
+              key={program.id}
+              className={cn(
+                "relative flex flex-col justify-between rounded-3xl border bg-card p-6 transition-all hover:shadow-lg sm:p-8",
+                program.popular ? "border-primary/50 shadow-sm" : "border-border"
+              )}
+            >
               {program.popular && (
                 <div className="absolute -top-3 right-6">
                   <Badge variant="default" className="bg-primary text-white">
-                    <Sparkles className="h-3.5 w-3.5 mr-1" /> Rekomendasi
+                    <Sparkles className="mr-1 h-3.5 w-3.5" /> Rekomendasi
                   </Badge>
                 </div>
               )}
 
               <div>
-                <div className="flex items-center gap-2 mb-2">
+                <div className="mb-2 flex items-center gap-2">
                   <Badge variant="secondary" className="font-bold">
                     {program.category}
                   </Badge>
-                  <span className="text-xs text-muted-foreground font-medium">{program.target}</span>
+                  <span className="text-xs font-medium text-muted-foreground">{program.target}</span>
                 </div>
 
                 <h3 className="text-2xl font-bold text-foreground">{program.title}</h3>
-                <p className="text-sm text-muted-foreground mt-2 leading-relaxed">{program.description}</p>
+                <p className="mt-2 text-sm leading-relaxed text-muted-foreground">{program.description}</p>
 
-                {/* Price */}
-                <div className="mt-6 p-4 rounded-2xl bg-secondary/40 border border-border">
-                  <span className="text-xs text-muted-foreground block font-medium">Investasi Belajar:</span>
-                  <div className="flex items-baseline gap-1 mt-0.5">
-                    <span className="text-3xl font-extrabold text-foreground tabular-nums">{formatRupiah(program.price)}</span>
-                    <span className="text-xs text-muted-foreground font-medium">/ bulan</span>
+                <div className="mt-6 rounded-2xl border border-border bg-secondary/40 p-4">
+                  <span className="block text-xs font-medium text-muted-foreground">Investasi Belajar:</span>
+                  <div className="mt-0.5 flex items-baseline gap-1">
+                    <span className="text-3xl font-extrabold tabular-nums text-foreground">{formatRupiah(program.price)}</span>
+                    <span className="text-xs font-medium text-muted-foreground">/ bulan</span>
                   </div>
                 </div>
 
-                {/* Mapel */}
                 <div className="mt-6">
-                  <p className="text-xs font-bold text-foreground uppercase tracking-wider mb-2">Mata Pelajaran:</p>
+                  <p className="mb-2 text-xs font-bold uppercase tracking-wider text-foreground">Mata Pelajaran:</p>
                   <div className="flex flex-wrap gap-2">
                     {program.subjects.map((s) => (
                       <span key={s} className="rounded-lg bg-muted px-2.5 py-1 text-xs font-medium text-foreground">
                         {s}
                       </span>
                     ))}
-                    {visiblePrograms.length === 0 && <p className="col-span-full py-12 text-center text-sm text-muted-foreground">Belum ada program yang dipublikasikan untuk kategori ini.</p>}
                   </div>
                 </div>
 
-                {/* Fasilitas */}
                 <div className="mt-6">
-                  <p className="text-xs font-bold text-foreground uppercase tracking-wider mb-2">Fasilitas Termasuk:</p>
+                  <p className="mb-2 text-xs font-bold uppercase tracking-wider text-foreground">Fasilitas Termasuk:</p>
                   <ul className="space-y-2">
                     {program.facilities.map((f) => (
-                      <li key={f} className="flex items-start gap-2.5 text-xs sm:text-sm text-muted-foreground">
-                        <Check className="h-4 w-4 text-emerald-600 shrink-0 mt-0.5" />
+                      <li key={f} className="flex items-start gap-2.5 text-xs text-muted-foreground sm:text-sm">
+                        <Check className="mt-0.5 h-4 w-4 shrink-0 text-emerald-600" />
                         <span>{f}</span>
                       </li>
                     ))}
@@ -149,8 +179,7 @@ export default function ProgramPage() {
                 </div>
               </div>
 
-              {/* Action */}
-              <div className="mt-8 pt-6 border-t border-border flex flex-col sm:flex-row gap-3">
+              <div className="mt-8 flex flex-col gap-3 border-t border-border pt-6 sm:flex-row">
                 <Button variant="accent" className="flex-1 justify-center gap-1.5 font-bold" onClick={() => selectProgram(program)}>
                   Daftar Program Ini
                   <ArrowRight className="h-4 w-4" />
@@ -168,11 +197,12 @@ export default function ProgramPage() {
 
       {/* Info Garansi & Metode Pembelajaran */}
       <section className="container mx-auto max-w-5xl px-4 sm:px-6">
-        <div className="rounded-3xl border border-border bg-muted/40 p-8 text-center flex flex-col items-center gap-4">
+        <div className="flex flex-col items-center gap-4 rounded-3xl border border-border bg-muted/40 p-8 text-center">
           <Badge variant="default">Metode Fleksibel</Badge>
           <h3 className="text-2xl font-bold text-foreground">Pilih Mode Belajar Sesuai Kenyamananmu</h3>
-          <p className="text-sm text-muted-foreground max-w-xl leading-relaxed whitespace-pre-line">
-            {portalContent?.isi || "Kami menyediakan kelas Online (via Google Meet / Zoom dengan rekaman video Bunny CDN) dan kelas Offline di ruang belajar nyaman ber-AC di cabang kami."}
+          <p className="max-w-xl text-sm leading-relaxed text-muted-foreground whitespace-pre-line">
+            {portalContent?.isi ||
+              "Kami menyediakan kelas Online (via Google Meet / Zoom dengan rekaman video Bunny CDN) dan kelas Offline di ruang belajar nyaman ber-AC di cabang kami."}
           </p>
         </div>
       </section>

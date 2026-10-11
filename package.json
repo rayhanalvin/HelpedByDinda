@@ -14,6 +14,7 @@
     "db:availability-status": "tsx prisma/add-availability-status.ts",
     "db:tentang-sections": "tsx prisma/setup-tentang-sections.ts",
     "db:tentang-galeri": "tsx prisma/isi-galeri-tentang.ts",
+    "db:banner": "tsx prisma/setup-banner.ts",
     "cleanup:users": "tsx prisma/cleanup-pengajar-murid.ts",
     "cleanup:users:dry": "tsx prisma/cleanup-pengajar-murid.ts --dry-run",
     "cleanup:spp": "tsx prisma/cleanup-spp-invoice.ts",
