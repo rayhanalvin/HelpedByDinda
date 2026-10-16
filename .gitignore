@@ -42,3 +42,13 @@ next-env.d.ts
 
 .vercel
 .env*
+
+# vercel/github diagnostic dumps
+/gh-repo.json
+/projects-now.json
+/vercel-api.json
+/vercel-api2.json
+/vercel-api3.json
+/vercel-check-user.json
+/vercel-env-raw.json
+/vercel-projects.json
